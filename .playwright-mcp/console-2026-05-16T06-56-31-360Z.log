@@ -1,0 +1,434 @@
+[     139ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:3000/static/js/2.chunk.js:42265
+[     147ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/static/js/2.chunk.js:46728
+[     147ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:3000/static/js/2.chunk.js:46728
+[     187ms] [WARNING] ./src/App.tsx
+  Line 98:17:   Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 103:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 205:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 210:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 285:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 289:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 293:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/2.chunk.js:16416
+[  375468ms] [WARNING] ./src/App.tsx
+  Line 98:17:   Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 103:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 205:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 210:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 285:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 289:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 293:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/2.chunk.js:16416
+[  375698ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:3000/static/js/0.chunk.js:42265
+[  375711ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/static/js/0.chunk.js:46728
+[  375711ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:3000/static/js/0.chunk.js:46728
+[  375746ms] TypeError: Cannot read properties of undefined (reading 'some')
+    at http://localhost:3000/static/js/main.chunk.js:1798:57
+    at Array.filter (<anonymous>)
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1798:26)
+    at renderWithHooks (http://localhost:3000/static/js/0.chunk.js:30680:22)
+    at updateFunctionComponent (http://localhost:3000/static/js/0.chunk.js:33560:24)
+    at beginWork (http://localhost:3000/static/js/0.chunk.js:35272:20)
+    at HTMLUnknownElement.callCallback (http://localhost:3000/static/js/0.chunk.js:20276:18)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/static/js/0.chunk.js:20320:20)
+    at invokeGuardedCallback (http://localhost:3000/static/js/0.chunk.js:20377:35)
+    at beginWork$1 (http://localhost:3000/static/js/0.chunk.js:40241:11)
+    at performUnitOfWork (http://localhost:3000/static/js/0.chunk.js:39492:16)
+    at workLoopSync (http://localhost:3000/static/js/0.chunk.js:39412:9)
+    at renderRootSync (http://localhost:3000/static/js/0.chunk.js:39385:11)
+    at performConcurrentWorkOnRoot (http://localhost:3000/static/js/0.chunk.js:38780:78)
+    at workLoop (http://localhost:3000/static/js/0.chunk.js:49996:38)
+    at flushWork (http://localhost:3000/static/js/0.chunk.js:49974:18)
+    at performWorkUntilDeadline (http://localhost:3000/static/js/0.chunk.js:50211:25)
+    at run (http://localhost:3000/static/js/0.chunk.js:50413:9)
+    at runIfPresent (http://localhost:3000/static/js/0.chunk.js:50441:11)
+    at onGlobalMessage (http://localhost:3000/static/js/0.chunk.js:50478:9)
+[  375772ms] TypeError: Cannot read properties of undefined (reading 'some')
+    at http://localhost:3000/static/js/main.chunk.js:1798:57
+    at Array.filter (<anonymous>)
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1798:26)
+    at renderWithHooks (http://localhost:3000/static/js/0.chunk.js:30680:22)
+    at updateFunctionComponent (http://localhost:3000/static/js/0.chunk.js:33560:24)
+    at beginWork (http://localhost:3000/static/js/0.chunk.js:35272:20)
+    at HTMLUnknownElement.callCallback (http://localhost:3000/static/js/0.chunk.js:20276:18)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/static/js/0.chunk.js:20320:20)
+    at invokeGuardedCallback (http://localhost:3000/static/js/0.chunk.js:20377:35)
+    at beginWork$1 (http://localhost:3000/static/js/0.chunk.js:40241:11)
+    at performUnitOfWork (http://localhost:3000/static/js/0.chunk.js:39492:16)
+    at workLoopSync (http://localhost:3000/static/js/0.chunk.js:39412:9)
+    at renderRootSync (http://localhost:3000/static/js/0.chunk.js:39385:11)
+    at recoverFromConcurrentError (http://localhost:3000/static/js/0.chunk.js:38877:24)
+    at performConcurrentWorkOnRoot (http://localhost:3000/static/js/0.chunk.js:38790:26)
+    at workLoop (http://localhost:3000/static/js/0.chunk.js:49996:38)
+    at flushWork (http://localhost:3000/static/js/0.chunk.js:49974:18)
+    at performWorkUntilDeadline (http://localhost:3000/static/js/0.chunk.js:50211:25)
+    at run (http://localhost:3000/static/js/0.chunk.js:50413:9)
+    at runIfPresent (http://localhost:3000/static/js/0.chunk.js:50441:11)
+    at onGlobalMessage (http://localhost:3000/static/js/0.chunk.js:50478:9)
+[  375752ms] [ERROR] The above error occurred in the <CarsView> component:
+
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1711:3)
+    at RenderedRoute (http://localhost:3000/static/js/0.chunk.js:46312:5)
+    at Routes (http://localhost:3000/static/js/0.chunk.js:47046:5)
+    at main
+    at div
+    at Router (http://localhost:3000/static/js/0.chunk.js:46980:15)
+    at BrowserRouter (http://localhost:3000/static/js/0.chunk.js:44868:5)
+    at App (http://localhost:3000/static/js/main.chunk.js:773:81)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:3000/static/js/0.chunk.js:43561
+[  375778ms] TypeError: Cannot read properties of undefined (reading 'some')
+    at http://localhost:3000/static/js/main.chunk.js:1798:57
+    at Array.filter (<anonymous>)
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1798:26)
+    at renderWithHooks (http://localhost:3000/static/js/0.chunk.js:30680:22)
+    at updateFunctionComponent (http://localhost:3000/static/js/0.chunk.js:33560:24)
+    at beginWork (http://localhost:3000/static/js/0.chunk.js:35272:20)
+    at beginWork$1 (http://localhost:3000/static/js/0.chunk.js:40219:18)
+    at performUnitOfWork (http://localhost:3000/static/js/0.chunk.js:39492:16)
+    at workLoopSync (http://localhost:3000/static/js/0.chunk.js:39412:9)
+    at renderRootSync (http://localhost:3000/static/js/0.chunk.js:39385:11)
+    at recoverFromConcurrentError (http://localhost:3000/static/js/0.chunk.js:38877:24)
+    at performConcurrentWorkOnRoot (http://localhost:3000/static/js/0.chunk.js:38790:26)
+    at workLoop (http://localhost:3000/static/js/0.chunk.js:49996:38)
+    at flushWork (http://localhost:3000/static/js/0.chunk.js:49974:18)
+    at performWorkUntilDeadline (http://localhost:3000/static/js/0.chunk.js:50211:25)
+    at run (http://localhost:3000/static/js/0.chunk.js:50413:9)
+    at runIfPresent (http://localhost:3000/static/js/0.chunk.js:50441:11)
+    at onGlobalMessage (http://localhost:3000/static/js/0.chunk.js:50478:9)
+[  375757ms] [WARNING] ./src/App.tsx
+  Line 98:17:   Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 103:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 205:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 210:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 285:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 289:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 293:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/0.chunk.js:16416
+[  376511ms] ReferenceError: process is not defined
+    at 4043 (<anonymous>:2:13168)
+    at r (<anonymous>:2:306599)
+    at 8048 (<anonymous>:2:9496)
+    at r (<anonymous>:2:306599)
+    at 8641 (<anonymous>:2:1379)
+    at r (<anonymous>:2:306599)
+    at <anonymous>:2:315627
+    at <anonymous>:2:324225
+    at <anonymous>:2:324229
+    at e.onload (http://localhost:3000/static/js/0.chunk.js:44085:324845)
+[  381354ms] [WARNING] ./src/App.tsx
+  Line 98:17:   Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 103:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 205:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 210:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 285:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 289:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 293:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/0.chunk.js:16416
+[  381526ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:3000/static/js/2.chunk.js:42265
+[  381534ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/static/js/2.chunk.js:46728
+[  381535ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:3000/static/js/2.chunk.js:46728
+[  381573ms] TypeError: Cannot read properties of undefined (reading 'some')
+    at http://localhost:3000/static/js/main.chunk.js:1798:57
+    at Array.filter (<anonymous>)
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1798:26)
+    at renderWithHooks (http://localhost:3000/static/js/2.chunk.js:30680:22)
+    at updateFunctionComponent (http://localhost:3000/static/js/2.chunk.js:33560:24)
+    at beginWork (http://localhost:3000/static/js/2.chunk.js:35272:20)
+    at HTMLUnknownElement.callCallback (http://localhost:3000/static/js/2.chunk.js:20276:18)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/static/js/2.chunk.js:20320:20)
+    at invokeGuardedCallback (http://localhost:3000/static/js/2.chunk.js:20377:35)
+    at beginWork$1 (http://localhost:3000/static/js/2.chunk.js:40241:11)
+    at performUnitOfWork (http://localhost:3000/static/js/2.chunk.js:39492:16)
+    at workLoopSync (http://localhost:3000/static/js/2.chunk.js:39412:9)
+    at renderRootSync (http://localhost:3000/static/js/2.chunk.js:39385:11)
+    at performConcurrentWorkOnRoot (http://localhost:3000/static/js/2.chunk.js:38780:78)
+    at workLoop (http://localhost:3000/static/js/2.chunk.js:49996:38)
+    at flushWork (http://localhost:3000/static/js/2.chunk.js:49974:18)
+    at performWorkUntilDeadline (http://localhost:3000/static/js/2.chunk.js:50211:25)
+    at run (http://localhost:3000/static/js/2.chunk.js:50413:9)
+    at runIfPresent (http://localhost:3000/static/js/2.chunk.js:50441:11)
+    at onGlobalMessage (http://localhost:3000/static/js/2.chunk.js:50478:9)
+[  381577ms] TypeError: Cannot read properties of undefined (reading 'some')
+    at http://localhost:3000/static/js/main.chunk.js:1798:57
+    at Array.filter (<anonymous>)
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1798:26)
+    at renderWithHooks (http://localhost:3000/static/js/2.chunk.js:30680:22)
+    at updateFunctionComponent (http://localhost:3000/static/js/2.chunk.js:33560:24)
+    at beginWork (http://localhost:3000/static/js/2.chunk.js:35272:20)
+    at HTMLUnknownElement.callCallback (http://localhost:3000/static/js/2.chunk.js:20276:18)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/static/js/2.chunk.js:20320:20)
+    at invokeGuardedCallback (http://localhost:3000/static/js/2.chunk.js:20377:35)
+    at beginWork$1 (http://localhost:3000/static/js/2.chunk.js:40241:11)
+    at performUnitOfWork (http://localhost:3000/static/js/2.chunk.js:39492:16)
+    at workLoopSync (http://localhost:3000/static/js/2.chunk.js:39412:9)
+    at renderRootSync (http://localhost:3000/static/js/2.chunk.js:39385:11)
+    at recoverFromConcurrentError (http://localhost:3000/static/js/2.chunk.js:38877:24)
+    at performConcurrentWorkOnRoot (http://localhost:3000/static/js/2.chunk.js:38790:26)
+    at workLoop (http://localhost:3000/static/js/2.chunk.js:49996:38)
+    at flushWork (http://localhost:3000/static/js/2.chunk.js:49974:18)
+    at performWorkUntilDeadline (http://localhost:3000/static/js/2.chunk.js:50211:25)
+    at run (http://localhost:3000/static/js/2.chunk.js:50413:9)
+    at runIfPresent (http://localhost:3000/static/js/2.chunk.js:50441:11)
+    at onGlobalMessage (http://localhost:3000/static/js/2.chunk.js:50478:9)
+[  381578ms] [ERROR] The above error occurred in the <CarsView> component:
+
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1711:3)
+    at RenderedRoute (http://localhost:3000/static/js/2.chunk.js:46312:5)
+    at Routes (http://localhost:3000/static/js/2.chunk.js:47046:5)
+    at main
+    at div
+    at Router (http://localhost:3000/static/js/2.chunk.js:46980:15)
+    at BrowserRouter (http://localhost:3000/static/js/2.chunk.js:44868:5)
+    at App (http://localhost:3000/static/js/main.chunk.js:773:81)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:3000/static/js/2.chunk.js:43561
+[  381585ms] TypeError: Cannot read properties of undefined (reading 'some')
+    at http://localhost:3000/static/js/main.chunk.js:1798:57
+    at Array.filter (<anonymous>)
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1798:26)
+    at renderWithHooks (http://localhost:3000/static/js/2.chunk.js:30680:22)
+    at updateFunctionComponent (http://localhost:3000/static/js/2.chunk.js:33560:24)
+    at beginWork (http://localhost:3000/static/js/2.chunk.js:35272:20)
+    at beginWork$1 (http://localhost:3000/static/js/2.chunk.js:40219:18)
+    at performUnitOfWork (http://localhost:3000/static/js/2.chunk.js:39492:16)
+    at workLoopSync (http://localhost:3000/static/js/2.chunk.js:39412:9)
+    at renderRootSync (http://localhost:3000/static/js/2.chunk.js:39385:11)
+    at recoverFromConcurrentError (http://localhost:3000/static/js/2.chunk.js:38877:24)
+    at performConcurrentWorkOnRoot (http://localhost:3000/static/js/2.chunk.js:38790:26)
+    at workLoop (http://localhost:3000/static/js/2.chunk.js:49996:38)
+    at flushWork (http://localhost:3000/static/js/2.chunk.js:49974:18)
+    at performWorkUntilDeadline (http://localhost:3000/static/js/2.chunk.js:50211:25)
+    at run (http://localhost:3000/static/js/2.chunk.js:50413:9)
+    at runIfPresent (http://localhost:3000/static/js/2.chunk.js:50441:11)
+    at onGlobalMessage (http://localhost:3000/static/js/2.chunk.js:50478:9)
+[  381583ms] [WARNING] ./src/App.tsx
+  Line 98:17:   Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 103:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 205:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 210:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 285:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 289:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 293:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/2.chunk.js:16416
+[  382045ms] ReferenceError: process is not defined
+    at 4043 (<anonymous>:2:13168)
+    at r (<anonymous>:2:306599)
+    at 8048 (<anonymous>:2:9496)
+    at r (<anonymous>:2:306599)
+    at 8641 (<anonymous>:2:1379)
+    at r (<anonymous>:2:306599)
+    at <anonymous>:2:315627
+    at <anonymous>:2:324225
+    at <anonymous>:2:324229
+    at e.onload (http://localhost:3000/static/js/2.chunk.js:44085:324845)
+[  385902ms] [WARNING] ./src/App.tsx
+  Line 98:17:   Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 103:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 205:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 210:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 285:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 289:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 293:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/2.chunk.js:16416
+[  386113ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:3000/static/js/0.chunk.js:42265
+[  386129ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/static/js/0.chunk.js:46728
+[  386129ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:3000/static/js/0.chunk.js:46728
+[  386161ms] [WARNING] ./src/App.tsx
+  Line 98:17:   Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 103:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 205:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 210:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 285:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 289:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 293:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/0.chunk.js:16416
+[  386175ms] TypeError: Cannot read properties of undefined (reading 'some')
+    at http://localhost:3000/static/js/main.chunk.js:1798:57
+    at Array.filter (<anonymous>)
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1798:26)
+    at renderWithHooks (http://localhost:3000/static/js/0.chunk.js:30680:22)
+    at updateFunctionComponent (http://localhost:3000/static/js/0.chunk.js:33560:24)
+    at beginWork (http://localhost:3000/static/js/0.chunk.js:35272:20)
+    at HTMLUnknownElement.callCallback (http://localhost:3000/static/js/0.chunk.js:20276:18)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/static/js/0.chunk.js:20320:20)
+    at invokeGuardedCallback (http://localhost:3000/static/js/0.chunk.js:20377:35)
+    at beginWork$1 (http://localhost:3000/static/js/0.chunk.js:40241:11)
+    at performUnitOfWork (http://localhost:3000/static/js/0.chunk.js:39492:16)
+    at workLoopSync (http://localhost:3000/static/js/0.chunk.js:39412:9)
+    at renderRootSync (http://localhost:3000/static/js/0.chunk.js:39385:11)
+    at performConcurrentWorkOnRoot (http://localhost:3000/static/js/0.chunk.js:38780:78)
+    at workLoop (http://localhost:3000/static/js/0.chunk.js:49996:38)
+    at flushWork (http://localhost:3000/static/js/0.chunk.js:49974:18)
+    at performWorkUntilDeadline (http://localhost:3000/static/js/0.chunk.js:50211:25)
+    at run (http://localhost:3000/static/js/0.chunk.js:50413:9)
+    at runIfPresent (http://localhost:3000/static/js/0.chunk.js:50441:11)
+    at onGlobalMessage (http://localhost:3000/static/js/0.chunk.js:50478:9)
+[  386192ms] TypeError: Cannot read properties of undefined (reading 'some')
+    at http://localhost:3000/static/js/main.chunk.js:1798:57
+    at Array.filter (<anonymous>)
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1798:26)
+    at renderWithHooks (http://localhost:3000/static/js/0.chunk.js:30680:22)
+    at updateFunctionComponent (http://localhost:3000/static/js/0.chunk.js:33560:24)
+    at beginWork (http://localhost:3000/static/js/0.chunk.js:35272:20)
+    at HTMLUnknownElement.callCallback (http://localhost:3000/static/js/0.chunk.js:20276:18)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/static/js/0.chunk.js:20320:20)
+    at invokeGuardedCallback (http://localhost:3000/static/js/0.chunk.js:20377:35)
+    at beginWork$1 (http://localhost:3000/static/js/0.chunk.js:40241:11)
+    at performUnitOfWork (http://localhost:3000/static/js/0.chunk.js:39492:16)
+    at workLoopSync (http://localhost:3000/static/js/0.chunk.js:39412:9)
+    at renderRootSync (http://localhost:3000/static/js/0.chunk.js:39385:11)
+    at recoverFromConcurrentError (http://localhost:3000/static/js/0.chunk.js:38877:24)
+    at performConcurrentWorkOnRoot (http://localhost:3000/static/js/0.chunk.js:38790:26)
+    at workLoop (http://localhost:3000/static/js/0.chunk.js:49996:38)
+    at flushWork (http://localhost:3000/static/js/0.chunk.js:49974:18)
+    at performWorkUntilDeadline (http://localhost:3000/static/js/0.chunk.js:50211:25)
+    at run (http://localhost:3000/static/js/0.chunk.js:50413:9)
+    at runIfPresent (http://localhost:3000/static/js/0.chunk.js:50441:11)
+    at onGlobalMessage (http://localhost:3000/static/js/0.chunk.js:50478:9)
+[  386183ms] [ERROR] The above error occurred in the <CarsView> component:
+
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1711:3)
+    at RenderedRoute (http://localhost:3000/static/js/0.chunk.js:46312:5)
+    at Routes (http://localhost:3000/static/js/0.chunk.js:47046:5)
+    at main
+    at div
+    at Router (http://localhost:3000/static/js/0.chunk.js:46980:15)
+    at BrowserRouter (http://localhost:3000/static/js/0.chunk.js:44868:5)
+    at App (http://localhost:3000/static/js/main.chunk.js:773:81)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:3000/static/js/0.chunk.js:43561
+[  386196ms] TypeError: Cannot read properties of undefined (reading 'some')
+    at http://localhost:3000/static/js/main.chunk.js:1798:57
+    at Array.filter (<anonymous>)
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1798:26)
+    at renderWithHooks (http://localhost:3000/static/js/0.chunk.js:30680:22)
+    at updateFunctionComponent (http://localhost:3000/static/js/0.chunk.js:33560:24)
+    at beginWork (http://localhost:3000/static/js/0.chunk.js:35272:20)
+    at beginWork$1 (http://localhost:3000/static/js/0.chunk.js:40219:18)
+    at performUnitOfWork (http://localhost:3000/static/js/0.chunk.js:39492:16)
+    at workLoopSync (http://localhost:3000/static/js/0.chunk.js:39412:9)
+    at renderRootSync (http://localhost:3000/static/js/0.chunk.js:39385:11)
+    at recoverFromConcurrentError (http://localhost:3000/static/js/0.chunk.js:38877:24)
+    at performConcurrentWorkOnRoot (http://localhost:3000/static/js/0.chunk.js:38790:26)
+    at workLoop (http://localhost:3000/static/js/0.chunk.js:49996:38)
+    at flushWork (http://localhost:3000/static/js/0.chunk.js:49974:18)
+    at performWorkUntilDeadline (http://localhost:3000/static/js/0.chunk.js:50211:25)
+    at run (http://localhost:3000/static/js/0.chunk.js:50413:9)
+    at runIfPresent (http://localhost:3000/static/js/0.chunk.js:50441:11)
+    at onGlobalMessage (http://localhost:3000/static/js/0.chunk.js:50478:9)
+[  387111ms] ReferenceError: process is not defined
+    at 4043 (<anonymous>:2:13168)
+    at r (<anonymous>:2:306599)
+    at 8048 (<anonymous>:2:9496)
+    at r (<anonymous>:2:306599)
+    at 8641 (<anonymous>:2:1379)
+    at r (<anonymous>:2:306599)
+    at <anonymous>:2:315627
+    at <anonymous>:2:324225
+    at <anonymous>:2:324229
+    at e.onload (http://localhost:3000/static/js/0.chunk.js:44085:324845)
+[  398052ms] [WARNING] ./src/App.tsx
+  Line 98:17:   Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 103:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 205:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 210:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 285:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 289:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 293:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/0.chunk.js:16416
+[  398300ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:3000/static/js/2.chunk.js:42265
+[  398310ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/static/js/2.chunk.js:46728
+[  398310ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:3000/static/js/2.chunk.js:46728
+[  398361ms] TypeError: Cannot read properties of undefined (reading 'some')
+    at http://localhost:3000/static/js/main.chunk.js:1798:57
+    at Array.filter (<anonymous>)
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1798:26)
+    at renderWithHooks (http://localhost:3000/static/js/2.chunk.js:30680:22)
+    at updateFunctionComponent (http://localhost:3000/static/js/2.chunk.js:33560:24)
+    at beginWork (http://localhost:3000/static/js/2.chunk.js:35272:20)
+    at HTMLUnknownElement.callCallback (http://localhost:3000/static/js/2.chunk.js:20276:18)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/static/js/2.chunk.js:20320:20)
+    at invokeGuardedCallback (http://localhost:3000/static/js/2.chunk.js:20377:35)
+    at beginWork$1 (http://localhost:3000/static/js/2.chunk.js:40241:11)
+    at performUnitOfWork (http://localhost:3000/static/js/2.chunk.js:39492:16)
+    at workLoopSync (http://localhost:3000/static/js/2.chunk.js:39412:9)
+    at renderRootSync (http://localhost:3000/static/js/2.chunk.js:39385:11)
+    at performConcurrentWorkOnRoot (http://localhost:3000/static/js/2.chunk.js:38780:78)
+    at workLoop (http://localhost:3000/static/js/2.chunk.js:49996:38)
+    at flushWork (http://localhost:3000/static/js/2.chunk.js:49974:18)
+    at performWorkUntilDeadline (http://localhost:3000/static/js/2.chunk.js:50211:25)
+    at run (http://localhost:3000/static/js/2.chunk.js:50413:9)
+    at runIfPresent (http://localhost:3000/static/js/2.chunk.js:50441:11)
+    at onGlobalMessage (http://localhost:3000/static/js/2.chunk.js:50478:9)
+[  398364ms] TypeError: Cannot read properties of undefined (reading 'some')
+    at http://localhost:3000/static/js/main.chunk.js:1798:57
+    at Array.filter (<anonymous>)
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1798:26)
+    at renderWithHooks (http://localhost:3000/static/js/2.chunk.js:30680:22)
+    at updateFunctionComponent (http://localhost:3000/static/js/2.chunk.js:33560:24)
+    at beginWork (http://localhost:3000/static/js/2.chunk.js:35272:20)
+    at HTMLUnknownElement.callCallback (http://localhost:3000/static/js/2.chunk.js:20276:18)
+    at Object.invokeGuardedCallbackDev (http://localhost:3000/static/js/2.chunk.js:20320:20)
+    at invokeGuardedCallback (http://localhost:3000/static/js/2.chunk.js:20377:35)
+    at beginWork$1 (http://localhost:3000/static/js/2.chunk.js:40241:11)
+    at performUnitOfWork (http://localhost:3000/static/js/2.chunk.js:39492:16)
+    at workLoopSync (http://localhost:3000/static/js/2.chunk.js:39412:9)
+    at renderRootSync (http://localhost:3000/static/js/2.chunk.js:39385:11)
+    at recoverFromConcurrentError (http://localhost:3000/static/js/2.chunk.js:38877:24)
+    at performConcurrentWorkOnRoot (http://localhost:3000/static/js/2.chunk.js:38790:26)
+    at workLoop (http://localhost:3000/static/js/2.chunk.js:49996:38)
+    at flushWork (http://localhost:3000/static/js/2.chunk.js:49974:18)
+    at performWorkUntilDeadline (http://localhost:3000/static/js/2.chunk.js:50211:25)
+    at run (http://localhost:3000/static/js/2.chunk.js:50413:9)
+    at runIfPresent (http://localhost:3000/static/js/2.chunk.js:50441:11)
+    at onGlobalMessage (http://localhost:3000/static/js/2.chunk.js:50478:9)
+[  398354ms] [ERROR] The above error occurred in the <CarsView> component:
+
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1711:3)
+    at RenderedRoute (http://localhost:3000/static/js/2.chunk.js:46312:5)
+    at Routes (http://localhost:3000/static/js/2.chunk.js:47046:5)
+    at main
+    at div
+    at Router (http://localhost:3000/static/js/2.chunk.js:46980:15)
+    at BrowserRouter (http://localhost:3000/static/js/2.chunk.js:44868:5)
+    at App (http://localhost:3000/static/js/main.chunk.js:773:81)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:3000/static/js/2.chunk.js:43561
+[  398377ms] TypeError: Cannot read properties of undefined (reading 'some')
+    at http://localhost:3000/static/js/main.chunk.js:1798:57
+    at Array.filter (<anonymous>)
+    at CarsView (http://localhost:3000/static/js/main.chunk.js:1798:26)
+    at renderWithHooks (http://localhost:3000/static/js/2.chunk.js:30680:22)
+    at updateFunctionComponent (http://localhost:3000/static/js/2.chunk.js:33560:24)
+    at beginWork (http://localhost:3000/static/js/2.chunk.js:35272:20)
+    at beginWork$1 (http://localhost:3000/static/js/2.chunk.js:40219:18)
+    at performUnitOfWork (http://localhost:3000/static/js/2.chunk.js:39492:16)
+    at workLoopSync (http://localhost:3000/static/js/2.chunk.js:39412:9)
+    at renderRootSync (http://localhost:3000/static/js/2.chunk.js:39385:11)
+    at recoverFromConcurrentError (http://localhost:3000/static/js/2.chunk.js:38877:24)
+    at performConcurrentWorkOnRoot (http://localhost:3000/static/js/2.chunk.js:38790:26)
+    at workLoop (http://localhost:3000/static/js/2.chunk.js:49996:38)
+    at flushWork (http://localhost:3000/static/js/2.chunk.js:49974:18)
+    at performWorkUntilDeadline (http://localhost:3000/static/js/2.chunk.js:50211:25)
+    at run (http://localhost:3000/static/js/2.chunk.js:50413:9)
+    at runIfPresent (http://localhost:3000/static/js/2.chunk.js:50441:11)
+    at onGlobalMessage (http://localhost:3000/static/js/2.chunk.js:50478:9)
+[  398359ms] [WARNING] ./src/App.tsx
+  Line 98:17:   Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 103:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 205:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 210:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 285:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 289:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 293:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/2.chunk.js:16416
+[  398961ms] ReferenceError: process is not defined
+    at 4043 (<anonymous>:2:13168)
+    at r (<anonymous>:2:306599)
+    at 8048 (<anonymous>:2:9496)
+    at r (<anonymous>:2:306599)
+    at 8641 (<anonymous>:2:1379)
+    at r (<anonymous>:2:306599)
+    at <anonymous>:2:315627
+    at <anonymous>:2:324225
+    at <anonymous>:2:324229
+    at e.onload (http://localhost:3000/static/js/2.chunk.js:44085:324845)
+[  426574ms] [ERROR] WebSocket connection to 'ws://localhost:3000/sockjs-node/824/25jo14jd/websocket' failed:  @ http://localhost:3000/static/js/2.chunk.js:52350
+[  426575ms] [INFO] The development server has disconnected.
+Refresh the page if necessary. @ http://localhost:3000/static/js/2.chunk.js:16364

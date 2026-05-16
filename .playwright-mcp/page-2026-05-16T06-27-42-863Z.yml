@@ -1,0 +1,28 @@
+- generic [ref=e3]:
+  - heading "Dyno" [level=1] [ref=e4]
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Experiences" [level=2] [ref=e7]
+      - paragraph [ref=e8]: Track the cars you've seen, driven, or owned.
+      - button "+ New Experience" [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - heading "Cars" [level=2] [ref=e11]
+      - list [ref=e12]:
+        - listitem [ref=e13]:
+          - generic [ref=e14]: 2019 Toyota Corolla — Automatic
+          - generic [ref=e15]:
+            - button "Edit" [ref=e16] [cursor=pointer]
+            - button "Delete" [ref=e17] [cursor=pointer]
+        - listitem [ref=e18]:
+          - generic [ref=e19]: 2020 Honda Civic — Manual
+          - generic [ref=e20]:
+            - button "Edit" [ref=e21] [cursor=pointer]
+            - button "Delete" [ref=e22] [cursor=pointer]
+        - listitem [ref=e23]:
+          - generic [ref=e24]: 2015 Chevrolet Impala — Automatic
+          - generic [ref=e25]:
+            - button "Edit" [ref=e26] [cursor=pointer]
+            - button "Delete" [ref=e27] [cursor=pointer]
+    - generic [ref=e28]:
+      - heading "Friends" [level=2] [ref=e29]
+      - paragraph [ref=e30]: Share your passion with others.

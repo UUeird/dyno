@@ -1,0 +1,63 @@
+- generic [ref=e3]:
+  - banner [ref=e4]: Dyno
+  - main [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Cars" [level=2] [ref=e7]
+      - list [ref=e8]:
+        - listitem [ref=e9]:
+          - generic [ref=e39]:
+            - combobox [ref=e40]:
+              - option "Audi"
+              - option "BMW"
+              - option "Cadillac"
+              - option "Chevrolet"
+              - option "Ford"
+              - option "Honda"
+              - option "Mercedes-Benz"
+              - option "Nissan"
+              - option "Tesla"
+              - option "Toyota" [selected]
+            - combobox [ref=e41]:
+              - option "Corolla" [selected]
+              - option "Camry"
+              - option "RAV4"
+              - option "Prius"
+              - option "Supra"
+            - spinbutton [ref=e42]: "2019"
+            - textbox "Nickname (optional)" [ref=e43]
+            - combobox [ref=e44]:
+              - option "Transmission"
+              - option "Manual"
+              - option "Automatic" [selected]
+            - combobox [ref=e45]:
+              - option "No owner"
+              - option "Alex Rivera"
+              - option "Jordan Smith"
+              - option "Sam Lawrence" [selected]
+            - generic [ref=e46]:
+              - button "Update" [ref=e47] [cursor=pointer]
+              - button "Cancel" [ref=e48] [cursor=pointer]
+        - listitem [ref=e15]:
+          - generic [ref=e16]:
+            - text: 2020 Honda Civic
+            - generic [ref=e17]: — Manual
+            - generic [ref=e18]: · Alex Rivera
+          - button "⋯" [ref=e20] [cursor=pointer]
+        - listitem [ref=e21]:
+          - generic [ref=e22]:
+            - text: 2015 Chevrolet Impala
+            - generic [ref=e23]: — Automatic
+          - button "⋯" [ref=e25] [cursor=pointer]
+  - navigation [ref=e26]:
+    - link "📡 Feed" [ref=e27] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e28]: 📡
+      - generic [ref=e29]: Feed
+    - link "🚗 Cars" [ref=e30] [cursor=pointer]:
+      - /url: /cars
+      - generic [ref=e31]: 🚗
+      - generic [ref=e32]: Cars
+    - link "👤 Profile" [ref=e33] [cursor=pointer]:
+      - /url: /profile
+      - generic [ref=e34]: 👤
+      - generic [ref=e35]: Profile

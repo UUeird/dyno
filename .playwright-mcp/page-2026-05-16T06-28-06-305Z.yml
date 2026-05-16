@@ -1,0 +1,45 @@
+- generic [ref=e3]:
+  - heading "Dyno" [level=1] [ref=e4]
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Experiences" [level=2] [ref=e7]
+      - paragraph [ref=e8]: Track the cars you've seen, driven, or owned.
+      - button "+ New Experience" [active] [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - heading "Cars" [level=2] [ref=e11]
+      - list [ref=e12]:
+        - listitem [ref=e13]:
+          - generic [ref=e14]: 2019 Toyota Corolla — Automatic
+          - generic [ref=e15]:
+            - button "Edit" [ref=e16] [cursor=pointer]
+            - button "Delete" [ref=e17] [cursor=pointer]
+        - listitem [ref=e18]:
+          - generic [ref=e19]: 2020 Honda Civic — Manual
+          - generic [ref=e20]:
+            - button "Edit" [ref=e21] [cursor=pointer]
+            - button "Delete" [ref=e22] [cursor=pointer]
+        - listitem [ref=e23]:
+          - generic [ref=e24]: 2015 Chevrolet Impala — Automatic
+          - generic [ref=e25]:
+            - button "Edit" [ref=e26] [cursor=pointer]
+            - button "Delete" [ref=e27] [cursor=pointer]
+    - generic [ref=e28]:
+      - heading "Friends" [level=2] [ref=e29]
+      - paragraph [ref=e30]: Share your passion with others.
+  - generic [ref=e32]:
+    - button "✕" [ref=e33] [cursor=pointer]
+    - heading "New Experience" [level=2] [ref=e34]
+    - paragraph [ref=e35]: How do you want to add a car to this experience?
+    - generic [ref=e36]:
+      - button "🚗 Previous car Pick from your library" [ref=e37] [cursor=pointer]:
+        - generic [ref=e38]: 🚗
+        - generic [ref=e39]: Previous car
+        - generic [ref=e40]: Pick from your library
+      - button "🔍 Search by VIN Look up a specific vehicle" [ref=e41] [cursor=pointer]:
+        - generic [ref=e42]: 🔍
+        - generic [ref=e43]: Search by VIN
+        - generic [ref=e44]: Look up a specific vehicle
+      - button "✚ New car Add a car you haven't logged yet" [ref=e45] [cursor=pointer]:
+        - generic [ref=e46]: ✚
+        - generic [ref=e47]: New car
+        - generic [ref=e48]: Add a car you haven't logged yet

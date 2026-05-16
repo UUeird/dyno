@@ -1,0 +1,160 @@
+[     172ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:3000/static/js/0.chunk.js:42265
+[     188ms] Error: Module build failed (from ./node_modules/babel-loader/lib/index.js):
+SyntaxError: /Users/samlawrence/Documents/src/dyno/dyno-react-app/src/components/PhotoManager.tsx: Unexpected token (107:8)
+
+  105 |               onDelete={() => handleDelete(photo)}
+  106 |             />
+> 107 |         </div>
+      |         ^
+  108 |       )}
+  109 |       <div className="photo-upload">
+  110 |         <input
+    at constructor (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:362:19)
+    at TypeScriptParserMixin.raise (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:3260:19)
+    at TypeScriptParserMixin.unexpected (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:3280:16)
+    at TypeScriptParserMixin.checkExpressionErrors (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:3667:12)
+    at TypeScriptParserMixin.parseMaybeAssign (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10378:12)
+    at TypeScriptParserMixin.parseMaybeAssign (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9426:20)
+    at TypeScriptParserMixin.parseExpressionBase (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10302:23)
+    at /Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10298:39
+    at TypeScriptParserMixin.allowInAnd (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:11933:12)
+    at TypeScriptParserMixin.parseExpression (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10298:17)
+    at TypeScriptParserMixin.jsxParseExpressionContainer (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:6683:31)
+    at TypeScriptParserMixin.jsxParseElementAt (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:6762:36)
+    at TypeScriptParserMixin.jsxParseElement (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:6800:17)
+    at TypeScriptParserMixin.parseExprAtom (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:6810:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10584:23)
+    at TypeScriptParserMixin.parseUpdate (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10569:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10549:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9477:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10403:61)
+    at TypeScriptParserMixin.parseExprOps (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10408:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10385:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10348:21)
+    at /Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9415:39
+    at TypeScriptParserMixin.tryParse (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:3598:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9415:18)
+    at /Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10318:39
+    at TypeScriptParserMixin.allowInAnd (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:11933:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10318:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:11195:28)
+    at TypeScriptParserMixin.parseExprAtom (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10851:23)
+    at TypeScriptParserMixin.parseExprAtom (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:6815:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10584:23)
+    at TypeScriptParserMixin.parseUpdate (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10569:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10549:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9477:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10403:61)
+    at TypeScriptParserMixin.parseExprOps (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10408:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10385:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10348:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9426:20)
+    at TypeScriptParserMixin.parseExpressionBase (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10302:23)
+    at /Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10298:39
+    at TypeScriptParserMixin.allowInAnd (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:11928:16)
+    at TypeScriptParserMixin.parseExpression (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10298:17)
+    at TypeScriptParserMixin.parseReturnStatement (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:12618:28)
+    at TypeScriptParserMixin.parseStatementContent (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:12270:21)
+    at TypeScriptParserMixin.parseStatementContent (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9151:18)
+    at TypeScriptParserMixin.parseStatementLike (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:12239:17)
+    at TypeScriptParserMixin.parseStatementListItem (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:12219:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:12792:61)
+    at constructor (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:362:19)
+    at TypeScriptParserMixin.raise (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:3260:19)
+    at TypeScriptParserMixin.unexpected (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:3280:16)
+    at TypeScriptParserMixin.checkExpressionErrors (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:3667:12)
+    at TypeScriptParserMixin.parseMaybeAssign (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10378:12)
+    at TypeScriptParserMixin.parseMaybeAssign (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9426:20)
+    at TypeScriptParserMixin.parseExpressionBase (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10302:23)
+    at /Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10298:39
+    at TypeScriptParserMixin.allowInAnd (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:11933:12)
+    at TypeScriptParserMixin.parseExpression (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10298:17)
+    at TypeScriptParserMixin.jsxParseExpressionContainer (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:6683:31)
+    at TypeScriptParserMixin.jsxParseElementAt (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:6762:36)
+    at TypeScriptParserMixin.jsxParseElement (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:6800:17)
+    at TypeScriptParserMixin.parseExprAtom (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:6810:19)
+    at TypeScriptParserMixin.parseExprSubscripts (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10584:23)
+    at TypeScriptParserMixin.parseUpdate (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10569:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10549:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9477:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10403:61)
+    at TypeScriptParserMixin.parseExprOps (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10408:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10385:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10348:21)
+    at /Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9415:39
+    at TypeScriptParserMixin.tryParse (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:3598:20)
+    at TypeScriptParserMixin.parseMaybeAssign (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9415:18)
+    at /Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10318:39
+    at TypeScriptParserMixin.allowInAnd (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:11933:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10318:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:11195:28)
+    at TypeScriptParserMixin.parseExprAtom (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10851:23)
+    at TypeScriptParserMixin.parseExprAtom (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:6815:20)
+    at TypeScriptParserMixin.parseExprSubscripts (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10584:23)
+    at TypeScriptParserMixin.parseUpdate (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10569:21)
+    at TypeScriptParserMixin.parseMaybeUnary (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10549:23)
+    at TypeScriptParserMixin.parseMaybeUnary (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9477:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10403:61)
+    at TypeScriptParserMixin.parseExprOps (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10408:23)
+    at TypeScriptParserMixin.parseMaybeConditional (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10385:23)
+    at TypeScriptParserMixin.parseMaybeAssign (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10348:21)
+    at TypeScriptParserMixin.parseMaybeAssign (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9426:20)
+    at TypeScriptParserMixin.parseExpressionBase (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10302:23)
+    at /Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10298:39
+    at TypeScriptParserMixin.allowInAnd (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:11928:16)
+    at TypeScriptParserMixin.parseExpression (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:10298:17)
+    at TypeScriptParserMixin.parseReturnStatement (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:12618:28)
+    at TypeScriptParserMixin.parseStatementContent (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:12270:21)
+    at TypeScriptParserMixin.parseStatementContent (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:9151:18)
+    at TypeScriptParserMixin.parseStatementLike (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:12239:17)
+    at TypeScriptParserMixin.parseStatementListItem (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:12219:17)
+    at TypeScriptParserMixin.parseBlockOrModuleBlockBody (/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/@babel/parser/lib/index.js:12792:61)
+    at ./src/components/PhotoManager.tsx (http://localhost:3000/static/js/main.chunk.js:1193:7)
+    at __webpack_require__ (http://localhost:3000/static/js/bundle.js:787:30)
+    at fn (http://localhost:3000/static/js/bundle.js:150:20)
+    at ./src/views/CarsView.tsx (http://localhost:3000/static/js/main.chunk.js:1343:82)
+    at __webpack_require__ (http://localhost:3000/static/js/bundle.js:787:30)
+    at fn (http://localhost:3000/static/js/bundle.js:150:20)
+    at ./src/App.tsx (http://localhost:3000/static/js/main.chunk.js:104:73)
+    at __webpack_require__ (http://localhost:3000/static/js/bundle.js:787:30)
+    at fn (http://localhost:3000/static/js/bundle.js:150:20)
+    at ./src/index.tsx (http://localhost:3000/static/js/main.chunk.js:1267:62)
+    at __webpack_require__ (http://localhost:3000/static/js/bundle.js:787:30)
+    at fn (http://localhost:3000/static/js/bundle.js:150:20)
+    at 0 (http://localhost:3000/static/js/main.chunk.js:2452:18)
+    at __webpack_require__ (http://localhost:3000/static/js/bundle.js:787:30)
+    at checkDeferredModules (http://localhost:3000/static/js/bundle.js:46:23)
+    at Array.webpackJsonpCallback [as push] (http://localhost:3000/static/js/bundle.js:33:19)
+    at http://localhost:3000/static/js/main.chunk.js:1:57
+[     321ms] ReferenceError: process is not defined
+    at 4043 (<anonymous>:2:13168)
+    at r (<anonymous>:2:306599)
+    at 8048 (<anonymous>:2:9496)
+    at r (<anonymous>:2:306599)
+    at 8641 (<anonymous>:2:1379)
+    at r (<anonymous>:2:306599)
+    at <anonymous>:2:315627
+    at <anonymous>:2:324225
+    at <anonymous>:2:324229
+    at e.onload (http://localhost:3000/static/js/0.chunk.js:44085:324845)
+[     242ms] [ERROR] ./src/components/PhotoManager.tsx
+Syntax error: ')' expected (107:8) @ http://localhost:3000/static/js/0.chunk.js:43561
+[   14186ms] [WARNING] ./src/App.tsx
+  Line 98:17:   Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 103:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 205:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 210:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 285:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 289:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 293:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/0.chunk.js:16416
+[   14364ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:3000/static/js/2.chunk.js:42265
+[   14375ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/static/js/2.chunk.js:46728
+[   14375ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:3000/static/js/2.chunk.js:46728
+[   14411ms] [WARNING] ./src/App.tsx
+  Line 98:17:   Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 103:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 205:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 210:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 285:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 289:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 293:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/2.chunk.js:16416

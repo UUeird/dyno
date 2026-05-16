@@ -1,0 +1,48 @@
+- generic [ref=e3]:
+  - banner [ref=e4]: Dyno
+  - main [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Cars" [level=2] [ref=e7]
+      - generic [ref=e8]:
+        - button "Owned" [ref=e9] [cursor=pointer]
+        - button "Friends" [ref=e10] [cursor=pointer]
+        - button "All" [ref=e11] [cursor=pointer]
+      - list [ref=e23]:
+        - listitem [ref=e24]:
+          - img "2024 Honda Civic e-HEV Sport" [ref=e26]
+          - generic [ref=e27]:
+            - strong [ref=e28]: Rhonda the Honda
+            - generic [ref=e29]: 2012 Honda Civic
+            - generic [ref=e30]: — Manual
+            - generic [ref=e31]: · Sam Lawrence
+          - generic [ref=e32]:
+            - button "⋯" [active] [ref=e33] [cursor=pointer]
+            - generic [ref=e49]:
+              - button "Edit" [ref=e50] [cursor=pointer]
+              - button "Delete" [ref=e51] [cursor=pointer]
+        - listitem [ref=e34]:
+          - img "2024 Honda Civic e-HEV Sport" [ref=e36]
+          - generic [ref=e37]:
+            - text: 2020 Honda Civic
+            - generic [ref=e38]: — Manual
+            - generic [ref=e39]: · Alex Rivera
+          - button "⋯" [ref=e41] [cursor=pointer]
+        - listitem [ref=e42]:
+          - img "Chevrolet Impala" [ref=e44]
+          - generic [ref=e45]:
+            - text: 2015 Chevrolet Impala
+            - generic [ref=e46]: — Automatic
+          - button "⋯" [ref=e48] [cursor=pointer]
+  - navigation [ref=e13]:
+    - link "📡 Feed" [ref=e14] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e15]: 📡
+      - generic [ref=e16]: Feed
+    - link "🚗 Cars" [ref=e17] [cursor=pointer]:
+      - /url: /cars
+      - generic [ref=e18]: 🚗
+      - generic [ref=e19]: Cars
+    - link "👤 Profile" [ref=e20] [cursor=pointer]:
+      - /url: /profile
+      - generic [ref=e21]: 👤
+      - generic [ref=e22]: Profile

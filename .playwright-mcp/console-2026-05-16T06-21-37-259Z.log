@@ -1,0 +1,12 @@
+[     244ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:3000/static/js/0.chunk.js:37143
+[   84182ms] ReferenceError: process is not defined
+    at 4043 (<anonymous>:2:13168)
+    at r (<anonymous>:2:306599)
+    at 8048 (<anonymous>:2:9496)
+    at r (<anonymous>:2:306599)
+    at 8641 (<anonymous>:2:1379)
+    at r (<anonymous>:2:306599)
+    at <anonymous>:2:315627
+    at <anonymous>:2:324225
+    at <anonymous>:2:324229
+    at e.onload (http://localhost:3000/static/js/0.chunk.js:38963:324845)

@@ -1,0 +1,70 @@
+- generic [ref=e3]:
+  - banner [ref=e4]: Dyno
+  - main [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Cars" [level=2] [ref=e7]
+      - generic [ref=e8]:
+        - button "Owned" [ref=e9] [cursor=pointer]
+        - button "Friends" [ref=e10] [cursor=pointer]
+        - button "All" [ref=e11] [cursor=pointer]
+      - list [ref=e23]:
+        - listitem [ref=e24]:
+          - generic [ref=e46]:
+            - combobox [ref=e47]:
+              - option "Audi"
+              - option "BMW"
+              - option "Cadillac"
+              - option "Chevrolet"
+              - option "Ford"
+              - option "Honda" [selected]
+              - option "Mercedes-Benz"
+              - option "Nissan"
+              - option "Tesla"
+              - option "Toyota"
+            - combobox [ref=e48]:
+              - option "Civic" [selected]
+              - option "Accord"
+              - option "CR-V"
+              - option "Pilot"
+              - option "Fit"
+            - spinbutton [ref=e49]: "2012"
+            - textbox "Nickname (optional)" [ref=e50]: Rhonda the Honda
+            - combobox [ref=e51]:
+              - option "Manual" [selected]
+              - option "Automatic"
+            - generic [ref=e52]:
+              - paragraph [ref=e53]: Owners
+              - list [ref=e54]:
+                - listitem [ref=e55]:
+                  - generic [ref=e56]: Sam Lawrence
+                  - generic [ref=e57]: current
+                  - button "End" [ref=e58] [cursor=pointer]
+                  - button "✕" [ref=e59] [cursor=pointer]
+              - button "+ Add owner" [ref=e60] [cursor=pointer]
+            - generic [ref=e61]:
+              - button "Update" [ref=e62] [cursor=pointer]
+              - button "Cancel" [ref=e63] [cursor=pointer]
+        - listitem [ref=e32]:
+          - generic [ref=e33]:
+            - text: 2020 Honda Civic
+            - generic [ref=e34]: — Manual
+            - generic [ref=e35]: · Alex Rivera
+          - button "⋯" [ref=e37] [cursor=pointer]
+        - listitem [ref=e38]:
+          - generic [ref=e39]:
+            - text: 2015 Chevrolet Impala
+            - generic [ref=e40]: — Automatic
+          - button "⋯" [ref=e42] [cursor=pointer]
+  - navigation [ref=e13]:
+    - link "📡 Feed" [ref=e14] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e15]: 📡
+      - generic [ref=e16]: Feed
+    - link "🚗 Cars" [ref=e17] [cursor=pointer]:
+      - /url: /cars
+      - generic [ref=e18]: 🚗
+      - generic [ref=e19]: Cars
+    - link "👤 Profile" [ref=e20] [cursor=pointer]:
+      - /url: /profile
+      - generic [ref=e21]: 👤
+      - generic [ref=e22]: Profile

@@ -1,0 +1,48 @@
+[     259ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:3000/static/js/2.chunk.js:37143
+[     290ms] Error: Cannot find module 'react-router/dom'
+    at webpackMissingModule (http://localhost:3000/static/js/2.chunk.js:38996:45)
+    at ./node_modules/react-router-dom/dist/index.mjs (http://localhost:3000/static/js/2.chunk.js:38996:136)
+    at __webpack_require__ (http://localhost:3000/static/js/bundle.js:787:30)
+    at fn (http://localhost:3000/static/js/bundle.js:150:20)
+    at ./src/App.tsx (http://localhost:3000/static/js/main.chunk.js:118:74)
+    at __webpack_require__ (http://localhost:3000/static/js/bundle.js:787:30)
+    at fn (http://localhost:3000/static/js/bundle.js:150:20)
+    at ./src/index.tsx (http://localhost:3000/static/js/main.chunk.js:1079:62)
+    at __webpack_require__ (http://localhost:3000/static/js/bundle.js:787:30)
+    at fn (http://localhost:3000/static/js/bundle.js:150:20)
+    at 0 (http://localhost:3000/static/js/main.chunk.js:1732:18)
+    at __webpack_require__ (http://localhost:3000/static/js/bundle.js:787:30)
+    at checkDeferredModules (http://localhost:3000/static/js/bundle.js:46:23)
+    at Array.webpackJsonpCallback [as push] (http://localhost:3000/static/js/bundle.js:33:19)
+    at http://localhost:3000/static/js/main.chunk.js:1:57
+[     499ms] ReferenceError: process is not defined
+    at 4043 (<anonymous>:2:13168)
+    at r (<anonymous>:2:306599)
+    at 8048 (<anonymous>:2:9496)
+    at r (<anonymous>:2:306599)
+    at 8641 (<anonymous>:2:1379)
+    at r (<anonymous>:2:306599)
+    at <anonymous>:2:315627
+    at <anonymous>:2:324225
+    at <anonymous>:2:324229
+    at e.onload (http://localhost:3000/static/js/2.chunk.js:38963:324845)
+[     374ms] [ERROR] ./node_modules/react-router-dom/dist/index.mjs
+Can't reexport the namespace object from non EcmaScript module (only default export is available) @ http://localhost:3000/static/js/2.chunk.js:38439
+[     374ms] [ERROR] ./node_modules/react-router/node_modules/cookie/dist/index.js
+Error: ENOENT: no such file or directory, open '/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/react-router/node_modules/cookie/dist/index.js' @ http://localhost:3000/static/js/2.chunk.js:38439
+[     375ms] [ERROR] ./node_modules/react-router-dom/dist/index.mjs
+Module not found: Can't resolve 'react-router/dom' in '/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/react-router-dom/dist' @ http://localhost:3000/static/js/2.chunk.js:38439
+[   13958ms] [ERROR] WebSocket connection to 'ws://localhost:3000/sockjs-node/221/fteu5ifh/websocket' failed:  @ http://localhost:3000/static/js/2.chunk.js:57471
+[   13959ms] [INFO] The development server has disconnected.
+Refresh the page if necessary. @ http://localhost:3000/static/js/2.chunk.js:11242
+[   29687ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:3000/static/js/0.chunk.js:42265
+[   29743ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/static/js/0.chunk.js:46728
+[   29744ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:3000/static/js/0.chunk.js:46728
+[   29835ms] [WARNING] ./src/App.tsx
+  Line 98:17:   Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 103:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 204:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 209:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 281:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 285:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 289:13:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/0.chunk.js:16416

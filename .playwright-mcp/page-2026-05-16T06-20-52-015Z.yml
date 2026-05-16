@@ -1,0 +1,20 @@
+- generic [ref=e3]:
+  - heading "Dyno" [level=1] [ref=e4]
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Experiences" [level=2] [ref=e7]
+      - paragraph [ref=e8]: Track the cars you've seen, driven, or owned.
+    - generic [ref=e9]:
+      - heading "Cars" [level=2] [ref=e10]
+      - generic [ref=e11]:
+        - combobox [ref=e12]
+        - combobox [disabled] [ref=e13]
+        - spinbutton [ref=e14]
+        - combobox [ref=e15]:
+          - option "Manual"
+          - option "Automatic"
+        - button "Add Car" [ref=e17] [cursor=pointer]
+      - paragraph [ref=e18]: No cars available.
+    - generic [ref=e19]:
+      - heading "Friends" [level=2] [ref=e20]
+      - paragraph [ref=e21]: Share your passion with others.

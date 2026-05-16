@@ -1,0 +1,30 @@
+- generic [ref=e3]:
+  - banner [ref=e4]: Dyno
+  - main [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Cars" [level=2] [ref=e7]
+      - generic [ref=e8]:
+        - button "Mine" [active] [ref=e9] [cursor=pointer]
+        - button "Friends" [ref=e10] [cursor=pointer]
+        - button "All" [ref=e11] [cursor=pointer]
+      - list [ref=e43]:
+        - listitem [ref=e44]:
+          - generic [ref=e45]:
+            - strong [ref=e46]: Daily Driver
+            - generic [ref=e47]: 2019 Toyota Corolla
+            - generic [ref=e48]: — Automatic
+            - generic [ref=e49]: · Sam Lawrence
+          - button "⋯" [ref=e51] [cursor=pointer]
+  - navigation [ref=e13]:
+    - link "📡 Feed" [ref=e14] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e15]: 📡
+      - generic [ref=e16]: Feed
+    - link "🚗 Cars" [ref=e17] [cursor=pointer]:
+      - /url: /cars
+      - generic [ref=e18]: 🚗
+      - generic [ref=e19]: Cars
+    - link "👤 Profile" [ref=e20] [cursor=pointer]:
+      - /url: /profile
+      - generic [ref=e21]: 👤
+      - generic [ref=e22]: Profile

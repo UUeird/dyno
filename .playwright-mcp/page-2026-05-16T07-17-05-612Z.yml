@@ -1,0 +1,94 @@
+- generic [ref=e3]:
+  - banner [ref=e4]: Dyno
+  - main [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Cars" [level=2] [ref=e7]
+      - generic [ref=e8]:
+        - button "Owned" [ref=e9] [cursor=pointer]
+        - button "Friends" [ref=e10] [cursor=pointer]
+        - button "All" [ref=e11] [cursor=pointer]
+      - list [ref=e23]:
+        - listitem [ref=e24]:
+          - generic [ref=e52]:
+            - combobox [ref=e53]:
+              - option "Audi"
+              - option "BMW"
+              - option "Cadillac"
+              - option "Chevrolet"
+              - option "Ford"
+              - option "Honda" [selected]
+              - option "Mercedes-Benz"
+              - option "Nissan"
+              - option "Tesla"
+              - option "Toyota"
+            - combobox [ref=e54]:
+              - option "Civic" [selected]
+              - option "Accord"
+              - option "CR-V"
+              - option "Pilot"
+              - option "Fit"
+            - spinbutton [ref=e55]: "2012"
+            - textbox "Nickname (optional)" [ref=e56]: Rhonda the Honda
+            - combobox [ref=e57]:
+              - option "Manual" [selected]
+              - option "Automatic"
+            - generic [ref=e58]:
+              - paragraph [ref=e59]: Owners
+              - list [ref=e60]:
+                - listitem [ref=e61]:
+                  - generic [ref=e62]: Sam Lawrence
+                  - generic [ref=e63]: current
+                  - button "End" [ref=e64] [cursor=pointer]
+                  - button "✕" [ref=e65] [cursor=pointer]
+              - button "+ Add owner" [ref=e66] [cursor=pointer]
+            - generic [ref=e67]:
+              - paragraph [ref=e68]: Photos
+              - generic [ref=e69]:
+                - generic [ref=e70]:
+                  - img "2024 Honda Civic e-HEV Sport" [ref=e71]
+                  - generic [ref=e72]:
+                    - generic [ref=e73]: Sam Lawrence
+                    - generic [ref=e74]: Thumbnail
+                  - button "Delete" [ref=e76] [cursor=pointer]
+                - generic [ref=e77]:
+                  - img "2022 Honda Civic Sport" [ref=e78]
+                  - generic [ref=e80]: Alex Rivera
+                  - generic [ref=e81]:
+                    - button "Set thumbnail" [ref=e82] [cursor=pointer]
+                    - button "Delete" [ref=e83] [cursor=pointer]
+                - generic [ref=e84]:
+                  - img "2016 Honda Civic EX-T" [ref=e85]
+                  - generic [ref=e87]: Jordan Smith
+                  - generic [ref=e88]:
+                    - button "Set thumbnail" [ref=e89] [cursor=pointer]
+                    - button "Delete" [ref=e90] [cursor=pointer]
+              - generic [ref=e92] [cursor=pointer]: + Add photo
+            - generic [ref=e93]:
+              - button "Update" [ref=e94] [cursor=pointer]
+              - button "Cancel" [ref=e95] [cursor=pointer]
+        - listitem [ref=e34]:
+          - img "2024 Honda Civic e-HEV Sport" [ref=e36]
+          - generic [ref=e37]:
+            - text: 2020 Honda Civic
+            - generic [ref=e38]: — Manual
+            - generic [ref=e39]: · Alex Rivera
+          - button "⋯" [ref=e41] [cursor=pointer]
+        - listitem [ref=e42]:
+          - img "Chevrolet Impala" [ref=e44]
+          - generic [ref=e45]:
+            - text: 2015 Chevrolet Impala
+            - generic [ref=e46]: — Automatic
+          - button "⋯" [ref=e48] [cursor=pointer]
+  - navigation [ref=e13]:
+    - link "📡 Feed" [ref=e14] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e15]: 📡
+      - generic [ref=e16]: Feed
+    - link "🚗 Cars" [ref=e17] [cursor=pointer]:
+      - /url: /cars
+      - generic [ref=e18]: 🚗
+      - generic [ref=e19]: Cars
+    - link "👤 Profile" [ref=e20] [cursor=pointer]:
+      - /url: /profile
+      - generic [ref=e21]: 👤
+      - generic [ref=e22]: Profile

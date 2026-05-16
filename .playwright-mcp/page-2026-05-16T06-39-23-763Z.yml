@@ -1,0 +1,20 @@
+- generic [ref=e3]:
+  - banner [ref=e4]: Dyno
+  - main [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Feed" [level=2] [ref=e7]
+      - paragraph [ref=e8]: Updates from friends.
+      - paragraph [ref=e9]: No activity yet.
+  - navigation [ref=e10]:
+    - link "📡 Feed" [ref=e11] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e12]: 📡
+      - generic [ref=e13]: Feed
+    - link "🚗 Cars" [ref=e14] [cursor=pointer]:
+      - /url: /cars
+      - generic [ref=e15]: 🚗
+      - generic [ref=e16]: Cars
+    - link "👤 Profile" [ref=e17] [cursor=pointer]:
+      - /url: /profile
+      - generic [ref=e18]: 👤
+      - generic [ref=e19]: Profile

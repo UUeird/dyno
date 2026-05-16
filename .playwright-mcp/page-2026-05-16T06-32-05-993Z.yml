@@ -1,0 +1,50 @@
+- generic [ref=e3]:
+  - heading "Dyno" [level=1] [ref=e4]
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Experiences" [level=2] [ref=e7]
+      - paragraph [ref=e8]: Track the cars you've seen, driven, or owned.
+      - button "+ New Experience" [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - heading "Cars" [level=2] [ref=e11]
+      - list [ref=e12]:
+        - listitem [ref=e13]:
+          - generic [ref=e14]:
+            - text: 2019 Toyota Corolla — Automatic
+            - generic [ref=e15]: · Sam Lawrence
+          - generic [ref=e16]:
+            - button "Edit" [ref=e17] [cursor=pointer]
+            - button "Delete" [ref=e18] [cursor=pointer]
+        - listitem [ref=e19]:
+          - generic [ref=e20]:
+            - text: 2020 Honda Civic — Manual
+            - generic [ref=e21]: · Alex Rivera
+          - generic [ref=e22]:
+            - button "Edit" [ref=e23] [cursor=pointer]
+            - button "Delete" [ref=e24] [cursor=pointer]
+        - listitem [ref=e25]:
+          - generic [ref=e26]: 2015 Chevrolet Impala — Automatic
+          - generic [ref=e27]:
+            - button "Edit" [ref=e28] [cursor=pointer]
+            - button "Delete" [ref=e29] [cursor=pointer]
+    - generic [ref=e30]:
+      - heading "Friends" [level=2] [ref=e31]
+      - paragraph [ref=e32]: Share your passion with others.
+  - generic [ref=e34]:
+    - button "✕" [ref=e35] [cursor=pointer]
+    - button "← Back" [ref=e51] [cursor=pointer]
+    - heading "Your Cars" [level=2] [ref=e52]
+    - list [ref=e53]:
+      - listitem [ref=e54] [cursor=pointer]:
+        - generic [ref=e55]: 2019 Toyota Corolla
+        - generic [ref=e56]:
+          - generic [ref=e57]: Automatic
+          - generic [ref=e58]: Sam Lawrence
+      - listitem [ref=e59] [cursor=pointer]:
+        - generic [ref=e60]: 2020 Honda Civic
+        - generic [ref=e61]:
+          - generic [ref=e62]: Manual
+          - generic [ref=e63]: Alex Rivera
+      - listitem [ref=e64] [cursor=pointer]:
+        - generic [ref=e65]: 2015 Chevrolet Impala
+        - generic [ref=e67]: Automatic

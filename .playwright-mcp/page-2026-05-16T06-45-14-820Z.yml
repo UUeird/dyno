@@ -1,0 +1,26 @@
+- generic [ref=e3]:
+  - banner [ref=e4]: Dyno
+  - main [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Feed" [level=2] [ref=e7]
+      - paragraph [ref=e8]: Updates from friends.
+      - list [ref=e9]:
+        - listitem [ref=e10]:
+          - generic [ref=e11]: 🏎️ Drove
+          - generic [ref=e12]:
+            - text: 2019 Toyota Corolla
+            - generic [ref=e13]: · you
+          - generic [ref=e14]: 5/16/2026
+  - navigation [ref=e15]:
+    - link "📡 Feed" [ref=e16] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e17]: 📡
+      - generic [ref=e18]: Feed
+    - link "🚗 Cars" [ref=e19] [cursor=pointer]:
+      - /url: /cars
+      - generic [ref=e20]: 🚗
+      - generic [ref=e21]: Cars
+    - link "👤 Profile" [ref=e22] [cursor=pointer]:
+      - /url: /profile
+      - generic [ref=e23]: 👤
+      - generic [ref=e24]: Profile

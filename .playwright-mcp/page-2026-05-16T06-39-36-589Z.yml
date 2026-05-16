@@ -1,0 +1,27 @@
+- generic [ref=e3]:
+  - banner [ref=e4]: Dyno
+  - main [ref=e5]:
+    - generic [ref=e46]:
+      - heading "My Experiences" [level=2] [ref=e47]
+      - button "+ New Experience" [ref=e48] [cursor=pointer]
+      - list [ref=e49]:
+        - listitem [ref=e50]:
+          - generic [ref=e51]: 🏎️ Drove
+          - generic [ref=e52]:
+            - text: 2019 Toyota Corolla
+            - generic [ref=e53]: · Sam Lawrence
+          - generic [ref=e54]: 5/16/2026
+          - button "✕" [ref=e55] [cursor=pointer]
+  - navigation [ref=e10]:
+    - link "📡 Feed" [ref=e11] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e12]: 📡
+      - generic [ref=e13]: Feed
+    - link "🚗 Cars" [ref=e14] [cursor=pointer]:
+      - /url: /cars
+      - generic [ref=e15]: 🚗
+      - generic [ref=e16]: Cars
+    - link "👤 Profile" [active] [ref=e17] [cursor=pointer]:
+      - /url: /profile
+      - generic [ref=e18]: 👤
+      - generic [ref=e19]: Profile

@@ -1,0 +1,49 @@
+- generic [ref=e3]:
+  - heading "Dyno" [level=1] [ref=e4]
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Experiences" [level=2] [ref=e7]
+      - paragraph [ref=e8]: Track the cars you've seen, driven, or owned.
+      - button "+ New Experience" [active] [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - heading "Cars" [level=2] [ref=e11]
+      - list [ref=e12]:
+        - listitem [ref=e13]:
+          - generic [ref=e14]:
+            - text: 2019 Toyota Corolla — Automatic
+            - generic [ref=e15]: · Sam Lawrence
+          - generic [ref=e16]:
+            - button "Edit" [ref=e17] [cursor=pointer]
+            - button "Delete" [ref=e18] [cursor=pointer]
+        - listitem [ref=e19]:
+          - generic [ref=e20]:
+            - text: 2020 Honda Civic — Manual
+            - generic [ref=e21]: · Alex Rivera
+          - generic [ref=e22]:
+            - button "Edit" [ref=e23] [cursor=pointer]
+            - button "Delete" [ref=e24] [cursor=pointer]
+        - listitem [ref=e25]:
+          - generic [ref=e26]: 2015 Chevrolet Impala — Automatic
+          - generic [ref=e27]:
+            - button "Edit" [ref=e28] [cursor=pointer]
+            - button "Delete" [ref=e29] [cursor=pointer]
+    - generic [ref=e30]:
+      - heading "Friends" [level=2] [ref=e31]
+      - paragraph [ref=e32]: Share your passion with others.
+  - generic [ref=e34]:
+    - button "✕" [ref=e35] [cursor=pointer]
+    - heading "New Experience" [level=2] [ref=e36]
+    - paragraph [ref=e37]: How do you want to add a car to this experience?
+    - generic [ref=e38]:
+      - button "🚗 Previous car Pick from your library" [ref=e39] [cursor=pointer]:
+        - generic [ref=e40]: 🚗
+        - generic [ref=e41]: Previous car
+        - generic [ref=e42]: Pick from your library
+      - button "🔍 Search by VIN Look up a specific vehicle" [ref=e43] [cursor=pointer]:
+        - generic [ref=e44]: 🔍
+        - generic [ref=e45]: Search by VIN
+        - generic [ref=e46]: Look up a specific vehicle
+      - button "✚ New car Add a car you haven't logged yet" [ref=e47] [cursor=pointer]:
+        - generic [ref=e48]: ✚
+        - generic [ref=e49]: New car
+        - generic [ref=e50]: Add a car you haven't logged yet

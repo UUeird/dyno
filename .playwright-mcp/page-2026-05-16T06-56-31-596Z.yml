@@ -1,0 +1,42 @@
+- generic [ref=e3]:
+  - banner [ref=e4]: Dyno
+  - main [ref=e5]:
+    - generic [ref=e6]:
+      - heading "My Experiences" [level=2] [ref=e7]
+      - button "+ New Experience" [ref=e8] [cursor=pointer]
+      - list [ref=e9]:
+        - listitem [ref=e10]:
+          - generic [ref=e11]: 👀 Spotted
+          - generic [ref=e12]: 2015 Chevrolet Impala
+          - generic [ref=e13]: 5/16/2026
+          - button "⋯" [ref=e15] [cursor=pointer]
+        - listitem [ref=e16]:
+          - generic [ref=e17]: 🏎️ Drove
+          - generic [ref=e18]:
+            - text: 2012 Honda Civic
+            - generic [ref=e19]: · Sam Lawrence
+          - generic [ref=e20]: 5/16/2026
+          - button "⋯" [ref=e22] [cursor=pointer]
+      - heading "Friends" [level=2] [ref=e23]
+      - list [ref=e24]:
+        - listitem [ref=e25]:
+          - generic [ref=e26]: A
+          - generic [ref=e27]: Alex Rivera
+          - generic [ref=e28]: alex@example.com
+        - listitem [ref=e29]:
+          - generic [ref=e30]: J
+          - generic [ref=e31]: Jordan Smith
+          - generic [ref=e32]: jordan@example.com
+  - navigation [ref=e33]:
+    - link "📡 Feed" [ref=e34] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e35]: 📡
+      - generic [ref=e36]: Feed
+    - link "🚗 Cars" [ref=e37] [cursor=pointer]:
+      - /url: /cars
+      - generic [ref=e38]: 🚗
+      - generic [ref=e39]: Cars
+    - link "👤 Profile" [ref=e40] [cursor=pointer]:
+      - /url: /profile
+      - generic [ref=e41]: 👤
+      - generic [ref=e42]: Profile

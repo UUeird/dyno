@@ -1,33 +1,25 @@
 const mongoose = require("mongoose");
 
-// Connect to MongoDB
 mongoose
-  .connect("mongodb://localhost:27017/carsDB", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect("mongodb://localhost:27017/carsDB")
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Error connecting to MongoDB:", err));
 
-// Define a schema and model for cars
+const humanSchema = new mongoose.Schema({ name: String, email: String });
+const Human = mongoose.model("Human", humanSchema);
+
+const manufacturerSchema = new mongoose.Schema({ name: { type: String, unique: true }, models: [String] });
+const Manufacturer = mongoose.model("Manufacturer", manufacturerSchema);
+
 const carSchema = new mongoose.Schema({
   manufacturer: String,
   model: String,
   year: Number,
   transmission: String,
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: "Human", default: null },
 });
-
 const Car = mongoose.model("Car", carSchema);
 
-// Define a schema and model for manufacturers
-const manufacturerSchema = new mongoose.Schema({
-  name: { type: String, unique: true },
-  models: [String],
-});
-
-const Manufacturer = mongoose.model("Manufacturer", manufacturerSchema);
-
-// Seed manufacturers
 const manufacturerData = [
   { name: "Toyota", models: ["Corolla", "Camry", "RAV4", "Prius", "Supra"] },
   { name: "Honda", models: ["Civic", "Accord", "CR-V", "Pilot", "Fit"] },
@@ -41,21 +33,27 @@ const manufacturerData = [
   { name: "Cadillac", models: ["CT4", "CT5", "Escalade", "XT5", "Lyriq"] },
 ];
 
-// Seed data
-const carData = [
-  { manufacturer: "Toyota", model: "Corolla", year: 2019, transmission: "Automatic" },
-  { manufacturer: "Honda", model: "Civic", year: 2020, transmission: "Manual" },
-  { manufacturer: "Chevrolet", model: "Impala", year: 2015, transmission: "Automatic" },
-];
-
-// Insert the data
 const seedAll = async () => {
   try {
+    await Human.deleteMany({});
     await Manufacturer.deleteMany({});
+    await Car.deleteMany({});
+
+    const humans = await Human.insertMany([
+      { name: "Sam Lawrence", email: "sam@samelawrence.com" },
+      { name: "Alex Rivera", email: "alex@example.com" },
+      { name: "Jordan Smith", email: "jordan@example.com" },
+    ]);
+    console.log("Humans successfully inserted");
+
     await Manufacturer.insertMany(manufacturerData);
     console.log("Manufacturers successfully inserted");
 
-    await Car.insertMany(carData);
+    await Car.insertMany([
+      { manufacturer: "Toyota", model: "Corolla", year: 2019, transmission: "Automatic", owner: humans[0]._id },
+      { manufacturer: "Honda", model: "Civic", year: 2020, transmission: "Manual", owner: humans[1]._id },
+      { manufacturer: "Chevrolet", model: "Impala", year: 2015, transmission: "Automatic" },
+    ]);
     console.log("Cars successfully inserted");
   } catch (error) {
     console.error("Error inserting data:", error);

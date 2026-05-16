@@ -1,43 +1,356 @@
-.App {
-  text-align: center;
+/* App shell layout */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.app-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid #2e2e2e;
+  flex-shrink: 0;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.app-logo {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #4caf50;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.app-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px 0;
+}
+
+.view h2 {
+  margin: 0 0 4px;
+}
+
+.view-subtitle {
+  color: #888;
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+
+.empty-state {
+  color: #666;
+  font-size: 14px;
+  margin-top: 20px;
+}
+
+/* Tab bar */
+.tab-bar {
+  display: flex;
+  border-top: 1px solid #2e2e2e;
+  flex-shrink: 0;
+  background: #1a1a1a;
+}
+
+.tab-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  gap: 3px;
+  padding: 10px 0 12px;
+  text-decoration: none;
+  color: #666;
+  transition: color 0.15s;
+}
+
+.tab-item--active {
+  color: #4caf50;
+}
+
+.tab-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.tab-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+/* New Experience button */
+.btn-new-experience {
+  margin-top: 16px;
+  padding: 10px 20px;
+  background: #4caf50;
   color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
 }
 
-.App-link {
-  color: #61dafb;
+.btn-new-experience:hover {
+  background: #43a047;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
 }
 
-/* Car form */
+.modal {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 32px;
+  width: 420px;
+  max-width: 90vw;
+  position: relative;
+  text-align: center;
+}
+
+.modal h2 {
+  margin: 0 0 8px;
+}
+
+.modal-subtitle {
+  color: #888;
+  margin: 0 0 24px;
+  font-size: 14px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: #e0e0e0;
+}
+
+.modal-back {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 16px;
+  display: block;
+  text-align: left;
+}
+
+.modal-back:hover {
+  color: #e0e0e0;
+}
+
+/* Experience option cards */
+.experience-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.experience-option {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+  text-align: left;
+  padding: 14px 16px;
+  background: #2a2a2a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #e0e0e0;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.experience-option:hover {
+  border-color: #4caf50;
+  background: #252525;
+}
+
+.option-icon {
+  grid-row: 1 / 3;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.option-label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.option-desc {
+  font-size: 12px;
+  color: #888;
+}
+
+/* Library list */
+.library-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.library-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid #2e2e2e;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.library-item:hover {
+  background: #2a2a2a;
+}
+
+.library-transmission {
+  font-size: 12px;
+  color: #888;
+}
+
+/* VIN form */
+.vin-form {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.vin-input {
+  flex: 1;
+  padding: 10px 12px;
+  background: #121212;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+}
+
+.btn-primary {
+  padding: 10px 16px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-primary:disabled {
+  background: #333;
+  color: #666;
+  cursor: default;
+}
+
+/* Experience list */
+.experience-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  text-align: left;
+}
+
+.experience-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #2e2e2e;
+}
+
+.experience-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.experience-badge--spotted {
+  background: #1a3a4a;
+  color: #4fc3f7;
+}
+
+.experience-badge--drove {
+  background: #2a1a3a;
+  color: #ce93d8;
+}
+
+.experience-car {
+  flex: 1;
+  font-size: 14px;
+}
+
+.experience-owner {
+  color: #888;
+  font-size: 13px;
+}
+
+.experience-date {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.btn-delete--sm {
+  background: none;
+  color: #555;
+  font-size: 12px;
+  padding: 2px 6px;
+}
+
+.btn-delete--sm:hover {
+  color: #c62828;
+}
+
+/* Owner tag on car list */
+.car-owner {
+  color: #888;
+  font-size: 13px;
+}
+
+.car-meta {
+  color: #888;
+  font-size: 13px;
+}
+
+/* Library meta */
+.library-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.library-owner {
+  font-size: 12px;
+  color: #4fc3f7;
+}
+
+/* Car form (used in modal and inline edit) */
 .car-form {
   display: flex;
   flex-wrap: wrap;
@@ -48,21 +361,35 @@
 
 .car-form input {
   padding: 8px 12px;
-  border: 1px solid #ccc;
+  border: 1px solid #444;
   border-radius: 4px;
   font-size: 14px;
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+.car-form input::placeholder {
+  color: #888;
 }
 
 .car-form select {
   padding: 8px 12px;
-  border: 1px solid #ccc;
+  border: 1px solid #444;
   border-radius: 4px;
   font-size: 14px;
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+.inline-edit-form {
+  width: 100%;
+  padding: 8px 0;
 }
 
 .form-error {
-  margin: 8px 0 12px;
-  color: #b00020;
+  width: 100%;
+  margin: 4px 0 8px;
+  color: #cf6679;
   font-size: 14px;
 }
 
@@ -82,7 +409,312 @@
 }
 
 .form-buttons button[type="button"] {
-  background: #999;
+  background: #555;
+}
+
+/* Ownership manager (inside car edit form) */
+.ownership-manager {
+  width: 100%;
+  margin: 4px 0 8px;
+  text-align: left;
+}
+
+.ownership-label {
+  font-size: 12px;
+  color: #888;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ownership-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 6px;
+}
+
+.ownership-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 13px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.ownership-item--past {
+  opacity: 0.6;
+}
+
+.ownership-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.ownership-period {
+  font-size: 11px;
+  color: #666;
+}
+
+.ownership-current {
+  color: #4caf50;
+}
+
+.ownership-action {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.ownership-action:hover {
+  color: #e0e0e0;
+  background: #333;
+}
+
+.ownership-remove:hover {
+  color: #ef5350 !important;
+}
+
+.ownership-empty {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 6px;
+}
+
+.ownership-add-btn {
+  background: none;
+  border: 1px dashed #444;
+  color: #888;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+  width: 100%;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.ownership-add-btn:hover {
+  border-color: #4caf50;
+  color: #4caf50;
+}
+
+.ownership-add-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.ownership-add-form select,
+.ownership-add-form input {
+  flex: 1;
+  min-width: 120px;
+  padding: 6px 10px;
+  background: #121212;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 13px;
+}
+
+/* Profile section heading */
+.profile-section-heading {
+  margin: 28px 0 12px;
+  font-size: 18px;
+}
+
+/* Friends list */
+.friends-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.friend-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #2e2e2e;
+}
+
+.friend-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #aaa;
+  flex-shrink: 0;
+}
+
+.friend-name {
+  font-size: 14px;
+  flex: 1;
+}
+
+.friend-email {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Cars sub-tabs */
+.cars-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0 16px;
+  background: #1a1a1a;
+  border: 1px solid #2e2e2e;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.cars-tab {
+  flex: 1;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: #888;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cars-tab--active {
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
+/* Car thumbnail */
+.car-thumbnail {
+  width: 72px;
+  height: 48px;
+  border-radius: 6px;
+  background: #1e1e1e;
+  border: 1px solid #2e2e2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.car-thumbnail svg {
+  width: 64px;
+  height: 36px;
+}
+
+.car-thumbnail-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Photo manager (inside car edit form) */
+.photo-manager {
+  width: 100%;
+  margin: 4px 0 8px;
+  text-align: left;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.photo-item {
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #333;
+  background: #1a1a1a;
+}
+
+.photo-item--thumb {
+  border-color: #4caf50;
+}
+
+.photo-preview {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  gap: 4px;
+}
+
+.photo-uploader {
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.photo-thumb-badge {
+  font-size: 10px;
+  color: #4caf50;
+  white-space: nowrap;
+}
+
+.photo-actions {
+  display: flex;
+  gap: 4px;
+  padding: 0 6px 6px;
+}
+
+.photo-action-btn {
+  flex: 1;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 3px;
+  color: #ccc;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 3px 4px;
+  text-align: center;
+}
+
+.photo-action-btn:hover {
+  background: #333;
+  color: #e0e0e0;
+}
+
+.photo-action-delete:hover {
+  border-color: #ef5350;
+  color: #ef5350;
+}
+
+.photo-upload {
+  width: 100%;
+}
+
+.photo-file-input {
+  display: none;
+}
+
+.photo-upload-label {
+  display: block;
+  cursor: pointer;
 }
 
 /* Car list */
@@ -93,32 +725,67 @@
 
 .car-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  border-bottom: 1px solid #eee;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #2e2e2e;
+  flex-wrap: wrap;
 }
 
-.car-actions {
-  display: flex;
-  gap: 6px;
+.car-item .car-info {
+  flex: 1;
 }
 
-.btn-edit,
-.btn-delete {
-  padding: 4px 10px;
+/* Car action menu */
+.car-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.btn-menu {
+  background: none;
   border: none;
-  border-radius: 4px;
+  color: #888;
+  font-size: 20px;
+  line-height: 1;
   cursor: pointer;
-  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 
-.btn-edit {
-  background: #2196f3;
-  color: white;
+.btn-menu:hover {
+  color: #e0e0e0;
+  background: #2a2a2a;
 }
 
-.btn-delete {
-  background: #f44336;
-  color: white;
+.car-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  min-width: 110px;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.car-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #e0e0e0;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.car-menu button:hover {
+  background: #333;
+}
+
+.car-menu-delete {
+  color: #ef5350 !important;
 }

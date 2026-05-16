@@ -1,0 +1,45 @@
+- generic [ref=e3]:
+  - heading "Dyno" [level=1] [ref=e4]
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Experiences" [level=2] [ref=e7]
+      - paragraph [ref=e8]: Track the cars you've seen, driven, or owned.
+    - generic [ref=e9]:
+      - heading "Cars" [level=2] [ref=e10]
+      - generic [ref=e11]:
+        - combobox [ref=e12]:
+          - option "Audi"
+          - option "BMW"
+          - option "Cadillac"
+          - option "Chevrolet"
+          - option "Ford"
+          - option "Honda"
+          - option "Mercedes-Benz"
+          - option "Nissan"
+          - option "Tesla"
+          - option "Toyota"
+        - combobox [disabled] [ref=e13]
+        - spinbutton [ref=e14]
+        - combobox [ref=e15]:
+          - option "Manual"
+          - option "Automatic"
+        - button "Add Car" [ref=e17] [cursor=pointer]
+      - list [ref=e18]:
+        - listitem [ref=e19]:
+          - generic [ref=e20]: 2019 Toyota Corolla — Automatic
+          - generic [ref=e21]:
+            - button "Edit" [ref=e22] [cursor=pointer]
+            - button "Delete" [ref=e23] [cursor=pointer]
+        - listitem [ref=e24]:
+          - generic [ref=e25]: 2020 Honda Civic — Manual
+          - generic [ref=e26]:
+            - button "Edit" [ref=e27] [cursor=pointer]
+            - button "Delete" [ref=e28] [cursor=pointer]
+        - listitem [ref=e29]:
+          - generic [ref=e30]: 2015 Chevrolet Impala — Automatic
+          - generic [ref=e31]:
+            - button "Edit" [ref=e32] [cursor=pointer]
+            - button "Delete" [ref=e33] [cursor=pointer]
+    - generic [ref=e34]:
+      - heading "Friends" [level=2] [ref=e35]
+      - paragraph [ref=e36]: Share your passion with others.

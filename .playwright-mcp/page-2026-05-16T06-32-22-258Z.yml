@@ -1,0 +1,37 @@
+- generic [ref=e3]:
+  - heading "Dyno" [level=1] [ref=e4]
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Experiences" [level=2] [ref=e7]
+      - paragraph [ref=e8]: Track the cars you've seen, driven, or owned.
+      - button "+ New Experience" [ref=e9] [cursor=pointer]
+      - list [ref=e79]:
+        - listitem [ref=e80]:
+          - generic [ref=e81]: 🏎️ Drove
+          - generic [ref=e82]: 5/16/2026
+          - button "✕" [ref=e83] [cursor=pointer]
+    - generic [ref=e10]:
+      - heading "Cars" [level=2] [ref=e11]
+      - list [ref=e12]:
+        - listitem [ref=e13]:
+          - generic [ref=e14]:
+            - text: 2019 Toyota Corolla — Automatic
+            - generic [ref=e15]: · Sam Lawrence
+          - generic [ref=e16]:
+            - button "Edit" [ref=e17] [cursor=pointer]
+            - button "Delete" [ref=e18] [cursor=pointer]
+        - listitem [ref=e19]:
+          - generic [ref=e20]:
+            - text: 2020 Honda Civic — Manual
+            - generic [ref=e21]: · Alex Rivera
+          - generic [ref=e22]:
+            - button "Edit" [ref=e23] [cursor=pointer]
+            - button "Delete" [ref=e24] [cursor=pointer]
+        - listitem [ref=e25]:
+          - generic [ref=e26]: 2015 Chevrolet Impala — Automatic
+          - generic [ref=e27]:
+            - button "Edit" [ref=e28] [cursor=pointer]
+            - button "Delete" [ref=e29] [cursor=pointer]
+    - generic [ref=e30]:
+      - heading "Friends" [level=2] [ref=e31]
+      - paragraph [ref=e32]: Share your passion with others.

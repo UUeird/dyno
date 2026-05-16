@@ -1,0 +1,37 @@
+- generic [ref=e3]:
+  - banner [ref=e4]: Dyno
+  - main [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Cars" [level=2] [ref=e7]
+      - list [ref=e8]:
+        - listitem [ref=e9]:
+          - generic [ref=e10]:
+            - strong [ref=e11]: Daily Driver
+            - generic [ref=e12]: 2019 Toyota Corolla
+            - generic [ref=e13]: — Automatic
+            - generic [ref=e14]: · Sam Lawrence
+          - button "⋯" [ref=e16] [cursor=pointer]
+        - listitem [ref=e17]:
+          - generic [ref=e18]:
+            - text: 2020 Honda Civic
+            - generic [ref=e19]: — Manual
+            - generic [ref=e20]: · Alex Rivera
+          - button "⋯" [ref=e22] [cursor=pointer]
+        - listitem [ref=e23]:
+          - generic [ref=e24]:
+            - text: 2015 Chevrolet Impala
+            - generic [ref=e25]: — Automatic
+          - button "⋯" [ref=e27] [cursor=pointer]
+  - navigation [ref=e28]:
+    - link "📡 Feed" [ref=e29] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e30]: 📡
+      - generic [ref=e31]: Feed
+    - link "🚗 Cars" [ref=e32] [cursor=pointer]:
+      - /url: /cars
+      - generic [ref=e33]: 🚗
+      - generic [ref=e34]: Cars
+    - link "👤 Profile" [ref=e35] [cursor=pointer]:
+      - /url: /profile
+      - generic [ref=e36]: 👤
+      - generic [ref=e37]: Profile

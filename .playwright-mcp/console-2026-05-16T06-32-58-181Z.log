@@ -1,0 +1,65 @@
+[     126ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:3000/static/js/2.chunk.js:37143
+[     151ms] [WARNING] ./src/App.tsx
+  Line 123:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 128:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 229:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji
+  Line 234:17:  Emojis should be wrapped in <span>, have role="img", and have an accessible description with aria-label or aria-labelledby  jsx-a11y/accessible-emoji @ http://localhost:3000/static/js/2.chunk.js:11294
+[  295428ms] ReferenceError: process is not defined
+    at 4043 (<anonymous>:2:13168)
+    at r (<anonymous>:2:306599)
+    at 8048 (<anonymous>:2:9496)
+    at r (<anonymous>:2:306599)
+    at 8641 (<anonymous>:2:1379)
+    at r (<anonymous>:2:306599)
+    at <anonymous>:2:315627
+    at <anonymous>:2:324225
+    at <anonymous>:2:324229
+    at e.onload (http://localhost:3000/static/js/2.chunk.js:38963:324845)
+[  295323ms] [ERROR] ./node_modules/react-router-dom/dist/index.mjs
+Can't reexport the namespace object from non EcmaScript module (only default export is available) @ http://localhost:3000/static/js/2.chunk.js:38439
+[  295323ms] [ERROR] ./node_modules/react-router-dom/dist/index.mjs
+Module not found: Can't resolve 'react-router/dom' in '/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/react-router-dom/dist' @ http://localhost:3000/static/js/2.chunk.js:38439
+[  295323ms] [ERROR] ./node_modules/react-router/node_modules/cookie/dist/index.js 95:22
+Module parse failed: Unexpected token (95:22)
+You may need an appropriate loader to handle this file type.
+|   // RFC 6265 sec 4.1.1, RFC 2616 2.2 defines a cookie name consists of one char minimum, plus '='.
+|   if (len < 2) return obj;
+>   const dec = options?.decode || decode;
+|   let index = 0;
+|   do { @ http://localhost:3000/static/js/2.chunk.js:38439
+[  300983ms] [ERROR] ./node_modules/react-router-dom/dist/index.mjs
+Can't reexport the namespace object from non EcmaScript module (only default export is available) @ http://localhost:3000/static/js/2.chunk.js:38439
+[  300983ms] [ERROR] ./node_modules/react-router-dom/dist/index.mjs
+Module not found: Can't resolve 'react-router/dom' in '/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/react-router-dom/dist' @ http://localhost:3000/static/js/2.chunk.js:38439
+[  300983ms] [ERROR] ./node_modules/react-router/node_modules/cookie/dist/index.js 95:22
+Module parse failed: Unexpected token (95:22)
+You may need an appropriate loader to handle this file type.
+|   // RFC 6265 sec 4.1.1, RFC 2616 2.2 defines a cookie name consists of one char minimum, plus '='.
+|   if (len < 2) return obj;
+>   const dec = options?.decode || decode;
+|   let index = 0;
+|   do { @ http://localhost:3000/static/js/2.chunk.js:38439
+[  305919ms] [ERROR] ./node_modules/react-router-dom/dist/index.mjs
+Can't reexport the namespace object from non EcmaScript module (only default export is available) @ http://localhost:3000/static/js/2.chunk.js:38439
+[  305919ms] [ERROR] ./node_modules/react-router-dom/dist/index.mjs
+Module not found: Can't resolve 'react-router/dom' in '/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/react-router-dom/dist' @ http://localhost:3000/static/js/2.chunk.js:38439
+[  305919ms] [ERROR] ./node_modules/react-router/node_modules/cookie/dist/index.js 95:22
+Module parse failed: Unexpected token (95:22)
+You may need an appropriate loader to handle this file type.
+|   // RFC 6265 sec 4.1.1, RFC 2616 2.2 defines a cookie name consists of one char minimum, plus '='.
+|   if (len < 2) return obj;
+>   const dec = options?.decode || decode;
+|   let index = 0;
+|   do { @ http://localhost:3000/static/js/2.chunk.js:38439
+[  309144ms] [ERROR] ./node_modules/react-router-dom/dist/index.mjs
+Can't reexport the namespace object from non EcmaScript module (only default export is available) @ http://localhost:3000/static/js/2.chunk.js:38439
+[  309145ms] [ERROR] ./node_modules/react-router-dom/dist/index.mjs
+Module not found: Can't resolve 'react-router/dom' in '/Users/samlawrence/Documents/src/dyno/dyno-react-app/node_modules/react-router-dom/dist' @ http://localhost:3000/static/js/2.chunk.js:38439
+[  309145ms] [ERROR] ./node_modules/react-router/node_modules/cookie/dist/index.js 95:22
+Module parse failed: Unexpected token (95:22)
+You may need an appropriate loader to handle this file type.
+|   // RFC 6265 sec 4.1.1, RFC 2616 2.2 defines a cookie name consists of one char minimum, plus '='.
+|   if (len < 2) return obj;
+>   const dec = options?.decode || decode;
+|   let index = 0;
+|   do { @ http://localhost:3000/static/js/2.chunk.js:38439

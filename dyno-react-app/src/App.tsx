@@ -2,21 +2,27 @@ import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
 import axios from "axios";
 import "./App.css";
-import { Car, Manufacturer, Human, Experience } from "./types";
+import { Car, Manufacturer, Human, Experience, Reaction, BadgeInfo, TrimEntry } from "./types";
+import ColorPicker from "./components/ColorPicker";
+import BadgeToast from "./components/BadgeToast";
+import StarRating from "./components/StarRating";
 import FeedView from "./views/FeedView";
 import CarsView from "./views/CarsView";
 import ProfileView from "./views/ProfileView";
+import UserProfileView from "./views/UserProfileView";
+import CarModelView from "./views/CarModelView";
 
 const API = "http://localhost:5000/api";
 
 type ExperienceStep = "choose" | "library" | "vin" | "new-car" | "experience-type";
 
-const emptyCar = { manufacturer: "", model: "", year: "", nickname: "", transmission: "", owner: "" };
+const emptyCar = { manufacturer: "", model: "", year: "", nickname: "", transmission: "", color: "", trim: "", vin: "", owner: "" };
 
 function NewExperienceModal({
   cars,
   manufacturers,
   humans,
+  currentUserId,
   onCarCreated,
   onExperienceCreated,
   onClose,
@@ -24,8 +30,9 @@ function NewExperienceModal({
   cars: Car[];
   manufacturers: Manufacturer[];
   humans: Human[];
+  currentUserId?: string;
   onCarCreated: (car: Car) => void;
-  onExperienceCreated: () => void;
+  onExperienceCreated: (newBadges: BadgeInfo[]) => void;
   onClose: () => void;
 }) {
   const [step, setStep] = useState<ExperienceStep>("choose");
@@ -33,15 +40,34 @@ function NewExperienceModal({
   const [form, setForm] = useState(emptyCar);
   const [formError, setFormError] = useState("");
   const [vin, setVin] = useState("");
+  const [notes, setNotes] = useState("");
+  const [rating, setRating] = useState<number | null>(null);
+  const [droveSelected, setDroveSelected] = useState(false);
 
   const selectedManufacturer = manufacturers.find((m) => m.name === form.manufacturer);
   const availableModels = selectedManufacturer?.models || [];
+  const availableColors = selectedManufacturer?.colors
+    ? (selectedManufacturer.colors[form.model] ?? selectedManufacturer.colors["*"] ?? [])
+    : [];
+  const allTrims = selectedManufacturer?.trims?.[form.model] ?? [];
+  const availableTrims = (() => {
+    if (!form.year || isNaN(Number(form.year))) return allTrims;
+    const y = Number(form.year);
+    return allTrims.filter((t) =>
+      t.years.length === 0 ||
+      t.years.some((r) => (r.from === null || r.from <= y) && (r.to === null || r.to >= y))
+    );
+  })();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormError("");
     if (name === "manufacturer") {
-      setForm({ ...form, manufacturer: value, model: "" });
+      setForm({ ...form, manufacturer: value, model: "", color: "", trim: "" });
+    } else if (name === "model") {
+      setForm({ ...form, model: value, color: "", trim: "" });
+    } else if (name === "year") {
+      setForm({ ...form, year: value, trim: "" });
     } else {
       setForm({ ...form, [name]: value });
     }
@@ -76,8 +102,14 @@ function NewExperienceModal({
   const handleSelectExperienceType = async (type: "spotted" | "drove") => {
     if (!selectedCar) return;
     try {
-      await axios.post(`${API}/experiences`, { car: selectedCar._id, type });
-      onExperienceCreated();
+      const { data } = await axios.post(`${API}/experiences`, {
+        car: selectedCar._id,
+        type,
+        loggedBy: currentUserId || null,
+        notes: notes.trim() || null,
+        rating: type === "drove" ? rating : null,
+      });
+      onExperienceCreated(data.newBadges || []);
       onClose();
     } catch {
       onClose();
@@ -126,7 +158,6 @@ function NewExperienceModal({
                     <span>{car.year} {car.manufacturer} {car.model}</span>
                     <span className="library-meta">
                       {car.transmission && <span className="library-transmission">{car.transmission}</span>}
-                      {car.owner && <span className="library-owner">{car.owner.name}</span>}
                     </span>
                   </li>
                 ))}
@@ -179,7 +210,26 @@ function NewExperienceModal({
                 <option value="" disabled hidden>Select transmission</option>
                 <option value="Manual">Manual</option>
                 <option value="Automatic">Automatic</option>
+                <option value="Electric">Electric</option>
               </select>
+              {availableColors.length > 0 && (
+                <ColorPicker
+                  colors={availableColors}
+                  value={form.color}
+                  onChange={(name) => setForm((prev) => ({ ...prev, color: name }))}
+                />
+              )}
+              {availableTrims.length > 0 ? (
+                <select name="trim" value={form.trim} onChange={handleChange}>
+                  <option value="">Trim (optional)</option>
+                  {availableTrims.map((t) => (
+                    <option key={t.name} value={t.name}>{t.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input name="trim" placeholder="Trim (optional)" value={form.trim} onChange={handleChange} />
+              )}
+              <input name="vin" placeholder="VIN (optional)" value={form.vin} onChange={handleChange} maxLength={17} />
               <select name="owner" value={form.owner} onChange={handleChange}>
                 <option value="">Owner (optional)</option>
                 {humans.map((h) => (
@@ -200,18 +250,44 @@ function NewExperienceModal({
             <p className="modal-subtitle">
               {selectedCar.year} {selectedCar.manufacturer} {selectedCar.model}
             </p>
-            <div className="experience-options">
-              <button className="experience-option" onClick={() => handleSelectExperienceType("spotted")}>
-                <span className="option-icon">👀</span>
-                <span className="option-label">Spotted</span>
-                <span className="option-desc">You saw this car in the wild</span>
-              </button>
-              <button className="experience-option" onClick={() => handleSelectExperienceType("drove")}>
-                <span className="option-icon">🏎️</span>
-                <span className="option-label">Drove</span>
-                <span className="option-desc">You got behind the wheel</span>
-              </button>
-            </div>
+            <textarea
+              className="experience-notes-input"
+              placeholder="Add a note… (optional)"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+            />
+            {droveSelected ? (
+              <div className="drove-rating-step">
+                <p className="modal-subtitle">Rate this drive (optional)</p>
+                <StarRating rating={rating} onClick={setRating} />
+                <div className="experience-options" style={{ marginTop: 20 }}>
+                  <button className="experience-option" onClick={() => { setDroveSelected(false); setRating(null); }}>
+                    <span className="option-icon">👀</span>
+                    <span className="option-label">Spotted</span>
+                    <span className="option-desc">Change to spotted instead</span>
+                  </button>
+                  <button className="experience-option experience-option--primary" onClick={() => handleSelectExperienceType("drove")}>
+                    <span className="option-icon">🏎️</span>
+                    <span className="option-label">Log Drive</span>
+                    <span className="option-desc">{rating != null ? `${rating} star${rating !== 1 ? "s" : ""}` : "No rating"}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="experience-options">
+                <button className="experience-option" onClick={() => handleSelectExperienceType("spotted")}>
+                  <span className="option-icon">👀</span>
+                  <span className="option-label">Spotted</span>
+                  <span className="option-desc">You saw this car in the wild</span>
+                </button>
+                <button className="experience-option" onClick={() => setDroveSelected(true)}>
+                  <span className="option-icon">🏎️</span>
+                  <span className="option-label">Drove</span>
+                  <span className="option-desc">You got behind the wheel</span>
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -224,7 +300,12 @@ function App() {
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [humans, setHumans] = useState<Human[]>([]);
   const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [following, setFollowing] = useState<string[]>([]);
   const [showNewExperience, setShowNewExperience] = useState(false);
+  const [pendingBadges, setPendingBadges] = useState<BadgeInfo[]>([]);
+
+  const currentUser = humans.find((h) => h.email === "sam@samelawrence.com");
+  const currentUserId = currentUser?._id;
 
   useEffect(() => {
     axios.get(`${API}/cars`).then((r) => setCars(r.data)).catch(console.error);
@@ -233,26 +314,62 @@ function App() {
     axios.get(`${API}/experiences`).then((r) => setExperiences(r.data)).catch(console.error);
   }, []);
 
+  useEffect(() => {
+    if (!currentUserId) return;
+    axios
+      .get(`${API}/follows?follower=${currentUserId}`)
+      .then((r) => setFollowing(r.data.map((f: { followee: { _id: string } }) => f.followee._id)))
+      .catch(console.error);
+  }, [currentUserId]);
+
+  const handleFollowChange = async (targetId: string, nowFollowing: boolean): Promise<void> => {
+    if (!currentUserId) return;
+    if (nowFollowing) {
+      await axios.post(`${API}/follows`, { follower: currentUserId, followee: targetId });
+      setFollowing((prev) => [...prev, targetId]);
+    } else {
+      await axios.delete(`${API}/follows`, { data: { follower: currentUserId, followee: targetId } });
+      setFollowing((prev) => prev.filter((id) => id !== targetId));
+    }
+  };
+
   const handleCarCreated = (car: Car) => {
     if (!cars.find((c) => c._id === car._id)) {
       setCars((prev) => [...prev, car]);
     }
   };
 
-  const handleExperienceCreated = () => {
+  const handleExperienceCreated = (newBadges: BadgeInfo[]) => {
     axios.get(`${API}/experiences`).then((r) => setExperiences(r.data)).catch(console.error);
+    if (newBadges.length > 0) setPendingBadges(newBadges);
+  };
+
+  const handleReactionsChange = (experienceId: string, reactions: Reaction[]) => {
+    setExperiences((prev) =>
+      prev.map((e) => (e._id === experienceId ? { ...e, reactions } : e))
+    );
   };
 
   return (
     <BrowserRouter>
       <div className="app-shell">
         <header className="app-header">
-          <span className="app-logo">Dyno</span>
+          <NavLink to="/" className="app-logo">Dyno</NavLink>
         </header>
 
         <main className="app-main">
           <Routes>
-            <Route path="/" element={<FeedView experiences={experiences} currentUserId={humans.find((h) => h.email === "sam@samelawrence.com")?._id} />} />
+            <Route
+              path="/"
+              element={
+                <FeedView
+                  experiences={experiences}
+                  currentUserId={currentUserId}
+                  following={following}
+                  onReactionsChange={handleReactionsChange}
+                />
+              }
+            />
             <Route
               path="/cars"
               element={
@@ -261,7 +378,7 @@ function App() {
                   manufacturers={manufacturers}
                   humans={humans}
                   setCars={setCars}
-                  currentUserId={humans.find((h) => h.email === "sam@samelawrence.com")?._id}
+                  currentUserId={currentUserId}
                 />
               }
             />
@@ -273,7 +390,29 @@ function App() {
                   setExperiences={setExperiences}
                   onNewExperience={() => setShowNewExperience(true)}
                   humans={humans}
-                  currentUserId={humans.find((h) => h.email === "sam@samelawrence.com")?._id}
+                  cars={cars}
+                  currentUserId={currentUserId}
+                  following={following}
+                  onFollowChange={handleFollowChange}
+                />
+              }
+            />
+            <Route
+              path="/users/:id"
+              element={
+                <UserProfileView
+                  currentUserId={currentUserId}
+                  following={following}
+                  onFollowChange={handleFollowChange}
+                />
+              }
+            />
+            <Route
+              path="/cars/:manufacturer/:model"
+              element={
+                <CarModelView
+                  currentUserId={currentUserId}
+                  onReactionsChange={handleReactionsChange}
                 />
               }
             />
@@ -300,9 +439,16 @@ function App() {
             cars={cars}
             manufacturers={manufacturers}
             humans={humans}
+            currentUserId={currentUserId}
             onCarCreated={handleCarCreated}
             onExperienceCreated={handleExperienceCreated}
             onClose={() => setShowNewExperience(false)}
+          />
+        )}
+        {pendingBadges.length > 0 && (
+          <BadgeToast
+            badges={pendingBadges}
+            onDismiss={() => setPendingBadges([])}
           />
         )}
       </div>

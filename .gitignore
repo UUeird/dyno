@@ -1,0 +1,16 @@
+# Playwright MCP artifacts (screenshots, snapshots, console logs from agent sessions)
+.playwright-mcp/
+
+# Playwright test artifacts
+test-results/
+playwright-report/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# MCP config (local-only)
+.mcp.json

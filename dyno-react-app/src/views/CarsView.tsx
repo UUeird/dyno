@@ -1,11 +1,12 @@
 import React from "react";
 import axios from "axios";
-import { Car, Manufacturer, Human, Ownership } from "../types";
+import { Car, ColorEntry, TrimEntry, Manufacturer, Human, Ownership } from "../types";
 import CarThumbnail from "../components/CarThumbnail";
 import PhotoManager from "../components/PhotoManager";
+import ColorPicker from "../components/ColorPicker";
 
 const API = "http://localhost:5000/api";
-const emptyCar = { manufacturer: "", model: "", year: "", nickname: "", transmission: "" };
+const emptyCar = { manufacturer: "", model: "", year: "", nickname: "", transmission: "", color: "", trim: "", vin: "" };
 
 type CarsTab = "owned" | "friends" | "all";
 
@@ -90,12 +91,129 @@ function OwnershipManager({ car, humans, onUpdated }: { car: Car; humans: Human[
   );
 }
 
+function CarDetail({ car, manufacturers }: { car: Car; manufacturers: Manufacturer[] }) {
+  const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString() : "unknown";
+  const currentOwnerships = car.ownershipHistory.filter((o) => !o.to);
+  const pastOwnerships = car.ownershipHistory.filter((o) => o.to);
+  const colorEntry = car.color
+    ? getColors(manufacturers, car.manufacturer, car.model).find((c) => c.name === car.color)
+    : null;
+  const features = car.trim
+    ? getFeatures(manufacturers, car.manufacturer, car.model, car.trim, String(car.year))
+    : [];
+
+  return (
+    <div className="car-detail">
+      {car.photos.length > 0 && (
+        <div className="car-detail-photos">
+          {car.photos.map((photo) => (
+            <img
+              key={photo._id}
+              src={photo.url}
+              alt={photo.caption || "Car photo"}
+              className="car-detail-photo"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          ))}
+        </div>
+      )}
+      <div className="car-detail-specs">
+        {car.transmission && (
+          <span className="car-detail-spec">
+            <span className="car-detail-spec-label">Transmission</span>
+            <span className="car-detail-spec-value">{car.transmission}</span>
+          </span>
+        )}
+        {car.color && (
+          <span className="car-detail-spec">
+            <span className="car-detail-spec-label">Color</span>
+            <span className="car-detail-color-value car-detail-spec-value">
+              {colorEntry && <span className="car-detail-color-dot" style={{ background: colorEntry.hex }} />}
+              {car.color}
+            </span>
+          </span>
+        )}
+        {car.trim && (
+          <span className="car-detail-spec">
+            <span className="car-detail-spec-label">Trim</span>
+            <span className="car-detail-spec-value">{car.trim}</span>
+          </span>
+        )}
+        {car.vin && (
+          <span className="car-detail-spec car-detail-spec--vin">
+            <span className="car-detail-spec-label">VIN</span>
+            <span className="car-detail-spec-value">{car.vin}</span>
+          </span>
+        )}
+      </div>
+      {features.length > 0 && (
+        <div className="car-detail-features">
+          <span className="car-detail-section-label">Features</span>
+          <div className="car-feature-chips">
+            {features.map((f) => (
+              <span key={f} className="car-feature-chip">{f}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {car.ownershipHistory.length > 0 && (
+        <div className="car-detail-owners">
+          <span className="car-detail-section-label">Owners</span>
+          {currentOwnerships.map((o) => (
+            <div key={o._id} className="car-detail-owner">
+              <span>{o.owner.name}</span>
+              <span className="car-detail-owner-period ownership-current">current{o.from ? ` · since ${formatDate(o.from)}` : ""}</span>
+            </div>
+          ))}
+          {pastOwnerships.map((o) => (
+            <div key={o._id} className="car-detail-owner car-detail-owner--past">
+              <span>{o.owner.name}</span>
+              <span className="car-detail-owner-period">{formatDate(o.from)} – {formatDate(o.to)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getColors(manufacturers: Manufacturer[], manufacturer: string, model: string): ColorEntry[] {
+  const mfr = manufacturers.find((m) => m.name === manufacturer);
+  if (!mfr?.colors) return [];
+  return mfr.colors[model] ?? mfr.colors["*"] ?? [];
+}
+
+function getFeatures(manufacturers: Manufacturer[], manufacturer: string, model: string, trim: string, year: string): string[] {
+  if (!trim || !year || isNaN(Number(year))) return [];
+  const y = Number(year);
+  const mfr = manufacturers.find((m) => m.name === manufacturer);
+  const trims: TrimEntry[] = mfr?.trims?.[model] ?? [];
+  const trimEntry = trims.find((t) => t.name === trim);
+  if (!trimEntry) return [];
+  const span = trimEntry.years.find(
+    (r) => (r.from === null || r.from <= y) && (r.to === null || r.to >= y)
+  );
+  return span?.features ?? [];
+}
+
+function getTrims(manufacturers: Manufacturer[], manufacturer: string, model: string, year: string): TrimEntry[] {
+  const mfr = manufacturers.find((m) => m.name === manufacturer);
+  const all: TrimEntry[] = mfr?.trims?.[model] ?? [];
+  if (!year || isNaN(Number(year))) return all;
+  const y = Number(year);
+  return all.filter((t) =>
+    t.years.length === 0 ||
+    t.years.some((r) => (r.from === null || r.from <= y) && (r.to === null || r.to >= y))
+  );
+}
+
 function CarList({
   cars,
   manufacturers,
   humans,
   currentUser,
   editingId,
+  expandedId,
   editForm,
   editError,
   openMenuId,
@@ -106,6 +224,9 @@ function CarList({
   onCancelEdit,
   onDelete,
   onToggleMenu,
+  onToggleExpand,
+  onColorChange,
+  onTrimChange,
   onCarUpdated,
   emptyMessage,
 }: {
@@ -114,6 +235,7 @@ function CarList({
   humans: Human[];
   currentUser?: Human;
   editingId: string | null;
+  expandedId: string | null;
   editForm: typeof emptyCar;
   editError: string;
   openMenuId: string | null;
@@ -124,15 +246,21 @@ function CarList({
   onCancelEdit: () => void;
   onDelete: (id: string) => void;
   onToggleMenu: (id: string) => void;
+  onToggleExpand: (id: string) => void;
+  onColorChange: (name: string) => void;
+  onTrimChange: (name: string) => void;
   onCarUpdated: (car: Car) => void;
   emptyMessage: string;
 }) {
+  const editColors = getColors(manufacturers, editForm.manufacturer, editForm.model);
+  const editTrims = getTrims(manufacturers, editForm.manufacturer, editForm.model, editForm.year);
+
   if (cars.length === 0) return <p className="empty-state">{emptyMessage}</p>;
 
   return (
     <ul className="car-list">
       {cars.map((car) => (
-        <li key={car._id} className="car-item">
+        <li key={car._id} className={`car-item${expandedId === car._id ? " car-item--expanded" : ""}`}>
           {editingId === car._id ? (
             <form className="car-form inline-edit-form" onSubmit={onEditSubmit}>
               <select name="manufacturer" value={editForm.manufacturer} onChange={onEditChange} required>
@@ -153,7 +281,26 @@ function CarList({
                 <option value="" disabled hidden>Transmission</option>
                 <option value="Manual">Manual</option>
                 <option value="Automatic">Automatic</option>
+                <option value="Electric">Electric</option>
               </select>
+              {editColors.length > 0 && (
+                <ColorPicker colors={editColors} value={editForm.color} onChange={onColorChange} />
+              )}
+              {editTrims.length > 0 ? (
+                <select
+                  name="trim"
+                  value={editForm.trim}
+                  onChange={(e) => onTrimChange(e.target.value)}
+                >
+                  <option value="">Trim (optional)</option>
+                  {editTrims.map((t) => (
+                    <option key={t.name} value={t.name}>{t.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input name="trim" placeholder="Trim (optional)" value={editForm.trim} onChange={onEditChange} />
+              )}
+              <input name="vin" placeholder="VIN (optional)" value={editForm.vin} onChange={onEditChange} maxLength={17} />
               <OwnershipManager car={car} humans={humans} onUpdated={onCarUpdated} />
               <PhotoManager car={car} currentUser={currentUser} onUpdated={onCarUpdated} />
               {editError && <p className="form-error">{editError}</p>}
@@ -164,26 +311,37 @@ function CarList({
             </form>
           ) : (
             <>
-              <CarThumbnail car={car} />
-              <span className="car-info">
-                {car.nickname
-                  ? <><strong>{car.nickname}</strong> <span className="car-meta">{car.year} {car.manufacturer} {car.model}</span></>
-                  : <>{car.year} {car.manufacturer} {car.model}</>
-                }
-                {car.transmission && <span className="car-meta"> — {car.transmission}</span>}
-                {car.currentOwners.length > 0 && (
-                  <span className="car-owner"> · {car.currentOwners.map((o) => o.name).join(", ")}</span>
-                )}
-              </span>
-              <div className="car-menu-wrap">
-                <button className="btn-menu" onClick={(e) => { e.stopPropagation(); onToggleMenu(car._id); }}>⋯</button>
-                {openMenuId === car._id && (
-                  <div className="car-menu">
-                    <button onClick={() => onStartEdit(car)}>Edit</button>
-                    <button className="car-menu-delete" onClick={() => onDelete(car._id)}>Delete</button>
-                  </div>
-                )}
+              <div
+                className="car-item-row"
+                onClick={() => onToggleExpand(car._id)}
+                style={{ cursor: "pointer" }}
+              >
+                <CarThumbnail car={car} />
+                <span className="car-info">
+                  {car.nickname
+                    ? <><strong>{car.nickname}</strong> <span className="car-meta">{car.year} {car.manufacturer} {car.model}{car.trim && ` ${car.trim}`}</span></>
+                    : <>{car.year} {car.manufacturer} {car.model}{car.trim && <span className="car-meta"> {car.trim}</span>}</>
+                  }
+                  {car.transmission && <span className="car-meta"> — {car.transmission}</span>}
+                  {car.currentOwners.length > 0 && (
+                    <span className="car-owner"> · {car.currentOwners.map((o) => o.name).join(", ")}</span>
+                  )}
+                </span>
+                {car.color && (() => {
+                  const ce = getColors(manufacturers, car.manufacturer, car.model).find((c) => c.name === car.color);
+                  return ce ? <span className="car-color-dot" style={{ background: ce.hex }} title={car.color} /> : null;
+                })()}
+                <div className="car-menu-wrap">
+                  <button className="btn-menu" onClick={(e) => { e.stopPropagation(); onToggleMenu(car._id); }}>⋯</button>
+                  {openMenuId === car._id && (
+                    <div className="car-menu">
+                      <button onClick={() => onStartEdit(car)}>Edit</button>
+                      <button className="car-menu-delete" onClick={() => onDelete(car._id)}>Delete</button>
+                    </div>
+                  )}
+                </div>
               </div>
+              {expandedId === car._id && <CarDetail car={car} manufacturers={manufacturers} />}
             </>
           )}
         </li>
@@ -207,6 +365,7 @@ export default function CarsView({
 }) {
   const [tab, setTab] = React.useState<CarsTab>("all");
   const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [editForm, setEditForm] = React.useState(emptyCar);
   const [editError, setEditError] = React.useState("");
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
@@ -225,7 +384,11 @@ export default function CarsView({
     const { name, value } = e.target;
     setEditError("");
     if (name === "manufacturer") {
-      setEditForm({ ...editForm, manufacturer: value, model: "" });
+      setEditForm({ ...editForm, manufacturer: value, model: "", color: "", trim: "" });
+    } else if (name === "model") {
+      setEditForm({ ...editForm, model: value, color: "", trim: "" });
+    } else if (name === "year") {
+      setEditForm((prev) => ({ ...prev, year: value, trim: "" }));
     } else {
       setEditForm({ ...editForm, [name]: value });
     }
@@ -250,9 +413,14 @@ export default function CarsView({
     }
   };
 
+  const toggleExpand = (id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  };
+
   const startEdit = (car: Car) => {
     setEditError("");
     setOpenMenuId(null);
+    setExpandedId(null);
     setEditingId(car._id);
     setEditForm({
       manufacturer: car.manufacturer,
@@ -260,6 +428,9 @@ export default function CarsView({
       year: String(car.year),
       nickname: car.nickname || "",
       transmission: car.transmission || "",
+      color: car.color || "",
+      trim: car.trim || "",
+      vin: car.vin || "",
     });
   };
 
@@ -297,6 +468,7 @@ export default function CarsView({
     humans,
     currentUser,
     editingId,
+    expandedId,
     editForm,
     editError,
     openMenuId,
@@ -307,6 +479,9 @@ export default function CarsView({
     onCancelEdit: cancelEdit,
     onDelete: handleDelete,
     onToggleMenu: toggleMenu,
+    onToggleExpand: toggleExpand,
+    onColorChange: (name: string) => setEditForm((prev) => ({ ...prev, color: name })),
+    onTrimChange: (name: string) => setEditForm((prev) => ({ ...prev, trim: name })),
     onCarUpdated: handleCarUpdated,
   };
 

@@ -61,10 +61,32 @@ export type BadgeInfo = {
   seriesSlug: string;
   seriesName: string;
   level: number;
+  maxLevel: number;
   name: string;
   emoji: string;
   description: string;
   awardedAt?: string;
+};
+
+export type BadgeLevelDef = {
+  level: number;
+  name: string;
+  emoji: string;
+  description: string;
+};
+
+export type BadgeProgress = {
+  seriesSlug: string;
+  seriesName: string;
+  unit: string;
+  level: number;
+  maxLevel: number;
+  count: number;
+  nextThreshold: number | null;
+  prevThreshold: number;
+  thresholds: number[];
+  levels: BadgeLevelDef[];
+  awardedAt: string | null;
 };
 
 export type Follow = {
@@ -72,6 +94,18 @@ export type Follow = {
   follower: Human;
   followee: Human;
   createdAt: string;
+};
+
+export type WishlistItem = {
+  _id: string;
+  human: string;
+  manufacturer: string;
+  model: string;
+  yearFrom?: number | null;
+  yearTo?: number | null;
+  createdAt: string;
+  thumbnailUrl?: string | null;
+  representativeYear?: number | null;
 };
 
 export type ColorEntry = { name: string; hex: string };

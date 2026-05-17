@@ -11,8 +11,9 @@ import CarsView from "./views/CarsView";
 import ProfileView from "./views/ProfileView";
 import UserProfileView from "./views/UserProfileView";
 import CarModelView from "./views/CarModelView";
-
-const API = "http://localhost:5000/api";
+import AllBadgesView from "./views/AllBadgesView";
+import SearchBar from "./components/SearchBar";
+import { API } from "./lib/api";
 
 type ExperienceStep = "choose" | "library" | "vin" | "new-car" | "experience-type";
 
@@ -229,7 +230,7 @@ function NewExperienceModal({
               ) : (
                 <input name="trim" placeholder="Trim (optional)" value={form.trim} onChange={handleChange} />
               )}
-              <input name="vin" placeholder="VIN (optional)" value={form.vin} onChange={handleChange} maxLength={17} />
+              <input name="vin" placeholder="VIN" value={form.vin} onChange={handleChange} maxLength={17} required />
               <select name="owner" value={form.owner} onChange={handleChange}>
                 <option value="">Owner (optional)</option>
                 {humans.map((h) => (
@@ -355,6 +356,7 @@ function App() {
       <div className="app-shell">
         <header className="app-header">
           <NavLink to="/" className="app-logo">Dyno</NavLink>
+          <SearchBar />
         </header>
 
         <main className="app-main">
@@ -415,6 +417,14 @@ function App() {
                   onReactionsChange={handleReactionsChange}
                 />
               }
+            />
+            <Route
+              path="/badges"
+              element={<AllBadgesView currentUserId={currentUserId} />}
+            />
+            <Route
+              path="/users/:id/badges"
+              element={<AllBadgesView currentUserId={currentUserId} />}
             />
           </Routes>
         </main>

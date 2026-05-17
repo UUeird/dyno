@@ -58,7 +58,7 @@ test.describe("Achievement badges", () => {
 
     await page.goto("/profile");
     await expect(page.locator(".badge-shelf")).toBeVisible();
-    await expect(page.locator(".badge-pill").first()).toBeVisible();
+    await expect(page.locator(".badge-circle").first()).toBeVisible();
 
     await axios.delete(`${API}/experiences/${data.experience._id}`);
   });

@@ -1,8 +1,7 @@
 import React from "react";
 import axios from "axios";
 import { Car, Photo, Human } from "../types";
-
-const API = "http://localhost:5000/api";
+import { API } from "../lib/api";
 
 function PhotoItem({ photo, isThumbnail, onSetThumbnail, onDelete }: {
   photo: Photo;

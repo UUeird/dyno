@@ -23,10 +23,12 @@ const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 const DB_NAME = process.env.MONGO_DB || "carsDB";
 mongoose
   .connect(`mongodb://localhost:27017/${DB_NAME}`)
-  .then(() => {
+  .then(async () => {
     console.log("Connected to MongoDB");
-    migrateLegacyOwners();
-    seedBadgeSeries();
+    await migrateLegacyOwners();
+    await seedBadgeSeries();
+    // Ensure schema-declared indexes (e.g. Car.vin unique) are actually built
+    await Car.syncIndexes();
   })
   .catch((err) => console.error("Error connecting to MongoDB:", err));
 
@@ -84,6 +86,8 @@ const carSchema = new mongoose.Schema({
   // legacy field — kept so Mongoose can read/unset it during migration
   owner: { type: mongoose.Schema.Types.ObjectId, ref: "Human", default: null },
 });
+// VIN is required for new cars; existing VIN-less rows are grandfathered (sparse index).
+carSchema.index({ vin: 1 }, { unique: true, sparse: true });
 const Car = mongoose.model("Car", carSchema);
 
 const ownershipSchema = new mongoose.Schema({
@@ -138,6 +142,25 @@ const userBadgeSchema = new mongoose.Schema({
 }, { timestamps: true });
 userBadgeSchema.index({ human: 1, seriesSlug: 1 }, { unique: true });
 const UserBadge = mongoose.model("UserBadge", userBadgeSchema);
+
+const wishlistSchema = new mongoose.Schema({
+  human: { type: mongoose.Schema.Types.ObjectId, ref: "Human", required: true },
+  manufacturer: { type: String, required: true },
+  model: { type: String, required: true },
+  yearFrom: { type: Number, default: null },
+  yearTo: { type: Number, default: null },
+}, { timestamps: true });
+wishlistSchema.index({ human: 1, manufacturer: 1, model: 1 }, { unique: true });
+const WishlistItem = mongoose.model("WishlistItem", wishlistSchema);
+
+// True if a car-year falls within a wishlist item's year range.
+// null/null = any year. null on one end = open-ended on that side.
+function yearMatchesWishlist(carYear, yearFrom, yearTo) {
+  if (yearFrom == null && yearTo == null) return true;
+  if (yearFrom != null && carYear < yearFrom) return false;
+  if (yearTo != null && carYear > yearTo) return false;
+  return true;
+}
 
 // ── Migration ─────────────────────────────────────────────────────────────────
 
@@ -223,97 +246,68 @@ async function seedBadgeSeries() {
         { level: 3, emoji: "🏛️", name: "Living Museum",   description: "Drove cars from 5 different decades." },
       ],
     },
-    {
-      slug: "color-collector",
-      name: "Color Collector",
-      levels: [
-        { level: 1, emoji: "🎨", name: "Color Curious",  description: "Experienced 3 different car colors." },
-        { level: 2, emoji: "🌈", name: "Rainbow Chaser", description: "Experienced 8 different car colors." },
-        { level: 3, emoji: "🖌️", name: "Full Spectrum",  description: "Experienced 14 different car colors." },
-      ],
-    },
   ];
   for (const s of series) {
     await BadgeSeries.findOneAndUpdate({ slug: s.slug }, s, { upsert: true, new: true });
   }
+  // Remove deprecated series so the all-badges page doesn't display them
+  await BadgeSeries.deleteMany({ slug: { $nin: series.map((s) => s.slug) } });
+  await UserBadge.deleteMany({ seriesSlug: { $nin: series.map((s) => s.slug) } });
   console.log(`Badge series seeded (${series.length} series)`);
 }
 
 const EV_MANUFACTURERS = new Set(["Tesla", "Rivian", "Lucid", "Polestar", "Fisker", "NIO"]);
 
-const BADGE_EVALUATORS = {
-  "drive-count": async (humanId) => {
-    const count = await Experience.countDocuments({ loggedBy: humanId, type: "drove" });
-    if (count >= 250) return 5;
-    if (count >= 100) return 4;
-    if (count >= 50)  return 3;
-    if (count >= 10)  return 2;
-    if (count >= 1)   return 1;
-    return 0;
-  },
-  "spot-count": async (humanId) => {
-    const count = await Experience.countDocuments({ loggedBy: humanId, type: "spotted" });
-    if (count >= 100) return 4;
-    if (count >= 50)  return 3;
-    if (count >= 10)  return 2;
-    if (count >= 1)   return 1;
-    return 0;
-  },
+// thresholds[i] is the count needed to reach level i+1.
+const BADGE_DEFS = {
+  "drive-count":      { unit: "drives",        thresholds: [1, 10, 50, 100, 250] },
+  "spot-count":       { unit: "spots",         thresholds: [1, 10, 50, 100] },
+  "brand-explorer":   { unit: "brands",        thresholds: [2, 5, 10] },
+  "stick-shift":      { unit: "manual drives", thresholds: [1, 10, 25] },
+  "ev-pioneer":       { unit: "EV drives",     thresholds: [1, 5, 10] },
+  "community":        { unit: "follows",       thresholds: [1, 5, 10] },
+  "decade-collector": { unit: "decades",       thresholds: [2, 3, 5] },
+};
+
+const BADGE_COUNTERS = {
+  "drive-count":    (humanId) => Experience.countDocuments({ loggedBy: humanId, type: "drove" }),
+  "spot-count":     (humanId) => Experience.countDocuments({ loggedBy: humanId, type: "spotted" }),
   "brand-explorer": async (humanId) => {
     const exps = await Experience.find({ loggedBy: humanId, type: "drove" }).populate("car", "manufacturer");
-    const manufacturers = new Set(exps.map((e) => e.car?.manufacturer).filter(Boolean));
-    const count = manufacturers.size;
-    if (count >= 10) return 3;
-    if (count >= 5)  return 2;
-    if (count >= 2)  return 1;
-    return 0;
+    return new Set(exps.map((e) => e.car?.manufacturer).filter(Boolean)).size;
   },
   "stick-shift": async (humanId) => {
     const exps = await Experience.find({ loggedBy: humanId, type: "drove" }).populate("car", "transmission");
-    const count = exps.filter((e) => e.car?.transmission === "Manual").length;
-    if (count >= 25) return 3;
-    if (count >= 10) return 2;
-    if (count >= 1)  return 1;
-    return 0;
+    return exps.filter((e) => e.car?.transmission === "Manual").length;
   },
   "ev-pioneer": async (humanId) => {
     const exps = await Experience.find({ loggedBy: humanId, type: "drove" }).populate("car", "manufacturer transmission");
-    const count = exps.filter((e) => {
+    return exps.filter((e) => {
       const t = e.car?.transmission;
       const m = e.car?.manufacturer;
       return t === "Electric" || EV_MANUFACTURERS.has(m);
     }).length;
-    if (count >= 10) return 3;
-    if (count >= 5)  return 2;
-    if (count >= 1)  return 1;
-    return 0;
   },
-  "community": async (humanId) => {
-    const count = await Follow.countDocuments({ follower: humanId });
-    if (count >= 10) return 3;
-    if (count >= 5)  return 2;
-    if (count >= 1)  return 1;
-    return 0;
-  },
+  "community":     (humanId) => Follow.countDocuments({ follower: humanId }),
   "decade-collector": async (humanId) => {
     const exps = await Experience.find({ loggedBy: humanId, type: "drove" }).populate("car", "year");
-    const decades = new Set(exps.map((e) => e.car?.year ? Math.floor(e.car.year / 10) * 10 : null).filter(Boolean));
-    const count = decades.size;
-    if (count >= 5) return 3;
-    if (count >= 3) return 2;
-    if (count >= 2) return 1;
-    return 0;
-  },
-  "color-collector": async (humanId) => {
-    const exps = await Experience.find({ loggedBy: humanId }).populate("car", "color");
-    const colors = new Set(exps.map((e) => e.car?.color).filter(Boolean));
-    const count = colors.size;
-    if (count >= 14) return 3;
-    if (count >= 8)  return 2;
-    if (count >= 3)  return 1;
-    return 0;
+    return new Set(exps.map((e) => e.car?.year ? Math.floor(e.car.year / 10) * 10 : null).filter(Boolean)).size;
   },
 };
+
+function levelForCount(count, thresholds) {
+  for (let i = thresholds.length - 1; i >= 0; i--) {
+    if (count >= thresholds[i]) return i + 1;
+  }
+  return 0;
+}
+
+const BADGE_EVALUATORS = Object.fromEntries(
+  Object.keys(BADGE_DEFS).map((slug) => [
+    slug,
+    async (humanId) => levelForCount(await BADGE_COUNTERS[slug](humanId), BADGE_DEFS[slug].thresholds),
+  ])
+);
 
 async function evaluateBadges(humanId) {
   if (!humanId) return [];
@@ -423,15 +417,24 @@ app.post("/api/cars", async (req, res) => {
     if (!manufacturer || !model || !year) {
       return res.status(400).json({ error: "manufacturer, model, and year are required" });
     }
+    const trimmedVin = typeof vin === "string" ? vin.trim() : "";
+    if (!trimmedVin) {
+      return res.status(400).json({ error: "VIN is required" });
+    }
     const mfr = await Manufacturer.findOne({ name: manufacturer });
     if (!mfr) return res.status(400).json({ error: "invalid manufacturer" });
     if (!mfr.models.includes(model))
       return res.status(400).json({ error: `invalid model for manufacturer ${manufacturer}` });
 
-    const car = await new Car({ manufacturer, model, year, nickname, transmission, color, trim, vin }).save();
-    res.status(201).json(await attachOwnership(car));
+    try {
+      const car = await new Car({ manufacturer, model, year, nickname, transmission, color, trim, vin: trimmedVin }).save();
+      res.status(201).json(await attachOwnership(car));
+    } catch (err) {
+      if (err.code === 11000) return res.status(409).json({ error: "A car with this VIN already exists" });
+      throw err;
+    }
   } catch (err) {
-    res.status(500).send("Error creating car");
+    res.status(500).json({ error: err.message || "Error creating car" });
   }
 });
 
@@ -636,6 +639,24 @@ app.post("/api/experiences", async (req, res) => {
     const experience = new Experience({ car, type, notes, rating: rating ?? null, loggedBy: loggedBy || null });
     await experience.save();
     await experience.populate("loggedBy", "name email avatarUrl");
+
+    // If this is a drove experience, remove any wishlist items that this car satisfies
+    if (type === "drove" && loggedBy) {
+      const carDoc = await Car.findById(car).lean();
+      if (carDoc) {
+        const items = await WishlistItem.find({
+          human: loggedBy,
+          manufacturer: carDoc.manufacturer,
+          model: carDoc.model,
+        });
+        for (const item of items) {
+          if (yearMatchesWishlist(carDoc.year, item.yearFrom, item.yearTo)) {
+            await WishlistItem.deleteOne({ _id: item._id });
+          }
+        }
+      }
+    }
+
     const newBadges = await evaluateBadges(loggedBy);
     res.status(201).json({ experience, newBadges });
   } catch (err) {
@@ -771,7 +792,16 @@ app.get("/api/users/:id/profile", async (req, res) => {
     const badges = userBadges.map((b) => {
       const series = seriesMap[b.seriesSlug];
       const levelDef = series?.levels.find((l) => l.level === b.level);
-      return { seriesSlug: b.seriesSlug, seriesName: series?.name, level: b.level, name: levelDef?.name, emoji: levelDef?.emoji, description: levelDef?.description, awardedAt: b.updatedAt };
+      return {
+        seriesSlug: b.seriesSlug,
+        seriesName: series?.name,
+        level: b.level,
+        maxLevel: series?.levels.length || b.level,
+        name: levelDef?.name,
+        emoji: levelDef?.emoji,
+        description: levelDef?.description,
+        awardedAt: b.updatedAt,
+      };
     });
 
     res.json({
@@ -796,9 +826,58 @@ app.get("/api/users/:id/badges", async (req, res) => {
     const badges = userBadges.map((b) => {
       const series = seriesMap[b.seriesSlug];
       const levelDef = series?.levels.find((l) => l.level === b.level);
-      return { seriesSlug: b.seriesSlug, seriesName: series?.name, level: b.level, name: levelDef?.name, emoji: levelDef?.emoji, description: levelDef?.description, awardedAt: b.updatedAt };
+      return {
+        seriesSlug: b.seriesSlug,
+        seriesName: series?.name,
+        level: b.level,
+        maxLevel: series?.levels.length || b.level,
+        name: levelDef?.name,
+        emoji: levelDef?.emoji,
+        description: levelDef?.description,
+        awardedAt: b.updatedAt,
+      };
     });
     res.json(badges);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// All badges with progress: every series, current level, count, and next threshold
+app.get("/api/users/:id/badges/all", async (req, res) => {
+  try {
+    const humanId = req.params.id;
+    const slugs = Object.keys(BADGE_DEFS);
+    const allSeries = await BadgeSeries.find({ slug: { $in: slugs } }).lean();
+    const seriesMap = Object.fromEntries(allSeries.map((s) => [s.slug, s]));
+    const userBadges = await UserBadge.find({ human: humanId }).lean();
+    const userLevelMap = Object.fromEntries(userBadges.map((b) => [b.seriesSlug, b]));
+
+    const result = await Promise.all(
+      slugs.map(async (slug) => {
+        const series = seriesMap[slug];
+        const def = BADGE_DEFS[slug];
+        const count = await BADGE_COUNTERS[slug](humanId);
+        const level = levelForCount(count, def.thresholds);
+        const maxLevel = def.thresholds.length;
+        const nextThreshold = level < maxLevel ? def.thresholds[level] : null;
+        const prevThreshold = level > 0 ? def.thresholds[level - 1] : 0;
+        return {
+          seriesSlug: slug,
+          seriesName: series?.name,
+          unit: def.unit,
+          level,
+          maxLevel,
+          count,
+          nextThreshold,
+          prevThreshold,
+          thresholds: def.thresholds,
+          levels: series?.levels || [],
+          awardedAt: userLevelMap[slug]?.updatedAt || null,
+        };
+      })
+    );
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -812,6 +891,113 @@ app.get("/api/users/:id/badges", async (req, res) => {
 function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+// ── Search ────────────────────────────────────────────────────────────────────
+
+app.get("/api/search", async (req, res) => {
+  try {
+    const q = (req.query.q || "").trim();
+    if (q.length < 2) return res.json({ models: [], users: [] });
+
+    const rx = new RegExp(escapeRegex(q), "i");
+
+    // Models: derived from Car collection, deduped to unique {manufacturer, model} pairs
+    const matchingCars = await Car.find(
+      { $or: [{ manufacturer: rx }, { model: rx }] },
+      { manufacturer: 1, model: 1 }
+    ).lean();
+    const seen = new Set();
+    const models = [];
+    for (const c of matchingCars) {
+      const key = `${c.manufacturer}|${c.model}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        models.push({ manufacturer: c.manufacturer, model: c.model });
+        if (models.length >= 10) break;
+      }
+    }
+
+    // Users: match against name
+    const users = await Human.find({ name: rx }).limit(10).lean();
+
+    res.json({ models, users });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Wishlist ──────────────────────────────────────────────────────────────────
+
+app.post("/api/wishlist", async (req, res) => {
+  try {
+    const { human, manufacturer, model, yearFrom, yearTo } = req.body;
+    const yf = yearFrom ?? null;
+    const yt = yearTo ?? null;
+
+    // Reject if user already has a drove experience matching this model+range
+    const userDroveCars = await Experience.find({ loggedBy: human, type: "drove" }).populate("car").lean();
+    const matched = userDroveCars.find((e) => {
+      const c = e.car;
+      return c && c.manufacturer === manufacturer && c.model === model &&
+        yearMatchesWishlist(c.year, yf, yt);
+    });
+    if (matched) {
+      return res.status(409).json({ error: "Already driven a car matching this wishlist entry." });
+    }
+
+    const item = await WishlistItem.findOneAndUpdate(
+      { human, manufacturer, model },
+      { human, manufacturer, model, yearFrom: yf, yearTo: yt },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.status(201).json(item);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/wishlist", async (req, res) => {
+  try {
+    const { human, manufacturer, model } = req.body;
+    await WishlistItem.deleteOne({ human, manufacturer, model });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/users/:id/wishlist", async (req, res) => {
+  try {
+    const items = await WishlistItem.find({ human: req.params.id }).sort({ createdAt: -1 }).lean();
+
+    // For each item, find a representative car (preferring one inside the year range)
+    // and pick its thumbnail to surface to the gallery.
+    const enriched = await Promise.all(items.map(async (item) => {
+      const cars = await Car.find({ manufacturer: item.manufacturer, model: item.model }).lean();
+      const inRange = cars.filter((c) => yearMatchesWishlist(c.year, item.yearFrom, item.yearTo));
+      const candidates = inRange.length > 0 ? inRange : cars;
+
+      let thumbnailUrl = null;
+      let representativeYear = null;
+      for (const c of candidates) {
+        const photos = await Photo.find({ car: c._id }).sort({ createdAt: 1 }).lean();
+        const chosen = c.thumbnailPhoto
+          ? photos.find((p) => String(p._id) === String(c.thumbnailPhoto)) || photos[0]
+          : photos[0];
+        if (chosen) {
+          thumbnailUrl = chosen.url;
+          representativeYear = c.year;
+          break;
+        }
+      }
+      return { ...item, thumbnailUrl, representativeYear };
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 function slugToRegex(slug) {
   // hyphens in the slug come from either spaces in the original name OR
   // genuine hyphens in the name (e.g. "Mercedes-Benz", "S-Class"). Match either.
@@ -865,6 +1051,20 @@ app.get("/api/models/:mfr/:model", async (req, res) => {
       ? rated.reduce((s, e) => s + e.rating, 0) / rated.length
       : null;
 
+    // Wishlist: count + per-user state
+    const wishlistCount = await WishlistItem.countDocuments({ manufacturer, model });
+    const userId = req.query.userId;
+    let wishlistItem = null;
+    let drivenYears = [];
+    if (userId) {
+      wishlistItem = await WishlistItem.findOne({ human: userId, manufacturer, model }).lean();
+      // Years the user has driven for this model (for computing "driven" status against ranges)
+      const userDrove = experiences.filter(
+        (e) => e.type === "drove" && e.loggedBy && String(e.loggedBy._id) === String(userId)
+      );
+      drivenYears = userDrove.map((e) => e.car.year);
+    }
+
     res.json({
       manufacturer,
       model,
@@ -874,6 +1074,12 @@ app.get("/api/models/:mfr/:model", async (req, res) => {
         average: ratingAverage,
         count: rated.length,
         totalExperiences: experiences.length,
+      },
+      wishlist: {
+        count: wishlistCount,
+        wishlisted: !!wishlistItem,
+        item: wishlistItem,
+        drivenYears,
       },
     });
   } catch (err) {
@@ -899,7 +1105,7 @@ if (DB_NAME === "carsDB_test") {
   app.post("/api/test/seed", async (req, res) => {
     try {
       const db = mongoose.connection.db;
-      for (const col of ["humans", "cars", "experiences", "reactions", "userbadges", "follows", "manufacturers"]) {
+      for (const col of ["humans", "cars", "experiences", "reactions", "userbadges", "follows", "manufacturers", "wishlistitems"]) {
         await db.collection(col).drop().catch(() => {});
       }
 
@@ -914,13 +1120,27 @@ if (DB_NAME === "carsDB_test") {
         { _id: toId("111111111111111111111111"), name: "Honda", models: ["Civic", "Accord", "CR-V"], colors: { "*": [{ name: "White", hex: "#ffffff" }, { name: "Black", hex: "#000000" }] }, trims: {} },
         { _id: toId("222222222222222222222222"), name: "Chevrolet", models: ["Impala", "Camaro", "Silverado"], colors: {}, trims: {} },
         { _id: toId("333333333333333333333333"), name: "Tesla", models: ["Model 3", "Model S", "Model Y"], colors: {}, trims: {} },
+        { _id: toId("444444444444444444444444"), name: "Toyota", models: ["Supra", "Tacoma", "Corolla", "Land Cruiser"], colors: {}, trims: {} },
+        { _id: toId("555555555555555555555555"), name: "Ford", models: ["Mustang", "F-150", "Bronco"], colors: {}, trims: {} },
+        { _id: toId("666666666666666666666666"), name: "Porsche", models: ["911", "Cayenne", "Boxster"], colors: {}, trims: {} },
+        { _id: toId("777777777777777777777777"), name: "Subaru", models: ["WRX", "Outback", "BRZ"], colors: {}, trims: {} },
       ]);
 
       await Car.insertMany([
         { _id: toId("cccccccccccccccccccccccc"), manufacturer: "Honda", model: "Civic", year: 2012, nickname: "Rhonda the Honda", transmission: "Manual", ownershipHistory: [{ owner: toId("aaaaaaaaaaaaaaaaaaaaaaaa"), from: null, to: null }], photos: [] },
         { _id: toId("dddddddddddddddddddddddd"), manufacturer: "Chevrolet", model: "Impala", year: 2015, transmission: "Automatic", ownershipHistory: [], photos: [] },
         { _id: toId("eeeeeeeeeeeeeeeeeeeeeeee"), manufacturer: "Tesla", model: "Model 3", year: 2023, transmission: "Electric", ownershipHistory: [], photos: [] },
+        { _id: toId("ff0000000000000000000001"), manufacturer: "Toyota", model: "Supra", year: 1994, nickname: "The Soup", transmission: "Manual", ownershipHistory: [{ owner: toId("bbbbbbbbbbbbbbbbbbbbbbbb"), from: null, to: null }], photos: [] },
+        { _id: toId("ff0000000000000000000002"), manufacturer: "Ford", model: "Mustang", year: 2019, transmission: "Manual", ownershipHistory: [], photos: [] },
+        { _id: toId("ff0000000000000000000003"), manufacturer: "Porsche", model: "911", year: 2021, trim: "Carrera S", transmission: "Automatic", ownershipHistory: [], photos: [] },
+        { _id: toId("ff0000000000000000000004"), manufacturer: "Subaru", model: "WRX", year: 2017, transmission: "Manual", ownershipHistory: [{ owner: toId("aaaaaaaaaaaaaaaaaaaaaaaa"), from: "2017-06-01", to: "2021-03-15" }], photos: [] },
+        { _id: toId("ff0000000000000000000005"), manufacturer: "Chevrolet", model: "Camaro", year: 2020, trim: "SS", transmission: "Manual", ownershipHistory: [], photos: [] },
+        { _id: toId("ff0000000000000000000006"), manufacturer: "Toyota", model: "Land Cruiser", year: 2005, transmission: "Automatic", ownershipHistory: [], photos: [] },
+        { _id: toId("ff0000000000000000000007"), manufacturer: "Tesla", model: "Model S", year: 2022, trim: "Plaid", transmission: "Electric", ownershipHistory: [], photos: [] },
       ]);
+
+      // Drop-then-insertMany doesn't re-create schema indexes — rebuild explicitly
+      await Car.syncIndexes();
 
       res.json({ ok: true });
     } catch (err) {

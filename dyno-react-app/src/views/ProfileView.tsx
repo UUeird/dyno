@@ -1,15 +1,14 @@
 import React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { Car, Experience, Human, BadgeInfo } from "../types";
+import { Car, Experience, Human, BadgeInfo, WishlistItem } from "../types";
 import CarThumbnail from "../components/CarThumbnail";
 import ProfileAvatar from "../components/ProfileAvatar";
 import FollowButton from "../components/FollowButton";
 import BadgeShelf from "../components/BadgeShelf";
 import StarIcon from "../components/StarIcon";
 import { modelPath } from "../lib/modelSlug";
-
-const API = "http://localhost:5000/api";
+import { API, API_ORIGIN } from "../lib/api";
 
 export default function ProfileView({
   experiences,
@@ -33,13 +32,25 @@ export default function ProfileView({
   const navigate = useNavigate();
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
   const [badges, setBadges] = React.useState<BadgeInfo[]>([]);
+  const [wishlist, setWishlist] = React.useState<WishlistItem[]>([]);
+  const [followingUsers, setFollowingUsers] = React.useState<Human[]>([]);
+  const [followers, setFollowers] = React.useState<Human[]>([]);
 
   React.useEffect(() => {
     if (!currentUserId) return;
     axios.get(`${API}/users/${currentUserId}/badges`)
       .then((r) => setBadges(r.data))
       .catch(console.error);
-  }, [currentUserId]);
+    axios.get(`${API}/users/${currentUserId}/wishlist`)
+      .then((r) => setWishlist(r.data))
+      .catch(console.error);
+    axios.get(`${API}/users/${currentUserId}/profile`)
+      .then((r) => {
+        setFollowingUsers(r.data.following);
+        setFollowers(r.data.followers);
+      })
+      .catch(console.error);
+  }, [currentUserId, following]);
 
   React.useEffect(() => {
     if (!openMenuId) return;
@@ -77,7 +88,7 @@ export default function ProfileView({
         </div>
       )}
 
-      <BadgeShelf badges={badges} />
+      <BadgeShelf badges={badges} userId={currentUserId} />
 
       {myCars.length > 0 && (
         <>
@@ -179,34 +190,99 @@ export default function ProfileView({
         </ul>
       )}
 
-      <h2 className="profile-section-heading">Friends</h2>
-      {(() => {
-        const friends = humans.filter((h) => h._id !== currentUserId);
-        return friends.length === 0 ? (
-          <p className="empty-state">No friends yet.</p>
-        ) : (
-          <ul className="friends-list">
-            {friends.map((friend) => {
-              const isFollowing = following.includes(friend._id);
-              return (
-                <li
-                  key={friend._id}
-                  className="friend-item"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => navigate(`/users/${friend._id}`)}
+      <h2 className="profile-section-heading">Want to Drive</h2>
+      {wishlist.length === 0 ? (
+        <p className="empty-state">Nothing on your wishlist yet.</p>
+      ) : (
+        <ul className="wishlist-gallery">
+          {wishlist.map((item) => {
+            const hasRange = item.yearFrom != null || item.yearTo != null;
+            const rangeText = hasRange
+              ? item.yearFrom != null && item.yearTo != null && item.yearFrom === item.yearTo
+                ? `${item.yearFrom}`
+                : `${item.yearFrom ?? "any"}–${item.yearTo ?? "any"}`
+              : null;
+            const imgSrc = item.thumbnailUrl
+              ? (item.thumbnailUrl.startsWith("http") ? item.thumbnailUrl : `${API_ORIGIN}${item.thumbnailUrl}`)
+              : null;
+            return (
+              <li key={item._id} className="wishlist-tile">
+                <Link
+                  to={modelPath(item.manufacturer, item.model)}
+                  className="wishlist-tile-link"
+                  title={`${item.manufacturer} ${item.model}`}
                 >
-                  <ProfileAvatar human={friend} />
-                  <span className="friend-name">{friend.name}</span>
-                  <FollowButton
-                    isFollowing={isFollowing}
-                    onToggle={() => onFollowChange(friend._id, !isFollowing)}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        );
-      })()}
+                  {imgSrc ? (
+                    <img src={imgSrc} alt={`${item.manufacturer} ${item.model}`} className="wishlist-tile-img" />
+                  ) : (
+                    <div className="wishlist-tile-placeholder">
+                      <span className="wishlist-tile-placeholder-name">
+                        {item.manufacturer} {item.model}
+                      </span>
+                    </div>
+                  )}
+                  {rangeText && (
+                    <span className="wishlist-tile-year-badge">{rangeText}</span>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <h2 className="profile-section-heading">
+        Following <span className="section-count">{followingUsers.length}</span>
+      </h2>
+      {followingUsers.length === 0 ? (
+        <p className="empty-state">Not following anyone yet.</p>
+      ) : (
+        <ul className="friends-list">
+          {followingUsers.map((u) => (
+            <li
+              key={u._id}
+              className="friend-item"
+              style={{ cursor: "pointer" }}
+              onClick={() => navigate(`/users/${u._id}`)}
+            >
+              <ProfileAvatar human={u} />
+              <span className="friend-name">{u.name}</span>
+              <FollowButton
+                isFollowing={true}
+                onToggle={() => onFollowChange(u._id, false)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 className="profile-section-heading">
+        Followers <span className="section-count">{followers.length}</span>
+      </h2>
+      {followers.length === 0 ? (
+        <p className="empty-state">No followers yet.</p>
+      ) : (
+        <ul className="friends-list">
+          {followers.map((u) => {
+            const iAmFollowing = following.includes(u._id);
+            return (
+              <li
+                key={u._id}
+                className="friend-item"
+                style={{ cursor: "pointer" }}
+                onClick={() => navigate(`/users/${u._id}`)}
+              >
+                <ProfileAvatar human={u} />
+                <span className="friend-name">{u.name}</span>
+                <FollowButton
+                  isFollowing={iAmFollowing}
+                  onToggle={() => onFollowChange(u._id, !iAmFollowing)}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

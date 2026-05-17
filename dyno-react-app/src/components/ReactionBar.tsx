@@ -1,8 +1,8 @@
 import React from "react";
 import axios from "axios";
 import { Reaction } from "../types";
+import { API } from "../lib/api";
 
-const API = "http://localhost:5000/api";
 const EMOJIS = ["🔥", "👀", "🤙"];
 
 export default function ReactionBar({

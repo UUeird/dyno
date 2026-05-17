@@ -4,8 +4,8 @@ import { Car, ColorEntry, TrimEntry, Manufacturer, Human, Ownership } from "../t
 import CarThumbnail from "../components/CarThumbnail";
 import PhotoManager from "../components/PhotoManager";
 import ColorPicker from "../components/ColorPicker";
+import { API } from "../lib/api";
 
-const API = "http://localhost:5000/api";
 const emptyCar = { manufacturer: "", model: "", year: "", nickname: "", transmission: "", color: "", trim: "", vin: "" };
 
 type CarsTab = "owned" | "friends" | "all";

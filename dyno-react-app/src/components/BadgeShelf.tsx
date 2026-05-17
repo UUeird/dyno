@@ -1,35 +1,41 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { BadgeInfo } from "../types";
+import BadgeCircle from "./BadgeCircle";
 
-export default function BadgeShelf({ badges }: { badges: BadgeInfo[] }) {
-  const [tooltip, setTooltip] = React.useState<string | null>(null);
-
-  if (badges.length === 0) return null;
+export default function BadgeShelf({
+  badges,
+  userId,
+}: {
+  badges: BadgeInfo[];
+  userId?: string;
+}) {
+  const hasEarned = badges.length > 0;
 
   return (
-    <div className="badge-shelf">
-      {badges.map((badge) => (
-        <button
-          key={badge.seriesSlug}
-          className="badge-pill"
-          onMouseEnter={() => setTooltip(badge.seriesSlug)}
-          onMouseLeave={() => setTooltip(null)}
-          onClick={() => setTooltip(tooltip === badge.seriesSlug ? null : badge.seriesSlug)}
-          title={badge.description}
-        >
-          <span className="badge-pill-emoji">{badge.emoji}</span>
-          <span className="badge-pill-name">{badge.name}</span>
-          {badge.level > 1 && (
-            <span className="badge-pill-level">{"★".repeat(badge.level - 1)}</span>
-          )}
-          {tooltip === badge.seriesSlug && (
-            <div className="badge-tooltip">
-              <strong>{badge.seriesName}</strong>
-              <span>{badge.description}</span>
+    <div className="badge-shelf-wrap">
+      {hasEarned ? (
+        <div className="badge-shelf">
+          {badges.map((b) => (
+            <div key={b.seriesSlug} className="badge-shelf-item">
+              <BadgeCircle
+                emoji={b.emoji}
+                level={b.level}
+                maxLevel={b.maxLevel}
+                title={`${b.seriesName} — ${b.name}`}
+              />
+              <span className="badge-shelf-name">{b.seriesName}</span>
             </div>
-          )}
-        </button>
-      ))}
+          ))}
+        </div>
+      ) : (
+        <p className="empty-state badge-shelf-empty">No badges earned yet.</p>
+      )}
+      {userId && (
+        <Link to={`/users/${userId}/badges`} className="badge-shelf-see-all">
+          See all →
+        </Link>
+      )}
     </div>
   );
 }

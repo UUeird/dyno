@@ -7,8 +7,7 @@ import ProfileAvatar from "../components/ProfileAvatar";
 import FollowButton from "../components/FollowButton";
 import BadgeShelf from "../components/BadgeShelf";
 import { modelPath } from "../lib/modelSlug";
-
-const API = "http://localhost:5000/api";
+import { API } from "../lib/api";
 
 interface ProfileData {
   human: Human;
@@ -70,7 +69,7 @@ export default function UserProfileView({
         )}
       </div>
 
-      <BadgeShelf badges={badges ?? []} />
+      <BadgeShelf badges={badges ?? []} userId={human._id} />
 
       {ownedCars.length > 0 && (
         <>
@@ -126,27 +125,60 @@ export default function UserProfileView({
         </ul>
       )}
 
-      <h2 className="profile-section-heading">Following</h2>
+      <h2 className="profile-section-heading">
+        Following <span className="section-count">{profile.following.length}</span>
+      </h2>
       {profile.following.length === 0 ? (
         <p className="empty-state">Not following anyone yet.</p>
       ) : (
         <ul className="friends-list">
-          {profile.following.map((friend) => {
-            if (friend._id === currentUserId) return null;
-            const iAmFollowing = following.includes(friend._id);
+          {profile.following.map((u) => {
+            const isSelf = u._id === currentUserId;
+            const iAmFollowing = following.includes(u._id);
             return (
               <li
-                key={friend._id}
+                key={u._id}
                 className="friend-item"
                 style={{ cursor: "pointer" }}
-                onClick={() => navigate(`/users/${friend._id}`)}
+                onClick={() => navigate(`/users/${u._id}`)}
               >
-                <ProfileAvatar human={friend} />
-                <span className="friend-name">{friend.name}</span>
-                {currentUserId && (
+                <ProfileAvatar human={u} />
+                <span className="friend-name">{u.name}</span>
+                {!isSelf && currentUserId && (
                   <FollowButton
                     isFollowing={iAmFollowing}
-                    onToggle={() => onFollowChange(friend._id, !iAmFollowing)}
+                    onToggle={() => onFollowChange(u._id, !iAmFollowing)}
+                  />
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <h2 className="profile-section-heading">
+        Followers <span className="section-count">{profile.followers.length}</span>
+      </h2>
+      {profile.followers.length === 0 ? (
+        <p className="empty-state">No followers yet.</p>
+      ) : (
+        <ul className="friends-list">
+          {profile.followers.map((u) => {
+            const isSelf = u._id === currentUserId;
+            const iAmFollowing = following.includes(u._id);
+            return (
+              <li
+                key={u._id}
+                className="friend-item"
+                style={{ cursor: "pointer" }}
+                onClick={() => navigate(`/users/${u._id}`)}
+              >
+                <ProfileAvatar human={u} />
+                <span className="friend-name">{u.name}</span>
+                {!isSelf && currentUserId && (
+                  <FollowButton
+                    isFollowing={iAmFollowing}
+                    onToggle={() => onFollowChange(u._id, !iAmFollowing)}
                   />
                 )}
               </li>

@@ -5,8 +5,7 @@ import { Car, Experience, Reaction } from "../types";
 import CarThumbnail from "../components/CarThumbnail";
 import StarIcon from "../components/StarIcon";
 import ReactionBar from "../components/ReactionBar";
-
-const API = "http://localhost:5000/api";
+import { API } from "../lib/api";
 
 interface ModelPageData {
   manufacturer: string;
@@ -18,6 +17,19 @@ interface ModelPageData {
     count: number;
     totalExperiences: number;
   };
+  wishlist: {
+    count: number;
+    wishlisted: boolean;
+    item: { yearFrom: number | null; yearTo: number | null } | null;
+    drivenYears: number[];
+  };
+}
+
+function yearInRange(year: number, from: number | null, to: number | null): boolean {
+  if (from == null && to == null) return true;
+  if (from != null && year < from) return false;
+  if (to != null && year > to) return false;
+  return true;
 }
 
 export default function CarModelView({
@@ -35,18 +47,93 @@ export default function CarModelView({
 
   React.useEffect(() => {
     if (!manufacturer || !model) return;
+    let cancelled = false;
     setLoading(true);
     setError("");
     setData(null);
+    const url = currentUserId
+      ? `${API}/models/${manufacturer}/${model}?userId=${currentUserId}`
+      : `${API}/models/${manufacturer}/${model}`;
     axios
-      .get(`${API}/models/${manufacturer}/${model}`)
-      .then((r) => setData(r.data))
+      .get(url)
+      .then((r) => { if (!cancelled) setData(r.data); })
       .catch((err) => {
+        if (cancelled) return;
         if (err.response?.status === 404) setError("This model hasn't been logged yet.");
         else setError("Could not load model.");
       })
-      .finally(() => setLoading(false));
-  }, [manufacturer, model]);
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [manufacturer, model, currentUserId]);
+
+  const [showWishlistForm, setShowWishlistForm] = React.useState(false);
+  const [yearFromInput, setYearFromInput] = React.useState("");
+  const [yearToInput, setYearToInput] = React.useState("");
+  const [wishlistError, setWishlistError] = React.useState("");
+
+  const removeFromWishlist = async () => {
+    if (!data || !currentUserId) return;
+    const { manufacturer, model } = data;
+    await axios.delete(`${API}/wishlist`, { data: { human: currentUserId, manufacturer, model } });
+    setData((prev) =>
+      prev
+        ? {
+            ...prev,
+            wishlist: {
+              ...prev.wishlist,
+              count: prev.wishlist.count - 1,
+              wishlisted: false,
+              item: null,
+            },
+          }
+        : prev
+    );
+  };
+
+  const addToWishlist = async () => {
+    if (!data || !currentUserId) return;
+    setWishlistError("");
+    const yf = yearFromInput.trim() ? parseInt(yearFromInput, 10) : null;
+    const yt = yearToInput.trim() ? parseInt(yearToInput, 10) : null;
+    if (yf != null && isNaN(yf)) return setWishlistError("Invalid 'from' year");
+    if (yt != null && isNaN(yt)) return setWishlistError("Invalid 'to' year");
+    if (yf != null && yt != null && yf > yt) return setWishlistError("'From' must be ≤ 'to'");
+    try {
+      const { data: item } = await axios.post(`${API}/wishlist`, {
+        human: currentUserId,
+        manufacturer: data.manufacturer,
+        model: data.model,
+        yearFrom: yf,
+        yearTo: yt,
+      });
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              wishlist: {
+                ...prev.wishlist,
+                count: prev.wishlist.count + 1,
+                wishlisted: true,
+                item: { yearFrom: item.yearFrom, yearTo: item.yearTo },
+              },
+            }
+          : prev
+      );
+      setShowWishlistForm(false);
+      setYearFromInput("");
+      setYearToInput("");
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        setWishlistError("You've already driven a car matching this range.");
+      } else {
+        setWishlistError("Could not add to wishlist.");
+      }
+    }
+  };
+
+  // Has the user driven any car in this model? (for the "Driven" state when no wishlist exists)
+  const userDrivenForModel = data?.wishlist.drivenYears ?? [];
+  const hasDrivenAny = userDrivenForModel.length > 0;
 
   if (loading) return <div className="view"><p className="empty-state">Loading…</p></div>;
   if (error || !data) return <div className="view"><p className="empty-state">{error || "Model not found."}</p></div>;
@@ -62,6 +149,62 @@ export default function CarModelView({
         <p className="model-subtitle">
           {data.rating.totalExperiences} experience{data.rating.totalExperiences !== 1 ? "s" : ""} on Dyno
         </p>
+        <div className="model-wishlist-row">
+          {currentUserId && data.wishlist.wishlisted && (
+            <button className="btn-wishlist btn-wishlist--active" onClick={removeFromWishlist}>
+              ✓ Want to drive
+              {data.wishlist.item && (data.wishlist.item.yearFrom || data.wishlist.item.yearTo) && (
+                <span className="btn-wishlist-range">
+                  {" "}
+                  ({data.wishlist.item.yearFrom ?? "any"}–{data.wishlist.item.yearTo ?? "any"})
+                </span>
+              )}
+            </button>
+          )}
+          {currentUserId && !data.wishlist.wishlisted && hasDrivenAny && !showWishlistForm && (
+            <>
+              <button className="btn-wishlist btn-wishlist--driven" disabled>
+                Driven
+              </button>
+              <button className="btn-wishlist-add-range" onClick={() => setShowWishlistForm(true)}>
+                + Add a year range
+              </button>
+            </>
+          )}
+          {currentUserId && !data.wishlist.wishlisted && !hasDrivenAny && !showWishlistForm && (
+            <button className="btn-wishlist" onClick={() => setShowWishlistForm(true)}>
+              + Want to drive
+            </button>
+          )}
+          {data.wishlist.count > 0 && (
+            <span className="wishlist-count">
+              {data.wishlist.count} {data.wishlist.count === 1 ? "person wants" : "people want"} to drive this
+            </span>
+          )}
+        </div>
+        {showWishlistForm && (
+          <div className="wishlist-form">
+            <span className="wishlist-form-label">Year range (optional):</span>
+            <input
+              type="number"
+              placeholder="From"
+              value={yearFromInput}
+              onChange={(e) => setYearFromInput(e.target.value)}
+              className="wishlist-year-input"
+            />
+            <span>–</span>
+            <input
+              type="number"
+              placeholder="To"
+              value={yearToInput}
+              onChange={(e) => setYearToInput(e.target.value)}
+              className="wishlist-year-input"
+            />
+            <button className="btn-primary" onClick={addToWishlist}>Add</button>
+            <button className="btn-cancel" onClick={() => { setShowWishlistForm(false); setWishlistError(""); }}>Cancel</button>
+            {wishlistError && <span className="wishlist-error">{wishlistError}</span>}
+          </div>
+        )}
       </div>
 
       <div className="model-rating-block">

@@ -1,9 +1,11 @@
 import { test, expect } from "@playwright/test";
 import axios from "axios";
+import { asSam } from "./auth";
 
 const API = "http://localhost:5000/api";
 
 test.describe("Car creation requires VIN", () => {
+  test.beforeAll(() => asSam());
   const createdIds: string[] = [];
 
   test.afterAll(async () => {

@@ -1,15 +1,18 @@
 import { test, expect } from "@playwright/test";
 import axios from "axios";
 import { FIXTURES } from "./seed";
+import { asSam, pageAsSam } from "./auth";
 
 const API = "http://localhost:5000/api";
 
 test.describe("Achievement badges", () => {
+  test.beforeAll(() => asSam());
+  test.beforeEach(async ({ page }) => { await pageAsSam(page); });
+
   test("logging first drove awards First Ignition badge via API", async () => {
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
     });
 
     const driveCountBadge = data.newBadges.find((b: any) => b.seriesSlug === "drive-count");
@@ -21,8 +24,7 @@ test.describe("Achievement badges", () => {
   });
 
   test("badge toast appears in UI after logging first drive", async ({ page }) => {
-    // Clear only badges+experiences so Sam earns First Ignition again
-    await fetch(`${API}/test/reset-badges`, { method: "POST" });
+    await axios.post(`${API}/test/reset-badges`);
 
     await page.goto("/profile");
     await page.click("text=+ New");
@@ -31,29 +33,24 @@ test.describe("Achievement badges", () => {
     await page.locator('.experience-option:has(.option-label:text-is("Drove"))').click();
     await page.locator(".experience-option--primary").click();
 
-    // Toast should appear
     await expect(page.locator(".badge-toast")).toBeVisible({ timeout: 7000 });
     await expect(page.locator(".badge-toast-name")).toBeVisible();
 
-    // Dismiss all badge pages (may be multiple badges earned at once)
     while (await page.locator(".badge-toast").isVisible()) {
       await page.locator(".badge-toast-btn").click();
       await page.waitForTimeout(200);
     }
     await expect(page.locator(".badge-toast")).not.toBeVisible();
 
-    // Cleanup
     const exps = await axios.get(`${API}/experiences`);
     const created = exps.data.find((e: any) => e.type === "drove" && e.loggedBy?._id === FIXTURES.users.sam);
     if (created) await axios.delete(`${API}/experiences/${created._id}`);
   });
 
   test("badge shelf shows on profile after earning a badge", async ({ page }) => {
-    // Pre-seed a badge via API
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
     });
 
     await page.goto("/profile");
@@ -67,7 +64,6 @@ test.describe("Achievement badges", () => {
     const { data: exp } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
     });
 
     const { data: badges } = await axios.get(`${API}/users/${FIXTURES.users.sam}/badges`);

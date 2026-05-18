@@ -12,8 +12,12 @@ import ProfileView from "./views/ProfileView";
 import UserProfileView from "./views/UserProfileView";
 import CarModelView from "./views/CarModelView";
 import AllBadgesView from "./views/AllBadgesView";
+import SignInView from "./views/SignInView";
+import SignUpView from "./views/SignUpView";
 import SearchBar from "./components/SearchBar";
+import AuthBridge from "./components/AuthBridge";
 import { API } from "./lib/api";
+import { useAuth, SignedIn, SignedOut, UserButton, RedirectToSignIn } from "./lib/auth";
 
 type ExperienceStep = "choose" | "library" | "vin" | "new-car" | "experience-type";
 
@@ -106,7 +110,6 @@ function NewExperienceModal({
       const { data } = await axios.post(`${API}/experiences`, {
         car: selectedCar._id,
         type,
-        loggedBy: currentUserId || null,
         notes: notes.trim() || null,
         rating: type === "drove" ? rating : null,
       });
@@ -297,6 +300,7 @@ function NewExperienceModal({
 }
 
 function App() {
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const [cars, setCars] = useState<Car[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [humans, setHumans] = useState<Human[]>([]);
@@ -304,8 +308,7 @@ function App() {
   const [following, setFollowing] = useState<string[]>([]);
   const [showNewExperience, setShowNewExperience] = useState(false);
   const [pendingBadges, setPendingBadges] = useState<BadgeInfo[]>([]);
-
-  const currentUser = humans.find((h) => h.email === "sam@samelawrence.com");
+  const [currentUser, setCurrentUser] = useState<Human | null>(null);
   const currentUserId = currentUser?._id;
 
   useEffect(() => {
@@ -314,6 +317,17 @@ function App() {
     axios.get(`${API}/humans`).then((r) => setHumans(r.data)).catch(console.error);
     axios.get(`${API}/experiences`).then((r) => setExperiences(r.data)).catch(console.error);
   }, []);
+
+  // Fetch the signed-in user's Human record (provisioned on first call).
+  useEffect(() => {
+    if (!authLoaded || !isSignedIn) {
+      setCurrentUser(null);
+      return;
+    }
+    axios.get(`${API}/me`)
+      .then((r) => setCurrentUser(r.data))
+      .catch(() => setCurrentUser(null));
+  }, [authLoaded, isSignedIn]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -326,10 +340,10 @@ function App() {
   const handleFollowChange = async (targetId: string, nowFollowing: boolean): Promise<void> => {
     if (!currentUserId) return;
     if (nowFollowing) {
-      await axios.post(`${API}/follows`, { follower: currentUserId, followee: targetId });
+      await axios.post(`${API}/follows`, { followee: targetId });
       setFollowing((prev) => [...prev, targetId]);
     } else {
-      await axios.delete(`${API}/follows`, { data: { follower: currentUserId, followee: targetId } });
+      await axios.delete(`${API}/follows`, { data: { followee: targetId } });
       setFollowing((prev) => prev.filter((id) => id !== targetId));
     }
   };
@@ -353,14 +367,24 @@ function App() {
 
   return (
     <BrowserRouter>
+      <AuthBridge />
       <div className="app-shell">
         <header className="app-header">
           <NavLink to="/" className="app-logo">Dyno</NavLink>
           <SearchBar />
+          <SignedIn>
+            <UserButton afterSignOutUrl="/sign-in" />
+          </SignedIn>
+          <SignedOut>
+            <NavLink to="/sign-in" className="header-sign-in">Sign in</NavLink>
+          </SignedOut>
         </header>
 
         <main className="app-main">
           <Routes>
+            {/* Clerk renders its multi-step flows within /sign-in/* and /sign-up/* */}
+            <Route path="/sign-in/*" element={<SignInView />} />
+            <Route path="/sign-up/*" element={<SignUpView />} />
             <Route
               path="/"
               element={
@@ -387,16 +411,23 @@ function App() {
             <Route
               path="/profile"
               element={
-                <ProfileView
-                  experiences={experiences}
-                  setExperiences={setExperiences}
-                  onNewExperience={() => setShowNewExperience(true)}
-                  humans={humans}
-                  cars={cars}
-                  currentUserId={currentUserId}
-                  following={following}
-                  onFollowChange={handleFollowChange}
-                />
+                <>
+                  <SignedIn>
+                    <ProfileView
+                      experiences={experiences}
+                      setExperiences={setExperiences}
+                      onNewExperience={() => setShowNewExperience(true)}
+                      humans={humans}
+                      cars={cars}
+                      currentUserId={currentUserId}
+                      following={following}
+                      onFollowChange={handleFollowChange}
+                    />
+                  </SignedIn>
+                  <SignedOut>
+                    <RedirectToSignIn />
+                  </SignedOut>
+                </>
               }
             />
             <Route

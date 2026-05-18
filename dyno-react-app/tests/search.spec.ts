@@ -1,9 +1,13 @@
 import { test, expect } from "@playwright/test";
 import axios from "axios";
+import { asSam, pageAsSam } from "./auth";
 
 const API = "http://localhost:5000/api";
 
 test.describe("Search", () => {
+  test.beforeAll(() => asSam());
+  test.beforeEach(async ({ page }) => { await pageAsSam(page); });
+
   test("GET /api/search returns empty for short queries", async () => {
     const { data } = await axios.get(`${API}/search`, { params: { q: "h" } });
     expect(data.models).toEqual([]);

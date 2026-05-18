@@ -1,16 +1,19 @@
 import { test, expect } from "@playwright/test";
 import axios from "axios";
 import { FIXTURES } from "./seed";
+import { asSam, pageAsSam } from "./auth";
 
 const API = "http://localhost:5000/api";
 
 test.describe("Car model page", () => {
+  test.beforeAll(() => asSam());
+  test.beforeEach(async ({ page }) => { await pageAsSam(page); });
+
   test("GET /api/models/:mfr/:model returns aggregate data", async () => {
     // Log a rated experience so the average computes to something specific
     const { data: exp } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
       rating: 4,
     });
 
@@ -39,7 +42,6 @@ test.describe("Car model page", () => {
     const { data: exp } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
       rating: 3.5,
     });
 
@@ -56,7 +58,6 @@ test.describe("Car model page", () => {
     const { data: exp } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
     });
 
     await page.goto("/");
@@ -77,7 +78,6 @@ test.describe("Car model page", () => {
     const { data: exp } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.impala,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
     });
 
     await page.goto("/cars/chevrolet/impala");

@@ -2,7 +2,17 @@
 
 Base URL: `http://localhost:5000/api`
 
-All requests/responses are JSON unless noted (photo upload is `multipart/form-data`). No authentication.
+All requests/responses are JSON unless noted (photo upload is `multipart/form-data`).
+
+## Authentication
+
+Most write endpoints require a valid Clerk session JWT in `Authorization: Bearer <token>`. Reads are mostly public.
+
+When authenticated, the caller's `Human` record is derived from the Clerk user id (auto-provisioned on first request). **You no longer pass `loggedBy`, `human`, `follower`, or `uploadedBy` in request bodies** — they come from the session.
+
+Endpoints that require auth respond `401 Unauthorized` if the JWT is missing or invalid. The "Auth" column in each endpoint below indicates whether it requires a session.
+
+In test mode (`MONGO_DB=carsDB_test`), the bypass header `x-test-user-id: <mongo-id>` replaces the JWT.
 
 ObjectId values are 24-char hex strings. Dates are ISO 8601 strings.
 
@@ -23,11 +33,16 @@ Returns all users, sorted by name.
 
 **Response**: `Human[]`
 ```ts
-type Human = { _id, name, email?, avatarUrl? }
+type Human = { _id, name, email?, avatarUrl?, clerkId? }
 ```
 
-### `POST /api/humans`
-Create a user.
+### `GET /api/me` 🔒
+Returns the signed-in user's `Human` record. Auto-provisions on first call (using name/email/avatar from the Clerk profile).
+
+**Response**: `Human`
+
+### `POST /api/humans` 🔒
+Legacy. Humans are now provisioned automatically on first authenticated request — this endpoint stays for test fixtures.
 
 **Body**: `{name, email?, avatarUrl?}`
 **Response**: `Human`
@@ -48,7 +63,7 @@ Returns all manufacturers, sorted by name. Includes `models`, `colors` (keyed by
 ### `GET /api/cars`
 Returns all cars with ownership info attached (`currentOwners`, `ownershipHistory`, `photos`, `thumbnail`).
 
-### `POST /api/cars`
+### `POST /api/cars` 🔒
 **Body**: `{manufacturer, model, year, vin, nickname?, transmission?, color?, trim?}`
 - `vin` is required for new cars (deduplication key). Existing rows without a VIN are grandfathered via a sparse unique index.
 
@@ -56,13 +71,13 @@ Returns all cars with ownership info attached (`currentOwners`, `ownershipHistor
 - `400` if missing required fields (incl. VIN), or if manufacturer/model not in the Manufacturer registry
 - `409` if a car with this VIN already exists
 
-### `PUT /api/cars/:id`
+### `PUT /api/cars/:id` 🔒
 Update a car. If `manufacturer` or `model` is changed, the new combination is validated against the Manufacturer registry.
 
-### `DELETE /api/cars/:id`
+### `DELETE /api/cars/:id` 🔒
 Cascades: also deletes the car's `Ownership` and `Photo` records.
 
-### `PATCH /api/cars/:id/thumbnail`
+### `PATCH /api/cars/:id/thumbnail` 🔒
 **Body**: `{photoId}` (or null to clear)
 Sets which Photo is the car's thumbnail.
 
@@ -73,16 +88,16 @@ Sets which Photo is the car's thumbnail.
 ### `GET /api/cars/:id/photos`
 List photos for a car, sorted by `createdAt` ascending.
 
-### `POST /api/cars/:id/photos`
+### `POST /api/cars/:id/photos` 🔒
 **Content-Type**: `multipart/form-data`
-**Fields**: `photo` (file), `uploadedBy` (Human ID), `caption?`
-File is stored in `backend/uploads/` and served at `/uploads/<filename>`.
+**Fields**: `photo` (file), `caption?`
+File is stored in `backend/uploads/` and served at `/uploads/<filename>`. `uploadedBy` is derived from the session.
 
-### `POST /api/cars/:id/photos/url`
+### `POST /api/cars/:id/photos/url` 🔒
 Add a photo by URL (for seeding or external images).
-**Body**: `{uploadedBy, url, caption?}`
+**Body**: `{url, caption?}`
 
-### `DELETE /api/photos/:id`
+### `DELETE /api/photos/:id` 🔒
 Removes the DB record. If the URL is local (`/uploads/...`), also deletes the file. Clears `thumbnailPhoto` references on any cars.
 
 ---
@@ -94,14 +109,14 @@ Tracks who owned a car and when. `from: null` = "since forever". `to: null` = "s
 ### `GET /api/ownerships?car=<id>`
 Lists ownership records (optionally filtered by car), sorted by `from`. `owner` is populated.
 
-### `POST /api/ownerships`
-**Body**: `{car, owner, from?, to?}`
+### `POST /api/ownerships` 🔒
+**Body**: `{car, owner, from?, to?}` (the `owner` here is the Human being recorded as an owner, not necessarily the caller — e.g. you can log that a friend used to own a car)
 
-### `PATCH /api/ownerships/:id/end`
+### `PATCH /api/ownerships/:id/end` 🔒
 End an ongoing ownership.
 **Body**: `{to?}` (defaults to now)
 
-### `DELETE /api/ownerships/:id`
+### `DELETE /api/ownerships/:id` 🔒
 
 ---
 
@@ -112,31 +127,31 @@ Returns experiences with `car`, `loggedBy`, and `reactions` populated, sorted ne
 
 When `followedBy` is provided, filters to experiences logged by that user OR anyone they follow (feed mode). Without it, returns all experiences.
 
-### `POST /api/experiences`
-**Body**: `{car, type, notes?, rating?, loggedBy?}`
+### `POST /api/experiences` 🔒
+**Body**: `{car, type, notes?, rating?}`
 - `type`: `"drove"` | `"spotted"`
 - `rating`: number 0–5 (half-step increments allowed), only meaningful for drove
-- `loggedBy`: required for badge evaluation and wishlist auto-removal
+- `loggedBy` is derived from the session
 
 **Response**: `{experience, newBadges}` where `newBadges` is an array of badges leveled up by this action (often empty).
 
-**Side effects** for `type === "drove"` with a `loggedBy`:
+**Side effects** for `type === "drove"`:
 - Any of the user's wishlist items matching `{manufacturer, model}` are checked against `yearMatchesWishlist(car.year, item.yearFrom, item.yearTo)` and removed if the car satisfies them
 - Badges are re-evaluated for the user; new levels are persisted to `UserBadge` and returned in `newBadges`
 
-### `DELETE /api/experiences/:id`
+### `DELETE /api/experiences/:id` 🔒
+Returns `403` if the experience belongs to another user.
 
 ---
 
 ## Reactions
 
-### `POST /api/experiences/:id/reactions`
-**Body**: `{human, emoji}`
-Idempotent per `(experience, human)`: if a reaction already exists, the emoji is updated. Otherwise a new reaction is created.
+### `POST /api/experiences/:id/reactions` 🔒
+**Body**: `{emoji}`
+Idempotent per `(experience, current user)`: if a reaction already exists, the emoji is updated. Otherwise a new reaction is created.
 
-### `DELETE /api/experiences/:id/reactions`
-**Body**: `{human}`
-Removes the user's reaction from the experience.
+### `DELETE /api/experiences/:id/reactions` 🔒
+Removes the current user's reaction from the experience.
 
 ---
 
@@ -145,14 +160,15 @@ Removes the user's reaction from the experience.
 ### `GET /api/follows?follower=<id>&followee=<id>`
 Both filters optional. Returns `Follow[]` with `follower` and `followee` populated.
 
-### `POST /api/follows`
-**Body**: `{follower, followee}`
+### `POST /api/follows` 🔒
+**Body**: `{followee}` (follower derived from session)
 **Errors**:
 - `400` if `follower === followee` ("cannot follow yourself")
 - `409` if the follow already exists
 
 ### `DELETE /api/follows`
-**Body**: `{follower, followee}`
+### `DELETE /api/follows` 🔒
+**Body**: `{followee}` (follower derived from session)
 
 ---
 
@@ -200,8 +216,8 @@ Every series with current progress. Used by the "all badges" page.
 
 ## Wishlist ("Want to drive")
 
-### `POST /api/wishlist`
-**Body**: `{human, manufacturer, model, yearFrom?, yearTo?}`
+### `POST /api/wishlist` 🔒
+**Body**: `{manufacturer, model, yearFrom?, yearTo?}` (human derived from session)
 - `yearFrom: null, yearTo: null` (or omitted) means "any year"
 - Either can be null to leave one end open
 
@@ -210,8 +226,8 @@ Every series with current progress. Used by the "all badges" page.
 **Errors**:
 - `409` if the user has a drove experience whose car satisfies the requested year range
 
-### `DELETE /api/wishlist`
-**Body**: `{human, manufacturer, model}`
+### `DELETE /api/wishlist` 🔒
+**Body**: `{manufacturer, model}` (human derived from session)
 Always returns `{ok: true}` (no-op if nothing to delete).
 
 ### `GET /api/users/:id/wishlist`

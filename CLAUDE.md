@@ -77,7 +77,13 @@ The error you'll see is `Syntax error: Cannot read properties of undefined (read
 
 **Stale async responses can overwrite newer state.** When a `useEffect` re-fires on a dependency change (e.g. `currentUserId` loading later than the component mounting), in-flight requests can resolve out of order. Use a `cancelled` flag in the effect cleanup to drop stale responses. Example pattern in [src/views/CarModelView.tsx](dyno-react-app/src/views/CarModelView.tsx).
 
-**No real authentication yet.** The current user is found by hardcoded email `sam@samelawrence.com` in [src/App.tsx](dyno-react-app/src/App.tsx). When testing logged-in behavior in E2E specs, use `FIXTURES.users.sam` for the user ID.
+**Authentication uses Clerk** (magic-link email). Frontend wraps the app in `<ClerkProvider>` (see [src/index.tsx](dyno-react-app/src/index.tsx)); backend uses `clerkMiddleware()` and checks the bearer token. On a user's first authenticated request, the backend auto-provisions a `Human` record linked by `clerkId` — see `getCurrentHuman()` in [backend/server.js](dyno-react-app/backend/server.js). Write endpoints require auth via `requireAuth` middleware.
+
+**Test-mode auth bypass.** Running with `MONGO_DB=carsDB_test` skips Clerk and reads the user from the `x-test-user-id` header. Specs use the `asSam()` / `asAlex()` / `asUser(id)` helpers from [tests/auth.ts](dyno-react-app/tests/auth.ts) for API calls, and `pageAsSam(page)` to authenticate the browser (sets the header on all requests AND a `localStorage.dyno_test_auth` flag that the frontend's [src/lib/auth.tsx](dyno-react-app/src/lib/auth.tsx) shim reads to short-circuit Clerk's `<SignedIn>` / `<SignedOut>` gates).
+
+**Env vars.**
+- `dyno-react-app/.env.local` (gitignored): `REACT_APP_CLERK_PUBLISHABLE_KEY`
+- `dyno-react-app/backend/.env` (gitignored): `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
 
 **API base URL** comes from `process.env.REACT_APP_API_URL` (falls back to `http://localhost:5000` in dev). Import `API` (root + `/api`) or `API_ORIGIN` (root only, for `/uploads/...` paths) from [src/lib/api.ts](dyno-react-app/src/lib/api.ts) — never hardcode URLs.
 

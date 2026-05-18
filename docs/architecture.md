@@ -2,8 +2,9 @@
 
 ## Stack
 
-- **Frontend**: React 18 + TypeScript, react-router-dom v6, Axios, CRA (`react-scripts ^3.0.1`)
+- **Frontend**: React 18 + TypeScript, react-router-dom v6, Axios, CRA (`react-scripts ^5.0.1`)
 - **Backend**: Node.js + Express 4, Mongoose 8, Multer (file uploads)
+- **Auth**: Clerk (`@clerk/clerk-react` on frontend, `@clerk/express` on backend) — magic-link email
 - **Database**: MongoDB (no managed service, local instance on port 27017)
 - **E2E**: Playwright, runs against an isolated `carsDB_test` database
 
@@ -35,7 +36,7 @@ All views are stateful components that fetch their own data via `useEffect`. The
 [src/App.tsx](../dyno-react-app/src/App.tsx) holds the canonical lists used across views:
 - `humans`, `cars`, `manufacturers`, `experiences` — fetched once on mount
 - `following` — list of followee IDs; refetched when `currentUserId` resolves
-- `currentUserId` — derived from `humans.find(h => h.email === "sam@samelawrence.com")` (auth placeholder)
+- `currentUserId` — derived by fetching `GET /api/me` once Clerk reports the user signed in. Resolves to the user's `Human._id`. Backend auto-provisions a Human on first authenticated request.
 
 View-specific data (e.g. model page aggregate, profile data, badges, wishlist) is fetched by the view itself.
 
@@ -76,6 +77,27 @@ Photos uploaded via `POST /api/cars/:id/photos` are stored on disk in `backend/u
 
 External photos can be added via `POST /api/cars/:id/photos/url` (just stores the URL, no file copy).
 
+## Authentication
+
+Uses [Clerk](https://clerk.com) (magic-link email only — no passwords, no OAuth yet).
+
+### Flow
+1. User visits `/sign-in` (or `/sign-up`). Clerk's `<SignIn />` / `<SignUp />` components handle the UI.
+2. User enters email; Clerk sends a magic-link email.
+3. User clicks the link → returns to the app signed in. Clerk session JWT is stored in browser cookies.
+4. Frontend's axios interceptor ([src/lib/api.ts](../dyno-react-app/src/lib/api.ts)) attaches the JWT as `Authorization: Bearer <token>` on every API request.
+5. Backend's `clerkMiddleware()` validates the JWT and sets `req.auth.userId`.
+6. `getCurrentHuman(req)` looks up the user's `Human` record by `clerkId`, **auto-provisioning one on first request** using the name/email/avatarUrl from the Clerk profile.
+7. `requireAuth` middleware rejects unauthenticated requests on write endpoints with 401.
+
+### Mapping Clerk users to Human records
+Clerk owns identity (user IDs, emails, OAuth tokens). The app's domain data (experiences, follows, etc.) still references its own `Human` collection. The link: `humanSchema.clerkId` (sparse unique).
+
+### Test-mode bypass
+When `MONGO_DB=carsDB_test`, the backend skips `clerkMiddleware()` and reads `x-test-user-id` from request headers instead. The header value is a Mongo `_id` of a seeded fixture user. See `getCurrentHuman()` in [backend/server.js](../dyno-react-app/backend/server.js).
+
+The frontend has a parallel test shim at [src/lib/auth.tsx](../dyno-react-app/src/lib/auth.tsx) — it exports replacements for Clerk's `useAuth`/`SignedIn`/`SignedOut`/`UserButton`/`RedirectToSignIn` that check `localStorage.dyno_test_auth` first. Playwright sets both the HTTP header and the localStorage flag via `pageAsSam(page)` in [tests/auth.ts](../dyno-react-app/tests/auth.ts).
+
 ## Testing
 
 See [CLAUDE.md](../CLAUDE.md) for the testing workflow. Key architectural points:
@@ -83,11 +105,4 @@ See [CLAUDE.md](../CLAUDE.md) for the testing workflow. Key architectural points
 - The Playwright global setup kills any process on port 5000, starts an isolated test backend with `MONGO_DB=carsDB_test`, seeds via `POST /api/test/seed`, then teardown restarts the dev backend
 - Fixture IDs are stable hex strings — see [tests/seed.ts](../dyno-react-app/tests/seed.ts)
 - New collections need to be added to the wipe list inside `POST /api/test/seed` or tests will leak data across runs
-
-## Known parser/tooling quirks
-
-react-scripts 3.0.1 ships with Babel 7's TypeScript plugin from early 2019. Several modern TS constructs fail with a misleading "(0:undefined)" error:
-- `Array<[number, number]>` and other inline tuple generics — use parallel arrays
-- CSS custom property keys inside `React.CSSProperties` — use `transitionDelay` or a CSS class
-
-When you see `Cannot read properties of undefined (reading 'map') (0:undefined)`, suspect Babel before your logic.
+- Specs call `asSam()` (or `asAlex()` etc.) once per describe; UI tests also call `pageAsSam(page)` in `beforeEach` so the React app treats the page as signed-in

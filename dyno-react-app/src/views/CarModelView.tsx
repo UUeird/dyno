@@ -74,7 +74,7 @@ export default function CarModelView({
   const removeFromWishlist = async () => {
     if (!data || !currentUserId) return;
     const { manufacturer, model } = data;
-    await axios.delete(`${API}/wishlist`, { data: { human: currentUserId, manufacturer, model } });
+    await axios.delete(`${API}/wishlist`, { data: { manufacturer, model } });
     setData((prev) =>
       prev
         ? {
@@ -100,7 +100,6 @@ export default function CarModelView({
     if (yf != null && yt != null && yf > yt) return setWishlistError("'From' must be ≤ 'to'");
     try {
       const { data: item } = await axios.post(`${API}/wishlist`, {
-        human: currentUserId,
         manufacturer: data.manufacturer,
         model: data.model,
         yearFrom: yf,

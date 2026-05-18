@@ -1,10 +1,14 @@
 import { test, expect } from "@playwright/test";
 import axios from "axios";
 import { FIXTURES } from "./seed";
+import { asSam, pageAsSam } from "./auth";
 
 const API = "http://localhost:5000/api";
 
 test.describe("All badges page", () => {
+  test.beforeAll(() => asSam());
+  test.beforeEach(async ({ page }) => { await pageAsSam(page); });
+
   test.afterEach(async () => {
     const { data: exps } = await axios.get(`${API}/experiences`);
     for (const e of exps) {
@@ -29,11 +33,9 @@ test.describe("All badges page", () => {
   });
 
   test("progress reflects user activity", async () => {
-    // Drive a car → drive-count should bump
     const { data: exp } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
     });
 
     const { data } = await axios.get(`${API}/users/${FIXTURES.users.sam}/badges/all`);
@@ -65,18 +67,15 @@ test.describe("All badges page", () => {
 
   test("locked badges render greyed with empty ring", async ({ page }) => {
     await page.goto("/badges");
-    // With no experiences, all badges should be locked
     await expect(page.locator(".badge-circle--locked").first()).toBeVisible();
   });
 
   test("progress bar fills proportionally", async ({ page }) => {
-    // Drive 5 cars to put drive-count halfway to level 2 (threshold 10)
     const exps = [];
     for (let i = 0; i < 5; i++) {
       const { data } = await axios.post(`${API}/experiences`, {
         car: FIXTURES.cars.civic,
         type: "drove",
-        loggedBy: FIXTURES.users.sam,
       });
       exps.push(data.experience._id);
     }

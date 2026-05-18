@@ -61,7 +61,6 @@ export default function PhotoManager({
     try {
       const formData = new FormData();
       formData.append("photo", file);
-      formData.append("uploadedBy", currentUser._id);
       formData.append("caption", file.name);
       await axios.post(`${API}/cars/${car._id}/photos`, formData, {
         headers: { "Content-Type": "multipart/form-data" },

@@ -34,15 +34,10 @@ export default function ReactionBar({
     setLoading(true);
     try {
       if (myReaction?.emoji === emoji) {
-        await axios.delete(`${API}/experiences/${experienceId}/reactions`, {
-          data: { human: currentUserId },
-        });
+        await axios.delete(`${API}/experiences/${experienceId}/reactions`);
         onReactionsChange(experienceId, safeReactions.filter((r) => r.human._id !== currentUserId));
       } else {
-        const { data } = await axios.post(`${API}/experiences/${experienceId}/reactions`, {
-          human: currentUserId,
-          emoji,
-        });
+        const { data } = await axios.post(`${API}/experiences/${experienceId}/reactions`, { emoji });
         const next = safeReactions.filter((r) => r.human._id !== currentUserId);
         onReactionsChange(experienceId, [...next, data]);
       }

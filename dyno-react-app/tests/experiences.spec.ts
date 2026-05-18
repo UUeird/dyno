@@ -1,11 +1,14 @@
 import { test, expect } from "@playwright/test";
 import axios from "axios";
 import { FIXTURES } from "./seed";
+import { asSam, pageAsSam } from "./auth";
 
 const API = "http://localhost:5000/api";
 
 test.describe("Log experience modal", () => {
+  test.beforeAll(() => asSam());
   test.beforeEach(async ({ page }) => {
+    await pageAsSam(page);
     await page.goto("/profile");
   });
 

@@ -1,13 +1,32 @@
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { clerkMiddleware, getAuth, clerkClient } = require("@clerk/express");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+const IS_TEST = (process.env.MONGO_DB || "carsDB") === "carsDB_test";
+
+// Auth middleware:
+// - In test mode, we bypass Clerk and read `x-test-user-id` directly so tests can
+//   act as fixture users without going through magic-link flows.
+// - In normal mode, Clerk's middleware attaches `req.auth` if a valid session JWT
+//   is present (sent by the frontend as a Bearer token).
+if (IS_TEST) {
+  app.use((req, _res, next) => {
+    const testUserId = req.header("x-test-user-id");
+    if (testUserId) req.testUserId = testUserId;
+    next();
+  });
+} else {
+  app.use(clerkMiddleware());
+}
 
 // Serve uploaded photos statically
 const uploadsDir = path.join(__dirname, "uploads");
@@ -27,8 +46,9 @@ mongoose
     console.log("Connected to MongoDB");
     await migrateLegacyOwners();
     await seedBadgeSeries();
-    // Ensure schema-declared indexes (e.g. Car.vin unique) are actually built
+    // Ensure schema-declared indexes (e.g. Car.vin unique, Human.clerkId unique) are actually built
     await Car.syncIndexes();
+    await Human.syncIndexes();
   })
   .catch((err) => console.error("Error connecting to MongoDB:", err));
 
@@ -38,7 +58,9 @@ const humanSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: String,
   avatarUrl: String,
+  clerkId: { type: String },
 });
+humanSchema.index({ clerkId: 1 }, { unique: true, sparse: true });
 const Human = mongoose.model("Human", humanSchema);
 
 const colorEntrySchema = new mongoose.Schema({ name: String, hex: String }, { _id: false });
@@ -371,6 +393,45 @@ async function attachOwnershipToMany(carDocs) {
   return Promise.all(carDocs.map(attachOwnership));
 }
 
+// ── Auth helpers ──────────────────────────────────────────────────────────────
+
+// Resolve the calling user's Human record, creating one on first login.
+// In test mode, looks up by `x-test-user-id` header (a Mongo _id of a fixture user).
+// In normal mode, reads `req.auth.userId` (Clerk user id) and links to a Human by `clerkId`,
+// auto-provisioning if it's the user's first request.
+async function getCurrentHuman(req) {
+  if (IS_TEST) {
+    if (!req.testUserId) return null;
+    return Human.findById(req.testUserId);
+  }
+  const auth = getAuth(req);
+  if (!auth?.userId) return null;
+
+  let human = await Human.findOne({ clerkId: auth.userId });
+  if (human) return human;
+
+  // First request for this Clerk user — provision a Human record from their Clerk profile.
+  const clerkUser = await clerkClient.users.getUser(auth.userId);
+  const email = clerkUser.primaryEmailAddress?.emailAddress || clerkUser.emailAddresses?.[0]?.emailAddress;
+  const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || email || "New user";
+  const avatarUrl = clerkUser.imageUrl || undefined;
+
+  human = await Human.create({ name, email, avatarUrl, clerkId: auth.userId });
+  return human;
+}
+
+// Express middleware: 401 if no current user, otherwise attaches `req.currentHuman`.
+async function requireAuth(req, res, next) {
+  try {
+    const human = await getCurrentHuman(req);
+    if (!human) return res.status(401).json({ error: "Authentication required" });
+    req.currentHuman = human;
+    next();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 // ── Humans ────────────────────────────────────────────────────────────────────
 
 app.get("/api/humans", async (req, res) => {
@@ -381,7 +442,15 @@ app.get("/api/humans", async (req, res) => {
   }
 });
 
-app.post("/api/humans", async (req, res) => {
+// Returns the Human record for the signed-in user, provisioning one on first call.
+// Frontend hits this after Clerk sign-in to learn the user's Mongo _id.
+app.get("/api/me", requireAuth, async (req, res) => {
+  res.json(req.currentHuman);
+});
+
+// Legacy: Humans are now provisioned automatically by Clerk on first authenticated
+// request (see getCurrentHuman). This endpoint stays for tests but requires auth.
+app.post("/api/humans", requireAuth, async (req, res) => {
   try {
     const human = new Human(req.body);
     res.status(201).json(await human.save());
@@ -411,7 +480,7 @@ app.get("/api/cars", async (req, res) => {
   }
 });
 
-app.post("/api/cars", async (req, res) => {
+app.post("/api/cars", requireAuth, async (req, res) => {
   try {
     const { manufacturer, model, year, nickname, transmission, color, trim, vin } = req.body;
     if (!manufacturer || !model || !year) {
@@ -438,7 +507,7 @@ app.post("/api/cars", async (req, res) => {
   }
 });
 
-app.put("/api/cars/:id", async (req, res) => {
+app.put("/api/cars/:id", requireAuth, async (req, res) => {
   try {
     const { manufacturer, model } = req.body;
     if (manufacturer || model) {
@@ -460,7 +529,7 @@ app.put("/api/cars/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/cars/:id", async (req, res) => {
+app.delete("/api/cars/:id", requireAuth, async (req, res) => {
   try {
     const deleted = await Car.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Car not found" });
@@ -487,13 +556,12 @@ app.get("/api/cars/:id/photos", async (req, res) => {
 });
 
 // Upload a photo file for a car
-app.post("/api/cars/:id/photos", upload.single("photo"), async (req, res) => {
+app.post("/api/cars/:id/photos", requireAuth, upload.single("photo"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-    const { uploadedBy, caption } = req.body;
-    if (!uploadedBy) return res.status(400).json({ error: "uploadedBy is required" });
+    const { caption } = req.body;
     const url = `/uploads/${req.file.filename}`;
-    const photo = await new Photo({ car: req.params.id, uploadedBy, url, caption }).save();
+    const photo = await new Photo({ car: req.params.id, uploadedBy: req.currentHuman._id, url, caption }).save();
     await photo.populate("uploadedBy", "name");
     res.status(201).json(photo);
   } catch (err) {
@@ -502,11 +570,11 @@ app.post("/api/cars/:id/photos", upload.single("photo"), async (req, res) => {
 });
 
 // Add a photo by URL (for seeding / external images)
-app.post("/api/cars/:id/photos/url", async (req, res) => {
+app.post("/api/cars/:id/photos/url", requireAuth, async (req, res) => {
   try {
-    const { uploadedBy, url, caption } = req.body;
-    if (!uploadedBy || !url) return res.status(400).json({ error: "uploadedBy and url are required" });
-    const photo = await new Photo({ car: req.params.id, uploadedBy, url, caption }).save();
+    const { url, caption } = req.body;
+    if (!url) return res.status(400).json({ error: "url is required" });
+    const photo = await new Photo({ car: req.params.id, uploadedBy: req.currentHuman._id, url, caption }).save();
     await photo.populate("uploadedBy", "name");
     res.status(201).json(photo);
   } catch (err) {
@@ -515,7 +583,7 @@ app.post("/api/cars/:id/photos/url", async (req, res) => {
 });
 
 // Delete a photo
-app.delete("/api/photos/:id", async (req, res) => {
+app.delete("/api/photos/:id", requireAuth, async (req, res) => {
   try {
     const photo = await Photo.findByIdAndDelete(req.params.id);
     if (!photo) return res.status(404).json({ error: "Photo not found" });
@@ -533,7 +601,7 @@ app.delete("/api/photos/:id", async (req, res) => {
 });
 
 // Set thumbnail photo for a car
-app.patch("/api/cars/:id/thumbnail", async (req, res) => {
+app.patch("/api/cars/:id/thumbnail", requireAuth, async (req, res) => {
   try {
     const { photoId } = req.body;
     const updated = await Car.findByIdAndUpdate(
@@ -559,7 +627,7 @@ app.get("/api/ownerships", async (req, res) => {
   }
 });
 
-app.post("/api/ownerships", async (req, res) => {
+app.post("/api/ownerships", requireAuth, async (req, res) => {
   try {
     const { car, owner, from, to } = req.body;
     if (!car || !owner) return res.status(400).json({ error: "car and owner are required" });
@@ -571,7 +639,7 @@ app.post("/api/ownerships", async (req, res) => {
   }
 });
 
-app.patch("/api/ownerships/:id/end", async (req, res) => {
+app.patch("/api/ownerships/:id/end", requireAuth, async (req, res) => {
   try {
     const record = await Ownership.findByIdAndUpdate(
       req.params.id,
@@ -585,7 +653,7 @@ app.patch("/api/ownerships/:id/end", async (req, res) => {
   }
 });
 
-app.delete("/api/ownerships/:id", async (req, res) => {
+app.delete("/api/ownerships/:id", requireAuth, async (req, res) => {
   try {
     const deleted = await Ownership.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Ownership not found" });
@@ -632,16 +700,17 @@ app.get("/api/experiences", async (req, res) => {
   }
 });
 
-app.post("/api/experiences", async (req, res) => {
+app.post("/api/experiences", requireAuth, async (req, res) => {
   try {
-    const { car, type, notes, rating, loggedBy } = req.body;
+    const { car, type, notes, rating } = req.body;
     if (!car || !type) return res.status(400).json({ error: "car and type are required" });
-    const experience = new Experience({ car, type, notes, rating: rating ?? null, loggedBy: loggedBy || null });
+    const loggedBy = req.currentHuman._id;
+    const experience = new Experience({ car, type, notes, rating: rating ?? null, loggedBy });
     await experience.save();
     await experience.populate("loggedBy", "name email avatarUrl");
 
     // If this is a drove experience, remove any wishlist items that this car satisfies
-    if (type === "drove" && loggedBy) {
+    if (type === "drove") {
       const carDoc = await Car.findById(car).lean();
       if (carDoc) {
         const items = await WishlistItem.find({
@@ -664,10 +733,14 @@ app.post("/api/experiences", async (req, res) => {
   }
 });
 
-app.delete("/api/experiences/:id", async (req, res) => {
+app.delete("/api/experiences/:id", requireAuth, async (req, res) => {
   try {
-    const deleted = await Experience.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ error: "Experience not found" });
+    const exp = await Experience.findById(req.params.id);
+    if (!exp) return res.status(404).json({ error: "Experience not found" });
+    if (String(exp.loggedBy) !== String(req.currentHuman._id)) {
+      return res.status(403).json({ error: "Cannot delete someone else's experience" });
+    }
+    await Experience.findByIdAndDelete(req.params.id);
     res.json({ message: "Experience deleted" });
   } catch {
     res.status(500).send("Error deleting experience");
@@ -676,10 +749,11 @@ app.delete("/api/experiences/:id", async (req, res) => {
 
 // ── Reactions ─────────────────────────────────────────────────────────────────
 
-app.post("/api/experiences/:id/reactions", async (req, res) => {
+app.post("/api/experiences/:id/reactions", requireAuth, async (req, res) => {
   try {
-    const { human, emoji } = req.body;
-    if (!human || !emoji) return res.status(400).json({ error: "human and emoji are required" });
+    const { emoji } = req.body;
+    if (!emoji) return res.status(400).json({ error: "emoji is required" });
+    const human = req.currentHuman._id;
     const existing = await Reaction.findOne({ experience: req.params.id, human });
     if (existing) {
       existing.emoji = emoji;
@@ -695,11 +769,9 @@ app.post("/api/experiences/:id/reactions", async (req, res) => {
   }
 });
 
-app.delete("/api/experiences/:id/reactions", async (req, res) => {
+app.delete("/api/experiences/:id/reactions", requireAuth, async (req, res) => {
   try {
-    const { human } = req.body;
-    if (!human) return res.status(400).json({ error: "human is required" });
-    const deleted = await Reaction.findOneAndDelete({ experience: req.params.id, human });
+    const deleted = await Reaction.findOneAndDelete({ experience: req.params.id, human: req.currentHuman._id });
     if (!deleted) return res.status(404).json({ error: "Reaction not found" });
     res.json({ message: "Reaction removed" });
   } catch {
@@ -723,10 +795,11 @@ app.get("/api/follows", async (req, res) => {
   }
 });
 
-app.post("/api/follows", async (req, res) => {
+app.post("/api/follows", requireAuth, async (req, res) => {
   try {
-    const { follower, followee } = req.body;
-    if (!follower || !followee) return res.status(400).json({ error: "follower and followee are required" });
+    const { followee } = req.body;
+    if (!followee) return res.status(400).json({ error: "followee is required" });
+    const follower = req.currentHuman._id;
     if (String(follower) === String(followee)) return res.status(400).json({ error: "cannot follow yourself" });
     const follow = await Follow.create({ follower, followee });
     res.status(201).json(follow);
@@ -736,11 +809,11 @@ app.post("/api/follows", async (req, res) => {
   }
 });
 
-app.delete("/api/follows", async (req, res) => {
+app.delete("/api/follows", requireAuth, async (req, res) => {
   try {
-    const { follower, followee } = req.body;
-    if (!follower || !followee) return res.status(400).json({ error: "follower and followee are required" });
-    const deleted = await Follow.findOneAndDelete({ follower, followee });
+    const { followee } = req.body;
+    if (!followee) return res.status(400).json({ error: "followee is required" });
+    const deleted = await Follow.findOneAndDelete({ follower: req.currentHuman._id, followee });
     if (!deleted) return res.status(404).json({ error: "Follow not found" });
     res.json({ message: "Unfollowed" });
   } catch {
@@ -927,9 +1000,10 @@ app.get("/api/search", async (req, res) => {
 
 // ── Wishlist ──────────────────────────────────────────────────────────────────
 
-app.post("/api/wishlist", async (req, res) => {
+app.post("/api/wishlist", requireAuth, async (req, res) => {
   try {
-    const { human, manufacturer, model, yearFrom, yearTo } = req.body;
+    const { manufacturer, model, yearFrom, yearTo } = req.body;
+    const human = req.currentHuman._id;
     const yf = yearFrom ?? null;
     const yt = yearTo ?? null;
 
@@ -955,10 +1029,10 @@ app.post("/api/wishlist", async (req, res) => {
   }
 });
 
-app.delete("/api/wishlist", async (req, res) => {
+app.delete("/api/wishlist", requireAuth, async (req, res) => {
   try {
-    const { human, manufacturer, model } = req.body;
-    await WishlistItem.deleteOne({ human, manufacturer, model });
+    const { manufacturer, model } = req.body;
+    await WishlistItem.deleteOne({ human: req.currentHuman._id, manufacturer, model });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

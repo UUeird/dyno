@@ -1,11 +1,14 @@
 import { test, expect } from "@playwright/test";
 import axios from "axios";
 import { FIXTURES } from "./seed";
+import { asSam, pageAsSam } from "./auth";
 
 const API = "http://localhost:5000/api";
 
 test.describe("Feed", () => {
+  test.beforeAll(() => asSam());
   test.beforeEach(async ({ page }) => {
+    await pageAsSam(page);
     await page.goto("/");
   });
 
@@ -23,7 +26,6 @@ test.describe("Feed", () => {
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
     });
     const expId = data.experience._id;
 
@@ -40,7 +42,6 @@ test.describe("Feed", () => {
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
       notes: "Canyon run, perfect conditions",
     });
     const expId = data.experience._id;
@@ -55,7 +56,6 @@ test.describe("Feed", () => {
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
       rating: 3.5,
     });
     const expId = data.experience._id;
@@ -74,7 +74,6 @@ test.describe("Feed", () => {
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
     });
     const expId = data.experience._id;
 
@@ -91,7 +90,6 @@ test.describe("Feed", () => {
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
       rating: 0,
     });
     const expId = data.experience._id;
@@ -109,7 +107,6 @@ test.describe("Feed", () => {
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-      loggedBy: FIXTURES.users.sam,
       rating: 3.5,
     });
     const expId = data.experience._id;
@@ -135,7 +132,6 @@ test.describe("Feed", () => {
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "spotted",
-      loggedBy: FIXTURES.users.sam,
     });
     const expId = data.experience._id;
 

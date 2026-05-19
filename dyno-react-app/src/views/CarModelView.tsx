@@ -25,13 +25,6 @@ interface ModelPageData {
   };
 }
 
-function yearInRange(year: number, from: number | null, to: number | null): boolean {
-  if (from == null && to == null) return true;
-  if (from != null && year < from) return false;
-  if (to != null && year > to) return false;
-  return true;
-}
-
 export default function CarModelView({
   currentUserId,
   onReactionsChange,

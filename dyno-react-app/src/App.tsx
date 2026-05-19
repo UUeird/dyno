@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
 import axios from "axios";
 import "./App.css";
-import { Car, Manufacturer, Human, Experience, Reaction, BadgeInfo, TrimEntry } from "./types";
+import { Car, Manufacturer, Human, Experience, Reaction, BadgeInfo } from "./types";
 import ColorPicker from "./components/ColorPicker";
 import BadgeToast from "./components/BadgeToast";
 import StarRating from "./components/StarRating";

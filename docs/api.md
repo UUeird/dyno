@@ -97,12 +97,15 @@ Replace the full trim list for one model. Other models' trims are untouched.
 Returns all cars with ownership info attached (`currentOwners`, `ownershipHistory`, `photos`, `thumbnail`).
 
 ### `POST /api/cars` 🔒
-**Body**: `{manufacturer, model, year, vin, nickname?, transmission?, color?, trim?}`
-- `vin` is required for new cars (deduplication key). Existing rows without a VIN are grandfathered via a sparse unique index.
-- `trim` is required *only* when the manufacturer has registered trims for the model. When trims exist, the value must match one of them and the year must fall within one of that trim's registered year ranges.
+**Body**: `{manufacturer, model, year, vin?, nickname?, transmission?, color?, trim?}`
+- `vin` is optional. When provided, it must be unique (sparse unique index) — the server returns 409 on a duplicate. Multiple cars with no VIN coexist.
+- `trim` validation rules:
+  - Model has no trims registered at all → free-form, any string accepted (including empty)
+  - Model has trims registered but none cover the chosen year → free-form fallback (any string accepted)
+  - Model has trims that cover the chosen year → trim is required and must be one of them
 
 **Errors**:
-- `400` if missing required fields (incl. VIN), or if manufacturer/model not in the Manufacturer registry
+- `400` if missing required fields (manufacturer/model/year), or if manufacturer/model not in the Manufacturer registry
 - `400` if the trim isn't valid for the (model, year) combination
 - `409` if a car with this VIN already exists
 

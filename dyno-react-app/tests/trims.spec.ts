@@ -83,20 +83,35 @@ test.describe("Trim validation", () => {
     }
   });
 
-  test("POST /api/cars rejects trim outside its year range", async () => {
+  test("POST /api/cars rejects trim outside its year range (when other trims cover the year)", async () => {
+    // Civic 2020: Type R covers it (2017+, open-ended). So trims-for-year is non-empty,
+    // and EX (2012-2015 only) is not in that set → 400.
     try {
       await axios.post(`${API}/cars`, {
         manufacturer: "Honda",
         model: "Civic",
         year: 2020,
         vin: "TRIMTEST000000003",
-        trim: "EX", // EX is 2012-2015 only
+        trim: "EX",
       });
       throw new Error("should have 400'd");
     } catch (err: any) {
       expect(err.response?.status).toBe(400);
-      expect(err.response?.data?.error).toMatch(/wasn't offered in 2020/i);
+      expect(err.response?.data?.error).toMatch(/not a valid trim/i);
     }
+  });
+
+  test("POST /api/cars accepts any trim for a year no trims cover (free-form fallback)", async () => {
+    // Pick a year before EX existed and before Type R: 2010. Falls back to free-form.
+    const { data } = await axios.post(`${API}/cars`, {
+      manufacturer: "Honda",
+      model: "Civic",
+      year: 2010,
+      vin: "TRIMTEST000000006",
+      trim: "Anything Goes",
+    });
+    expect(data.trim).toBe("Anything Goes");
+    createdVins.push("TRIMTEST000000006");
   });
 
   test("POST /api/cars accepts trim within range", async () => {

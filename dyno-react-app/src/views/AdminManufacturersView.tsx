@@ -19,6 +19,10 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
   // Per-row "add model" inputs, keyed by manufacturer id
   const [modelInputs, setModelInputs] = React.useState<Record<string, string>>({});
 
+  // Which manufacturer cards are expanded. Collapsed by default to keep the list scannable.
+  const [expandedMfrs, setExpandedMfrs] = React.useState<Record<string, boolean>>({});
+  const toggleMfr = (id: string) => setExpandedMfrs((prev) => ({ ...prev, [id]: !prev[id] }));
+
   // Which (mfrId, model) is currently being trim-edited
   const [openTrims, setOpenTrims] = React.useState<{ mfrId: string; model: string } | null>(null);
 
@@ -118,12 +122,22 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
           <p className="empty-state">Loading…</p>
         ) : (
           <ul className="admin-mfr-list">
-            {manufacturers.map((m) => (
+            {manufacturers.map((m) => {
+              const expanded = !!expandedMfrs[m._id];
+              return (
               <li key={m._id} className="admin-mfr-item">
-                <div className="admin-mfr-header">
+                <button
+                  type="button"
+                  className="admin-mfr-header"
+                  onClick={() => toggleMfr(m._id)}
+                  aria-expanded={expanded}
+                >
+                  <span className="admin-mfr-chevron">{expanded ? "▾" : "▸"}</span>
                   <strong>{m.name}</strong>
                   <span className="section-count">{m.models.length} model{m.models.length === 1 ? "" : "s"}</span>
-                </div>
+                </button>
+                {expanded && (
+                <>
                 <ul className="admin-model-rows">
                   {m.models.map((model) => {
                     const isOpen = openTrims?.mfrId === m._id && openTrims?.model === model;
@@ -177,8 +191,11 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
                   />
                   <button className="btn-primary" onClick={() => addModel(m._id)}>Add model</button>
                 </div>
+                </>
+                )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </section>

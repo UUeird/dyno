@@ -2255,10 +2255,28 @@
 
 .admin-mfr-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   font-size: 16px;
   margin-bottom: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+
+.admin-mfr-header:hover {
+  color: var(--accent);
+}
+
+.admin-mfr-chevron {
+  color: var(--text-3);
+  font-size: 14px;
+  width: 14px;
+  display: inline-block;
 }
 
 .admin-model-list {

@@ -227,17 +227,23 @@ function trimsForModel(mfr, model) {
 
 // Validates a trim string against the manufacturer's registered trims for a
 // model and year. Returns null on success, an error message on failure.
-// If the model has no trims defined yet, trim is treated as free-form (returns null).
+//
+// Rules:
+// - Model has no trims defined at all → free-form (any string OK, blank OK).
+// - Model has trims, but none cover the requested year → fall back to free-form.
+//   This avoids trapping users on years admins haven't seeded yet.
+// - Model has trims that cover the requested year → trim must be one of them.
 function validateTrim(mfr, model, year, trim) {
   const trims = trimsForModel(mfr, model);
   if (trims.length === 0) return null;
+  const trimsForYear =
+    year == null
+      ? trims
+      : trims.filter((t) => t.years.some((y) => yearMatchesWishlist(Number(year), y.from, y.to)));
+  if (trimsForYear.length === 0) return null; // nothing to validate against
   if (!trim) return `Trim is required for ${mfr.name} ${model}`;
-  const match = trims.find((t) => t.name === trim);
-  if (!match) return `"${trim}" is not a valid trim for ${mfr.name} ${model}`;
-  if (year != null) {
-    const inYear = match.years.some((y) => yearMatchesWishlist(Number(year), y.from, y.to));
-    if (!inYear) return `Trim "${trim}" wasn't offered in ${year}`;
-  }
+  const match = trimsForYear.find((t) => t.name === trim);
+  if (!match) return `"${trim}" is not a valid trim for ${mfr.name} ${model} in ${year}`;
   return null;
 }
 
@@ -715,10 +721,12 @@ app.post("/api/cars", requireAuth, async (req, res) => {
     if (!manufacturer || !model || !year) {
       return res.status(400).json({ error: "manufacturer, model, and year are required" });
     }
+    // VIN is optional. If provided, the sparse unique index still keeps duplicates out.
+    // Pass undefined (not empty string) so Mongo doesn't store a "" value that would
+    // collide with the unique index against other empty-string VINs.
     const trimmedVin = typeof vin === "string" ? vin.trim() : "";
-    if (!trimmedVin) {
-      return res.status(400).json({ error: "VIN is required" });
-    }
+    const vinValue = trimmedVin || undefined;
+
     const mfr = await Manufacturer.findOne({ name: manufacturer });
     if (!mfr) return res.status(400).json({ error: "invalid manufacturer" });
     if (!mfr.models.includes(model))
@@ -728,7 +736,7 @@ app.post("/api/cars", requireAuth, async (req, res) => {
     if (trimError) return res.status(400).json({ error: trimError });
 
     try {
-      const car = await new Car({ manufacturer, model, year, nickname, transmission, color, trim, vin: trimmedVin }).save();
+      const car = await new Car({ manufacturer, model, year, nickname, transmission, color, trim, vin: vinValue }).save();
       res.status(201).json(await attachOwnership(car));
     } catch (err) {
       if (err.code === 11000) return res.status(409).json({ error: "A car with this VIN already exists" });

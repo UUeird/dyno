@@ -224,12 +224,22 @@ function NewExperienceModal({
                   onChange={(name) => setForm((prev) => ({ ...prev, color: name }))}
                 />
               )}
-              {allTrims.length === 0 ? null : availableTrims.length === 0 ? (
-                <p className="form-hint">
-                  {form.year
-                    ? `No registered trims for ${form.model} in ${form.year}. Ask an admin to add one.`
-                    : `Pick a year to see available trims for ${form.model}.`}
-                </p>
+              {allTrims.length === 0 ? (
+                // No trims defined at all for this model — hide the field.
+                null
+              ) : availableTrims.length === 0 ? (
+                // Trims exist for this model but none cover the selected year.
+                // Fall back to free-text so users aren't blocked. Backend allows it.
+                <input
+                  name="trim"
+                  placeholder={
+                    form.year
+                      ? `Trim (optional — no ${form.year} trims registered)`
+                      : "Trim (optional)"
+                  }
+                  value={form.trim}
+                  onChange={handleChange}
+                />
               ) : (
                 <select name="trim" value={form.trim} onChange={handleChange} required>
                   <option value="" disabled>Trim</option>
@@ -238,7 +248,7 @@ function NewExperienceModal({
                   ))}
                 </select>
               )}
-              <input name="vin" placeholder="VIN" value={form.vin} onChange={handleChange} maxLength={17} required />
+              <input name="vin" placeholder="VIN (optional)" value={form.vin} onChange={handleChange} maxLength={17} />
               <select name="owner" value={form.owner} onChange={handleChange}>
                 <option value="">Owner (optional)</option>
                 {humans.map((h) => (

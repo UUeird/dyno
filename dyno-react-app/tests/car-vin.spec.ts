@@ -4,7 +4,7 @@ import { asSam } from "./auth";
 
 const API = "http://localhost:5000/api";
 
-test.describe("Car creation requires VIN", () => {
+test.describe("Car VIN handling", () => {
   test.beforeAll(() => asSam());
   const createdIds: string[] = [];
 
@@ -14,32 +14,27 @@ test.describe("Car creation requires VIN", () => {
     }
   });
 
-  test("POST /api/cars rejects missing VIN with 400", async () => {
-    try {
-      await axios.post(`${API}/cars`, {
-        manufacturer: "Honda",
-        model: "Civic",
-        year: 2020,
-      });
-      throw new Error("should have 400'd");
-    } catch (err: any) {
-      expect(err.response?.status).toBe(400);
-      expect(err.response?.data?.error).toMatch(/VIN/i);
-    }
+  test("POST /api/cars accepts missing VIN", async () => {
+    const { data } = await axios.post(`${API}/cars`, {
+      manufacturer: "Honda",
+      model: "Civic",
+      year: 2020,
+    });
+    expect(data._id).toBeTruthy();
+    expect(data.vin == null || data.vin === "").toBe(true);
+    createdIds.push(data._id);
   });
 
-  test("POST /api/cars rejects empty-string VIN with 400", async () => {
-    try {
-      await axios.post(`${API}/cars`, {
-        manufacturer: "Honda",
-        model: "Civic",
-        year: 2020,
-        vin: "   ",
-      });
-      throw new Error("should have 400'd");
-    } catch (err: any) {
-      expect(err.response?.status).toBe(400);
-    }
+  test("POST /api/cars accepts blank VIN (treated as no VIN)", async () => {
+    const { data } = await axios.post(`${API}/cars`, {
+      manufacturer: "Honda",
+      model: "Civic",
+      year: 2020,
+      vin: "   ",
+    });
+    expect(data._id).toBeTruthy();
+    expect(data.vin == null || data.vin === "").toBe(true);
+    createdIds.push(data._id);
   });
 
   test("POST /api/cars succeeds with VIN", async () => {
@@ -73,5 +68,21 @@ test.describe("Car creation requires VIN", () => {
     } catch (err: any) {
       expect(err.response?.status).toBe(409);
     }
+  });
+
+  test("multiple cars with no VIN do not conflict", async () => {
+    // Sparse unique index means absence is allowed for as many records as we want
+    const { data: a } = await axios.post(`${API}/cars`, {
+      manufacturer: "Honda",
+      model: "Civic",
+      year: 2018,
+    });
+    const { data: b } = await axios.post(`${API}/cars`, {
+      manufacturer: "Honda",
+      model: "Civic",
+      year: 2019,
+    });
+    expect(a._id).not.toBe(b._id);
+    createdIds.push(a._id, b._id);
   });
 });

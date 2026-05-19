@@ -2291,3 +2291,97 @@
 .admin-add-model-row input {
   flex: 1;
 }
+
+/* Models become rows (not pills) so they can hold an expandable trim editor */
+.admin-model-rows {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-model-row {
+  background: var(--surface-3, #2a2a2a);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.admin-model-row-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-model-row-name {
+  font-weight: 600;
+  flex: 1;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.btn-text:hover { text-decoration: underline; }
+.btn-text:disabled { opacity: 0.5; cursor: default; }
+
+.btn-danger { color: var(--danger); }
+
+.admin-trim-editor {
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--surface-2, #1a1a1a);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-trim-row {
+  padding: 10px;
+  background: var(--surface-1, #111);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-trim-name-row {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-trim-name-input {
+  flex: 1;
+}
+
+.admin-trim-years {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+}
+
+.admin-trim-year-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-year-input {
+  width: 100px;
+}
+
+.admin-trim-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}

@@ -67,7 +67,27 @@ Add a model to an existing manufacturer. No-op if the model is already in the li
 **Body**: `{model}`
 
 ### `DELETE /api/manufacturers/:id/models/:model` 🔒 admin
-Remove a model. Rejects with 409 if any `Car` document references it.
+Remove a model. Rejects with 409 if any `Car` document references it. Also clears any trim entries for the model.
+
+### `PUT /api/manufacturers/:id/trims/:model` 🔒 admin
+Replace the full trim list for one model. Other models' trims are untouched.
+
+**Body**:
+```ts
+{
+  trims: {
+    name: string,
+    years: { from: number | null, to: number | null }[]
+  }[]
+}
+```
+- `from`/`to` are inclusive years; either may be `null` for open-ended
+- Multiple year ranges per trim are allowed (e.g. a trim that came and went)
+- Year sanity-checked: 1900–2100, `from ≤ to`
+
+**Errors**:
+- `400` if the model isn't in the manufacturer's `models` list
+- `400` on invalid year values
 
 ---
 

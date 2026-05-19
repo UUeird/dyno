@@ -615,6 +615,56 @@ app.delete("/api/manufacturers/:id/models/:model", requireAdmin, async (req, res
     const inUse = await Car.findOne({ manufacturer: mfr.name, model });
     if (inUse) return res.status(409).json({ error: "Model is in use by one or more cars" });
     mfr.models = mfr.models.filter((m) => m !== model);
+    // Clean up any trim entries for this model — otherwise we'd orphan them.
+    if (mfr.trims && mfr.trims.has(model)) {
+      mfr.trims.delete(model);
+    }
+    await mfr.save();
+    res.json(mfr);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin-only: replace the full trim list for a (manufacturer, model). The request
+// body is the canonical new list; existing entries for that model are overwritten.
+// Each trim is `{ name, years: [{from, to}] }`. Both `from` and `to` may be null
+// (open-ended on that side). The trim list for other models is left untouched.
+app.put("/api/manufacturers/:id/trims/:model", requireAdmin, async (req, res) => {
+  try {
+    const { id, model } = req.params;
+    const mfr = await Manufacturer.findById(id);
+    if (!mfr) return res.status(404).json({ error: "Manufacturer not found" });
+    if (!mfr.models.includes(model)) {
+      return res.status(400).json({ error: `Model "${model}" not in manufacturer's model list` });
+    }
+
+    const incoming = Array.isArray(req.body.trims) ? req.body.trims : [];
+    const normalized = [];
+    for (const t of incoming) {
+      const name = String(t?.name || "").trim();
+      if (!name) continue; // skip blank-name rows silently
+      const years = Array.isArray(t.years) ? t.years.map((y) => ({
+        from: y?.from == null || y?.from === "" ? null : Number(y.from),
+        to: y?.to == null || y?.to === "" ? null : Number(y.to),
+      })).filter((y) => !(y.from == null && y.to == null) || true) : [];
+      // Validate each range
+      for (const y of years) {
+        if (y.from != null && (!Number.isFinite(y.from) || y.from < 1900 || y.from > 2100)) {
+          return res.status(400).json({ error: `Invalid 'from' year in trim "${name}"` });
+        }
+        if (y.to != null && (!Number.isFinite(y.to) || y.to < 1900 || y.to > 2100)) {
+          return res.status(400).json({ error: `Invalid 'to' year in trim "${name}"` });
+        }
+        if (y.from != null && y.to != null && y.from > y.to) {
+          return res.status(400).json({ error: `'from' must be ≤ 'to' in trim "${name}"` });
+        }
+      }
+      normalized.push({ name, years });
+    }
+
+    if (!mfr.trims) mfr.trims = new Map();
+    mfr.trims.set(model, normalized);
     await mfr.save();
     res.json(mfr);
   } catch (err) {

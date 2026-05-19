@@ -19,6 +19,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "react-scripts start",
+    "prebuild": "node scripts/gen-version.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:e2e": "playwright test",

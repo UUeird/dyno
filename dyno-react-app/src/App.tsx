@@ -16,6 +16,7 @@ import AdminManufacturersView from "./views/AdminManufacturersView";
 import SignInView from "./views/SignInView";
 import SignUpView from "./views/SignUpView";
 import SearchBar from "./components/SearchBar";
+import VersionFooter from "./components/VersionFooter";
 import AuthBridge from "./components/AuthBridge";
 import { API } from "./lib/api";
 import { useAuth, SignedIn, SignedOut, UserButton, RedirectToSignIn } from "./lib/auth";
@@ -507,6 +508,7 @@ function App() {
             <span className="tab-label">Profile</span>
           </NavLink>
         </nav>
+        <VersionFooter />
 
         {showNewExperience && (
           <NewExperienceModal

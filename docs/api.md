@@ -99,13 +99,15 @@ Returns all cars with ownership info attached (`currentOwners`, `ownershipHistor
 ### `POST /api/cars` 🔒
 **Body**: `{manufacturer, model, year, vin, nickname?, transmission?, color?, trim?}`
 - `vin` is required for new cars (deduplication key). Existing rows without a VIN are grandfathered via a sparse unique index.
+- `trim` is required *only* when the manufacturer has registered trims for the model. When trims exist, the value must match one of them and the year must fall within one of that trim's registered year ranges.
 
 **Errors**:
 - `400` if missing required fields (incl. VIN), or if manufacturer/model not in the Manufacturer registry
+- `400` if the trim isn't valid for the (model, year) combination
 - `409` if a car with this VIN already exists
 
 ### `PUT /api/cars/:id` 🔒
-Update a car. If `manufacturer` or `model` is changed, the new combination is validated against the Manufacturer registry.
+Update a car. If `manufacturer` or `model` is changed, the new combination is validated against the Manufacturer registry. If `trim`, `year`, `model`, or `manufacturer` change, the trim is re-validated against the effective values using the same rules as `POST /api/cars`.
 
 ### `DELETE /api/cars/:id` 🔒
 Cascades: also deletes the car's `Ownership` and `Photo` records.

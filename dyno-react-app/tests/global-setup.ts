@@ -8,11 +8,17 @@ export default async function globalSetup() {
   try { execSync("pkill -f 'node server.js'"); } catch {}
   await new Promise((r) => setTimeout(r, 600));
 
-  // Start the backend pointed at carsDB_test
+  // Start the backend pointed at carsDB_test. Sam's seeded email is also marked
+  // as admin so admin-only endpoints can be exercised by specs (e.g. trim setup).
   const backendDir = path.resolve(__dirname, "../backend");
   backendProc = spawn("node", ["server.js"], {
     cwd: backendDir,
-    env: { ...process.env, MONGO_DB: "carsDB_test", PORT: "5000" },
+    env: {
+      ...process.env,
+      MONGO_DB: "carsDB_test",
+      PORT: "5000",
+      ADMIN_EMAILS: "sam@samelawrence.com",
+    },
     stdio: "pipe",
   });
 

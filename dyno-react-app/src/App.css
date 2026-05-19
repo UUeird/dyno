@@ -642,6 +642,14 @@
   font-size: 13px;
 }
 
+.form-hint {
+  width: 100%;
+  margin: 4px 0 8px;
+  color: var(--text-3);
+  font-size: 12px;
+  font-style: italic;
+}
+
 .form-buttons {
   display: flex;
   gap: 8px;

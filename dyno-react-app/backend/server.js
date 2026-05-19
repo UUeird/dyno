@@ -215,6 +215,32 @@ function yearMatchesWishlist(carYear, yearFrom, yearTo) {
   return true;
 }
 
+// Look up the list of trims defined for a (manufacturer, model) pair. Returns
+// `[]` if no manufacturer match or no trims set up for that model.
+function trimsForModel(mfr, model) {
+  if (!mfr?.trims) return [];
+  // Mongoose Maps expose .get(); plain objects use bracket access. Support both
+  // so this works whether the caller passes a hydrated doc or .lean() result.
+  const raw = typeof mfr.trims.get === "function" ? mfr.trims.get(model) : mfr.trims[model];
+  return Array.isArray(raw) ? raw : [];
+}
+
+// Validates a trim string against the manufacturer's registered trims for a
+// model and year. Returns null on success, an error message on failure.
+// If the model has no trims defined yet, trim is treated as free-form (returns null).
+function validateTrim(mfr, model, year, trim) {
+  const trims = trimsForModel(mfr, model);
+  if (trims.length === 0) return null;
+  if (!trim) return `Trim is required for ${mfr.name} ${model}`;
+  const match = trims.find((t) => t.name === trim);
+  if (!match) return `"${trim}" is not a valid trim for ${mfr.name} ${model}`;
+  if (year != null) {
+    const inYear = match.years.some((y) => yearMatchesWishlist(Number(year), y.from, y.to));
+    if (!inYear) return `Trim "${trim}" wasn't offered in ${year}`;
+  }
+  return null;
+}
+
 // ── Migration ─────────────────────────────────────────────────────────────────
 
 async function migrateLegacyOwners() {
@@ -698,6 +724,9 @@ app.post("/api/cars", requireAuth, async (req, res) => {
     if (!mfr.models.includes(model))
       return res.status(400).json({ error: `invalid model for manufacturer ${manufacturer}` });
 
+    const trimError = validateTrim(mfr, model, year, trim);
+    if (trimError) return res.status(400).json({ error: trimError });
+
     try {
       const car = await new Car({ manufacturer, model, year, nickname, transmission, color, trim, vin: trimmedVin }).save();
       res.status(201).json(await attachOwnership(car));
@@ -712,23 +741,39 @@ app.post("/api/cars", requireAuth, async (req, res) => {
 
 app.put("/api/cars/:id", requireAuth, async (req, res) => {
   try {
-    const { manufacturer, model } = req.body;
+    const { manufacturer, model, year, trim } = req.body;
+    const car = await Car.findById(req.params.id);
+    if (!car) return res.status(404).json({ error: "Car not found" });
+
+    // Compute effective values once for use in both manufacturer/model and trim validation.
+    const effectiveMfrName = manufacturer || car.manufacturer;
+    const effectiveModel = model || car.model;
+    const effectiveYear = year != null ? year : car.year;
+    const effectiveTrim = trim !== undefined ? trim : car.trim;
+
     if (manufacturer || model) {
-      const car = await Car.findById(req.params.id);
-      if (!car) return res.status(404).json({ error: "Car not found" });
-      const effectiveMfr = manufacturer || car.manufacturer;
-      const effectiveModel = model || car.model;
-      const mfr = await Manufacturer.findOne({ name: effectiveMfr });
+      const mfr = await Manufacturer.findOne({ name: effectiveMfrName });
       if (!mfr) return res.status(400).json({ error: "invalid manufacturer" });
       if (!mfr.models.includes(effectiveModel))
-        return res.status(400).json({ error: `invalid model for manufacturer ${effectiveMfr}` });
+        return res.status(400).json({ error: `invalid model for manufacturer ${effectiveMfrName}` });
     }
+
+    // Validate trim against the effective (mfr, model, year). Re-fetch in case
+    // the body didn't include manufacturer.
+    if (trim !== undefined || year !== undefined || model !== undefined || manufacturer !== undefined) {
+      const mfrDoc = await Manufacturer.findOne({ name: effectiveMfrName });
+      if (mfrDoc) {
+        const trimError = validateTrim(mfrDoc, effectiveModel, effectiveYear, effectiveTrim);
+        if (trimError) return res.status(400).json({ error: trimError });
+      }
+    }
+
     const { owner: _owner, ...updateFields } = req.body;
     const updated = await Car.findByIdAndUpdate(req.params.id, updateFields, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ error: "Car not found" });
     res.json(await attachOwnership(updated));
-  } catch {
-    res.status(500).send("Error updating car");
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Error updating car" });
   }
 });
 

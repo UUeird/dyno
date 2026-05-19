@@ -224,15 +224,19 @@ function NewExperienceModal({
                   onChange={(name) => setForm((prev) => ({ ...prev, color: name }))}
                 />
               )}
-              {availableTrims.length > 0 ? (
-                <select name="trim" value={form.trim} onChange={handleChange}>
-                  <option value="">Trim (optional)</option>
+              {allTrims.length === 0 ? null : availableTrims.length === 0 ? (
+                <p className="form-hint">
+                  {form.year
+                    ? `No registered trims for ${form.model} in ${form.year}. Ask an admin to add one.`
+                    : `Pick a year to see available trims for ${form.model}.`}
+                </p>
+              ) : (
+                <select name="trim" value={form.trim} onChange={handleChange} required>
+                  <option value="" disabled>Trim</option>
                   {availableTrims.map((t) => (
                     <option key={t.name} value={t.name}>{t.name}</option>
                   ))}
                 </select>
-              ) : (
-                <input name="trim" placeholder="Trim (optional)" value={form.trim} onChange={handleChange} />
               )}
               <input name="vin" placeholder="VIN" value={form.vin} onChange={handleChange} maxLength={17} required />
               <select name="owner" value={form.owner} onChange={handleChange}>

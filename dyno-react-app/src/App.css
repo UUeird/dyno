@@ -33,7 +33,9 @@
 
 /* ─── Header ─────────────────────────────────────────────────────── */
 .app-header {
-  padding: 16px 20px 14px;
+  /* Top padding includes the iOS status-bar safe area so the clock/battery
+     don't overlap the logo. Falls back to 16px on browsers without the env. */
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) 20px 14px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   background: rgba(10,10,10,0.85);

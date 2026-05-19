@@ -3,13 +3,19 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 const { clerkMiddleware, getAuth, clerkClient } = require("@clerk/express");
+const cloudinary = require("cloudinary").v2;
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+
+// CORS: in dev, allow everything. In production, restrict to FRONTEND_ORIGIN.
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
+if (FRONTEND_ORIGIN) {
+  app.use(cors({ origin: FRONTEND_ORIGIN.split(",").map((s) => s.trim()) }));
+} else {
+  app.use(cors());
+}
 
 const IS_TEST = (process.env.MONGO_DB || "carsDB") === "carsDB_test";
 
@@ -28,20 +34,41 @@ if (IS_TEST) {
   app.use(clerkMiddleware());
 }
 
-// Serve uploaded photos statically
-const uploadsDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
-app.use("/uploads", express.static(uploadsDir));
+// Cloudinary: SDK reads CLOUDINARY_URL from env automatically when called like this.
+// We keep photos in memory only during the request; the buffer is streamed to
+// Cloudinary and never touches disk. This works on ephemeral-filesystem hosts.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-const storage = multer.diskStorage({
-  destination: uploadsDir,
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
-});
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+function uploadBufferToCloudinary(buffer, folder = "dyno") {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, resource_type: "image" },
+      (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      }
+    );
+    stream.end(buffer);
+  });
+}
+
+// Best-effort delete from Cloudinary by public_id. Swallows errors so a DB delete
+// can still succeed even if Cloudinary is slow/down.
+async function deleteFromCloudinary(publicId) {
+  if (!publicId) return;
+  try {
+    await cloudinary.uploader.destroy(publicId);
+  } catch (err) {
+    console.warn("Cloudinary delete failed:", err.message);
+  }
+}
 
 const DB_NAME = process.env.MONGO_DB || "carsDB";
+// In production we pass a full Atlas-style URI via MONGODB_URI. Locally we fall back
+// to localhost:27017 with the named database.
+const MONGODB_URI = process.env.MONGODB_URI || `mongodb://localhost:27017/${DB_NAME}`;
 mongoose
-  .connect(`mongodb://localhost:27017/${DB_NAME}`)
+  .connect(MONGODB_URI)
   .then(async () => {
     console.log("Connected to MongoDB");
     await migrateLegacyOwners();
@@ -90,6 +117,9 @@ const photoSchema = new mongoose.Schema({
   car: { type: mongoose.Schema.Types.ObjectId, ref: "Car", required: true },
   uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Human", required: true },
   url: { type: String, required: true },
+  // public_id is set when the photo lives in Cloudinary (so we can delete it).
+  // Null/undefined for external photos added via /photos/url.
+  cloudinaryPublicId: { type: String, default: null },
   caption: String,
   createdAt: { type: Date, default: Date.now },
 });
@@ -434,6 +464,14 @@ async function requireAuth(req, res, next) {
 
 // ── Humans ────────────────────────────────────────────────────────────────────
 
+// Health check for the platform's uptime probes. Returns 200 if the server is up
+// and Mongo is connected, 503 otherwise. Intentionally not under /api/ so platform
+// configs that proxy /api/* don't need to special-case it.
+app.get("/healthz", (req, res) => {
+  const dbReady = mongoose.connection.readyState === 1; // 1 = connected
+  res.status(dbReady ? 200 : 503).json({ ok: dbReady, db: dbReady ? "up" : "down" });
+});
+
 app.get("/api/humans", async (req, res) => {
   try {
     res.json(await Human.find().sort({ name: 1 }));
@@ -560,8 +598,14 @@ app.post("/api/cars/:id/photos", requireAuth, upload.single("photo"), async (req
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
     const { caption } = req.body;
-    const url = `/uploads/${req.file.filename}`;
-    const photo = await new Photo({ car: req.params.id, uploadedBy: req.currentHuman._id, url, caption }).save();
+    const result = await uploadBufferToCloudinary(req.file.buffer, `dyno/cars/${req.params.id}`);
+    const photo = await new Photo({
+      car: req.params.id,
+      uploadedBy: req.currentHuman._id,
+      url: result.secure_url,
+      cloudinaryPublicId: result.public_id,
+      caption,
+    }).save();
     await photo.populate("uploadedBy", "name");
     res.status(201).json(photo);
   } catch (err) {
@@ -587,11 +631,9 @@ app.delete("/api/photos/:id", requireAuth, async (req, res) => {
   try {
     const photo = await Photo.findByIdAndDelete(req.params.id);
     if (!photo) return res.status(404).json({ error: "Photo not found" });
-    // Clean up local file if stored on disk
-    if (photo.url.startsWith("/uploads/")) {
-      const filePath = path.join(__dirname, photo.url);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
+    // Remove from Cloudinary if the photo was uploaded there. External URLs (added
+    // via /photos/url) won't have a publicId — those just go away on DB delete.
+    await deleteFromCloudinary(photo.cloudinaryPublicId);
     // Clear thumbnailPhoto reference if it pointed to this photo
     await Car.updateMany({ thumbnailPhoto: photo._id }, { $unset: { thumbnailPhoto: "" } });
     res.json({ message: "Photo deleted" });

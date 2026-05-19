@@ -12,6 +12,7 @@ import ProfileView from "./views/ProfileView";
 import UserProfileView from "./views/UserProfileView";
 import CarModelView from "./views/CarModelView";
 import AllBadgesView from "./views/AllBadgesView";
+import AdminManufacturersView from "./views/AdminManufacturersView";
 import SignInView from "./views/SignInView";
 import SignUpView from "./views/SignUpView";
 import SearchBar from "./components/SearchBar";
@@ -372,6 +373,11 @@ function App() {
         <header className="app-header">
           <NavLink to="/" className="app-logo">Dyno</NavLink>
           <SearchBar />
+          {currentUser?.isAdmin && (
+            <NavLink to="/admin/manufacturers" className="header-admin-link" title="Admin">
+              ⚙️
+            </NavLink>
+          )}
           <SignedIn>
             <UserButton afterSignOutUrl="/sign-in" />
           </SignedIn>
@@ -456,6 +462,19 @@ function App() {
             <Route
               path="/users/:id/badges"
               element={<AllBadgesView currentUserId={currentUserId} />}
+            />
+            <Route
+              path="/admin/manufacturers"
+              element={
+                <>
+                  <SignedIn>
+                    <AdminManufacturersView currentUser={currentUser} />
+                  </SignedIn>
+                  <SignedOut>
+                    <RedirectToSignIn />
+                  </SignedOut>
+                </>
+              }
             />
           </Routes>
         </main>

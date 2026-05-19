@@ -10,7 +10,7 @@ Most write endpoints require a valid Clerk session JWT in `Authorization: Bearer
 
 When authenticated, the caller's `Human` record is derived from the Clerk user id (auto-provisioned on first request). **You no longer pass `loggedBy`, `human`, `follower`, or `uploadedBy` in request bodies** — they come from the session.
 
-Endpoints that require auth respond `401 Unauthorized` if the JWT is missing or invalid. The "Auth" column in each endpoint below indicates whether it requires a session.
+Endpoints that require auth respond `401 Unauthorized` if the JWT is missing or invalid. The "Auth" column in each endpoint below indicates whether it requires a session. **Admin-only** endpoints (marked `🔒 admin`) additionally check that the caller's email is in the backend's `ADMIN_EMAILS` env (comma-separated, case-insensitive); non-admins get `403`.
 
 In test mode (`MONGO_DB=carsDB_test`), the bypass header `x-test-user-id: <mongo-id>` replaces the JWT.
 
@@ -55,6 +55,19 @@ Legacy. Humans are now provisioned automatically on first authenticated request 
 Returns all manufacturers, sorted by name. Includes `models`, `colors` (keyed by model or `"*"` for fallback), and `trims` (keyed by model).
 
 **Response**: `Manufacturer[]`
+
+### `POST /api/manufacturers` 🔒 admin
+**Body**: `{name, models?}` (models is an optional initial array)
+**Errors**:
+- `400` if name is missing
+- `409` if a manufacturer with that name already exists
+
+### `PATCH /api/manufacturers/:id/models` 🔒 admin
+Add a model to an existing manufacturer. No-op if the model is already in the list.
+**Body**: `{model}`
+
+### `DELETE /api/manufacturers/:id/models/:model` 🔒 admin
+Remove a model. Rejects with 409 if any `Car` document references it.
 
 ---
 

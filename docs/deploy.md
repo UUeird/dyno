@@ -66,7 +66,8 @@ Until production is set up, you can deploy with the dev keys (`pk_test_` / `sk_t
    - `CLERK_PUBLISHABLE_KEY` = `pk_test_...` (or `pk_live_...` if production Clerk)
    - `CLERK_SECRET_KEY` = matching secret
    - `CLOUDINARY_URL` = `cloudinary://<key>:<secret>@<cloud-name>`
-   - `FRONTEND_ORIGIN` = (fill in after Vercel deploy; e.g. `https://dyno-foo.vercel.app`)
+   - `FRONTEND_ORIGIN` = (fill in after Vercel deploy; e.g. `https://dyno-foo.vercel.app`). Comma-separated for multiple origins.
+   - `ADMIN_EMAILS` = your email (and others) — comma-separated. Required if you want to manage the manufacturer registry from the UI.
    - `NODE_ENV` = `production`
 5. **Health Check Path**: `/healthz`
 6. Click **Create Web Service**. First deploy takes 3–5 minutes.

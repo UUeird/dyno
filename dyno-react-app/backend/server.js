@@ -73,6 +73,7 @@ mongoose
     console.log("Connected to MongoDB");
     await migrateLegacyOwners();
     await seedBadgeSeries();
+    await seedManufacturers();
     // Ensure schema-declared indexes (e.g. Car.vin unique, Human.clerkId unique) are actually built
     await Car.syncIndexes();
     await Human.syncIndexes();
@@ -228,6 +229,43 @@ async function migrateLegacyOwners() {
   if (carsWithLegacyOwner.length > 0) {
     console.log(`Migrated ${carsWithLegacyOwner.length} legacy owner(s) to Ownership records`);
   }
+}
+
+// Starter list of common manufacturers + a handful of models each. Idempotent —
+// only inserts brands that don't already exist, so adding/removing entries here
+// is safe (existing data is never overwritten). Admins can add more from the UI.
+async function seedManufacturers() {
+  const starters = [
+    { name: "Acura",      models: ["Integra", "MDX", "NSX", "RDX", "TLX"] },
+    { name: "Audi",       models: ["A3", "A4", "A6", "Q5", "R8"] },
+    { name: "BMW",        models: ["3 Series", "5 Series", "M3", "X5", "i4"] },
+    { name: "Chevrolet",  models: ["Camaro", "Corvette", "Impala", "Silverado", "Suburban"] },
+    { name: "Dodge",      models: ["Challenger", "Charger", "Ram 1500"] },
+    { name: "Ferrari",    models: ["296 GTB", "F8", "Roma", "SF90"] },
+    { name: "Ford",       models: ["Bronco", "F-150", "Mustang", "Ranger"] },
+    { name: "Honda",      models: ["Accord", "Civic", "CR-V", "Pilot"] },
+    { name: "Hyundai",    models: ["Elantra", "Ioniq 5", "Santa Fe", "Sonata"] },
+    { name: "Jeep",       models: ["Cherokee", "Gladiator", "Grand Cherokee", "Wrangler"] },
+    { name: "Lexus",      models: ["ES", "IS", "LC", "LX", "RX"] },
+    { name: "Mazda",      models: ["CX-5", "MX-5 Miata", "Mazda3", "Mazda6"] },
+    { name: "Mercedes-Benz", models: ["C-Class", "E-Class", "G-Class", "S-Class"] },
+    { name: "Nissan",     models: ["Altima", "GT-R", "Rogue", "Z"] },
+    { name: "Porsche",    models: ["911", "Boxster", "Cayenne", "Taycan"] },
+    { name: "Rivian",     models: ["R1S", "R1T"] },
+    { name: "Subaru",     models: ["BRZ", "Forester", "Outback", "WRX"] },
+    { name: "Tesla",      models: ["Cybertruck", "Model 3", "Model S", "Model X", "Model Y"] },
+    { name: "Toyota",     models: ["4Runner", "Camry", "Corolla", "Land Cruiser", "Supra", "Tacoma"] },
+    { name: "Volkswagen", models: ["Atlas", "Golf", "ID.4", "Jetta"] },
+  ];
+  let inserted = 0;
+  for (const s of starters) {
+    const existing = await Manufacturer.findOne({ name: s.name });
+    if (!existing) {
+      await Manufacturer.create({ name: s.name, models: s.models, colors: {}, trims: {} });
+      inserted++;
+    }
+  }
+  if (inserted > 0) console.log(`Seeded ${inserted} new manufacturer(s)`);
 }
 
 async function seedBadgeSeries() {
@@ -462,6 +500,31 @@ async function requireAuth(req, res, next) {
   }
 }
 
+// Comma-separated list of admin emails. Matching is case-insensitive.
+const ADMIN_EMAILS = new Set(
+  (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+function isAdmin(human) {
+  return !!human?.email && ADMIN_EMAILS.has(human.email.toLowerCase());
+}
+
+// Express middleware: 403 if the authenticated user isn't in ADMIN_EMAILS.
+async function requireAdmin(req, res, next) {
+  try {
+    const human = await getCurrentHuman(req);
+    if (!human) return res.status(401).json({ error: "Authentication required" });
+    if (!isAdmin(human)) return res.status(403).json({ error: "Admin access required" });
+    req.currentHuman = human;
+    next();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 // ── Humans ────────────────────────────────────────────────────────────────────
 
 // Health check for the platform's uptime probes. Returns 200 if the server is up
@@ -483,7 +546,10 @@ app.get("/api/humans", async (req, res) => {
 // Returns the Human record for the signed-in user, provisioning one on first call.
 // Frontend hits this after Clerk sign-in to learn the user's Mongo _id.
 app.get("/api/me", requireAuth, async (req, res) => {
-  res.json(req.currentHuman);
+  // Spread so we don't mutate the cached Mongoose doc, then attach the env-derived flag.
+  const human = req.currentHuman.toObject ? req.currentHuman.toObject() : { ...req.currentHuman };
+  human.isAdmin = isAdmin(req.currentHuman);
+  res.json(human);
 });
 
 // Legacy: Humans are now provisioned automatically by Clerk on first authenticated
@@ -504,6 +570,55 @@ app.get("/api/manufacturers", async (req, res) => {
     res.json(await Manufacturer.find().sort({ name: 1 }));
   } catch {
     res.status(500).send("Error fetching manufacturers");
+  }
+});
+
+// Admin-only: create a manufacturer with an optional initial models list.
+app.post("/api/manufacturers", requireAdmin, async (req, res) => {
+  try {
+    const name = (req.body.name || "").trim();
+    if (!name) return res.status(400).json({ error: "name is required" });
+    const models = Array.isArray(req.body.models) ? req.body.models.map((m) => String(m).trim()).filter(Boolean) : [];
+    const existing = await Manufacturer.findOne({ name });
+    if (existing) return res.status(409).json({ error: "Manufacturer already exists" });
+    const mfr = await Manufacturer.create({ name, models, colors: {}, trims: {} });
+    res.status(201).json(mfr);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin-only: add a new model to an existing manufacturer (no-op if already present).
+app.patch("/api/manufacturers/:id/models", requireAdmin, async (req, res) => {
+  try {
+    const model = (req.body.model || "").trim();
+    if (!model) return res.status(400).json({ error: "model is required" });
+    const mfr = await Manufacturer.findById(req.params.id);
+    if (!mfr) return res.status(404).json({ error: "Manufacturer not found" });
+    if (!mfr.models.includes(model)) {
+      mfr.models.push(model);
+      mfr.models.sort();
+      await mfr.save();
+    }
+    res.json(mfr);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin-only: remove a model from a manufacturer (only if no Cars use it).
+app.delete("/api/manufacturers/:id/models/:model", requireAdmin, async (req, res) => {
+  try {
+    const { id, model } = req.params;
+    const mfr = await Manufacturer.findById(id);
+    if (!mfr) return res.status(404).json({ error: "Manufacturer not found" });
+    const inUse = await Car.findOne({ manufacturer: mfr.name, model });
+    if (inUse) return res.status(409).json({ error: "Model is in use by one or more cars" });
+    mfr.models = mfr.models.filter((m) => m !== model);
+    await mfr.save();
+    res.json(mfr);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 

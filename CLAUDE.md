@@ -83,7 +83,9 @@ The error you'll see is `Syntax error: Cannot read properties of undefined (read
 
 **Env vars.**
 - `dyno-react-app/.env.local` (gitignored): `REACT_APP_CLERK_PUBLISHABLE_KEY`
-- `dyno-react-app/backend/.env` (gitignored): `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
+- `dyno-react-app/backend/.env` (gitignored): `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLOUDINARY_URL`, optionally `ADMIN_EMAILS` (comma-separated list of admin user emails — needed to access admin-only endpoints)
+
+**Manufacturer registry.** On backend startup, `seedManufacturers()` idempotently inserts a starter list of ~20 brands. Admins (users whose email is in `ADMIN_EMAILS`) can add more manufacturers and models via `/admin/manufacturers`. New cars must reference an existing manufacturer+model combination, so this is how the registry grows.
 
 **API base URL** comes from `process.env.REACT_APP_API_URL` (falls back to `http://localhost:5000` in dev). Import `API` (root + `/api`) or `API_ORIGIN` (root only, for `/uploads/...` paths) from [src/lib/api.ts](dyno-react-app/src/lib/api.ts) — never hardcode URLs.
 

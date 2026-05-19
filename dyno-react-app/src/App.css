@@ -2204,3 +2204,90 @@
   font-size: 0.85em;
   margin-left: 6px;
 }
+
+/* ─── Admin ──────────────────────────────────────────────────────── */
+.header-admin-link {
+  text-decoration: none;
+  font-size: 18px;
+  padding: 0 6px;
+  filter: grayscale(0.3);
+}
+.header-admin-link:hover { filter: none; }
+
+.admin-section {
+  margin-top: 24px;
+}
+
+.admin-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.admin-form input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.admin-mfr-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-mfr-item {
+  padding: 14px;
+  background: var(--surface-2, #1a1a1a);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.admin-mfr-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.admin-model-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-model-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--surface-3, #2a2a2a);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 13px;
+}
+
+.admin-model-remove {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.admin-model-remove:hover { color: var(--danger); }
+
+.admin-add-model-row {
+  display: flex;
+  gap: 8px;
+}
+.admin-add-model-row input {
+  flex: 1;
+}

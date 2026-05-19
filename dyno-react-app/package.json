@@ -19,7 +19,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "react-scripts start",
-    "prebuild": "node scripts/gen-version.js",
+    "prebuild": "node scripts/gen-version.js && node scripts/gen-icons.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:e2e": "playwright test",
@@ -48,6 +48,7 @@
     "@playwright/test": "^1.60.0",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
+    "sharp": "^0.34.5",
     "typescript": "^5.9.3"
   }
 }

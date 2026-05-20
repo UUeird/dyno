@@ -2475,10 +2475,9 @@
   text-align: center;
   font-size: 10px;
   color: var(--text-3);
-  /* Bottom padding absorbs the iOS home-indicator safe-area. The visible text
-     sits just above the indicator. On non-iOS the env() is 0 and we render
-     normally. */
-  padding: 2px 0 calc(env(safe-area-inset-bottom, 0px) + 4px);
+  /* Sits at the absolute bottom of the viewport. The iOS home-indicator can
+     overlay the text — that's fine since the version is unobtrusive metadata. */
+  padding: 2px 0 4px;
   opacity: 0.7;
   letter-spacing: 0.02em;
 }

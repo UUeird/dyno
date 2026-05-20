@@ -494,21 +494,23 @@ function App() {
           </Routes>
         </main>
 
-        <nav className="tab-bar">
-          <NavLink to="/" end className={({ isActive }) => isActive ? "tab-item tab-item--active" : "tab-item"}>
-            <span className="tab-icon">📡</span>
-            <span className="tab-label">Feed</span>
-          </NavLink>
-          <NavLink to="/cars" className={({ isActive }) => isActive ? "tab-item tab-item--active" : "tab-item"}>
-            <span className="tab-icon">🚗</span>
-            <span className="tab-label">Cars</span>
-          </NavLink>
-          <NavLink to="/profile" className={({ isActive }) => isActive ? "tab-item tab-item--active" : "tab-item"}>
-            <span className="tab-icon">👤</span>
-            <span className="tab-label">Profile</span>
-          </NavLink>
-        </nav>
-        <VersionFooter />
+        <div className="bottom-bar">
+          <nav className="tab-bar">
+            <NavLink to="/" end className={({ isActive }) => isActive ? "tab-item tab-item--active" : "tab-item"}>
+              <span className="tab-icon">📡</span>
+              <span className="tab-label">Feed</span>
+            </NavLink>
+            <NavLink to="/cars" className={({ isActive }) => isActive ? "tab-item tab-item--active" : "tab-item"}>
+              <span className="tab-icon">🚗</span>
+              <span className="tab-label">Cars</span>
+            </NavLink>
+            <NavLink to="/profile" className={({ isActive }) => isActive ? "tab-item tab-item--active" : "tab-item"}>
+              <span className="tab-icon">👤</span>
+              <span className="tab-label">Profile</span>
+            </NavLink>
+          </nav>
+          <VersionFooter />
+        </div>
 
         {showNewExperience && (
           <NewExperienceModal

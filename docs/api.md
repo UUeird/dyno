@@ -97,8 +97,9 @@ Replace the full trim list for one model. Other models' trims are untouched.
 Returns all cars with ownership info attached (`currentOwners`, `ownershipHistory`, `photos`, `thumbnail`).
 
 ### `POST /api/cars` 🔒
-**Body**: `{manufacturer, model, year, vin?, nickname?, transmission?, color?, trim?}`
+**Body**: `{manufacturer, model, year, vin?, nickname?, transmission?, colorInfo?, trim?}`
 - `vin` is optional. When provided, it must be unique (sparse unique index) — the server returns 409 on a duplicate. Multiple cars with no VIN coexist.
+- `colorInfo` is `{name, hex?, isCustom?}`. Optional. Set `isCustom: true` when the color isn't a canonical manufacturer color (e.g. aftermarket wrap). The legacy plain-string `color` field is read on responses for backward compatibility but new writes should use `colorInfo`.
 - `trim` validation rules:
   - Model has no trims registered at all → free-form, any string accepted (including empty)
   - Model has trims registered but none cover the chosen year → free-form fallback (any string accepted)
@@ -150,9 +151,18 @@ Lists ownership records (optionally filtered by car), sorted by `from`. `owner` 
 ### `POST /api/ownerships` 🔒
 **Body**: `{car, owner, from?, to?}` (the `owner` here is the Human being recorded as an owner, not necessarily the caller — e.g. you can log that a friend used to own a car)
 
+**Validation**:
+- Neither `from` nor `to` may be in the future
+- If both supplied, `from` must be ≤ `to`
+
+### `PUT /api/ownerships/:id` 🔒
+Edit a single ownership's date range. Pass `null` to clear either date; omit to leave it untouched. Same validation as POST.
+
+**Body**: `{from?, to?}`
+
 ### `PATCH /api/ownerships/:id/end` 🔒
 End an ongoing ownership.
-**Body**: `{to?}` (defaults to now)
+**Body**: `{to?}` (defaults to now). The `to` date may not be in the future.
 
 ### `DELETE /api/ownerships/:id` 🔒
 

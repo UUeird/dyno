@@ -4,6 +4,7 @@ import axios from "axios";
 import "./App.css";
 import { Car, Manufacturer, Human, Experience, Reaction, BadgeInfo } from "./types";
 import ColorPicker from "./components/ColorPicker";
+import { getColorOptions } from "./lib/colors";
 import BadgeToast from "./components/BadgeToast";
 import StarRating from "./components/StarRating";
 import FeedView from "./views/FeedView";
@@ -24,7 +25,18 @@ import { useAuth, SignedIn, SignedOut, UserButton, RedirectToSignIn } from "./li
 
 type ExperienceStep = "choose" | "library" | "vin" | "new-car" | "experience-type";
 
-const emptyCar = { manufacturer: "", model: "", year: "", nickname: "", transmission: "", color: "", trim: "", vin: "", owner: "" };
+const emptyCar = {
+  manufacturer: "",
+  model: "",
+  year: "",
+  nickname: "",
+  transmission: "",
+  // colorInfo is a CarColor | null. We keep it null until the user picks one.
+  colorInfo: null as import("./types").CarColor | null,
+  trim: "",
+  vin: "",
+  owner: "",
+};
 
 function NewExperienceModal({
   cars,
@@ -54,9 +66,7 @@ function NewExperienceModal({
 
   const selectedManufacturer = manufacturers.find((m) => m.name === form.manufacturer);
   const availableModels = selectedManufacturer?.models || [];
-  const availableColors = selectedManufacturer?.colors
-    ? (selectedManufacturer.colors[form.model] ?? selectedManufacturer.colors["*"] ?? [])
-    : [];
+  const { options: availableColors } = getColorOptions(manufacturers, form.manufacturer, form.model);
   const allTrims = selectedManufacturer?.trims?.[form.model] ?? [];
   const availableTrims = (() => {
     if (!form.year || isNaN(Number(form.year))) return allTrims;
@@ -71,9 +81,9 @@ function NewExperienceModal({
     const { name, value } = e.target;
     setFormError("");
     if (name === "manufacturer") {
-      setForm({ ...form, manufacturer: value, model: "", color: "", trim: "" });
+      setForm({ ...form, manufacturer: value, model: "", colorInfo: null, trim: "" });
     } else if (name === "model") {
-      setForm({ ...form, model: value, color: "", trim: "" });
+      setForm({ ...form, model: value, colorInfo: null, trim: "" });
     } else if (name === "year") {
       setForm({ ...form, year: value, trim: "" });
     } else {
@@ -219,11 +229,11 @@ function NewExperienceModal({
                 <option value="Automatic">Automatic</option>
                 <option value="Electric">Electric</option>
               </select>
-              {availableColors.length > 0 && (
+              {form.manufacturer && form.model && (
                 <ColorPicker
                   colors={availableColors}
-                  value={form.color}
-                  onChange={(name) => setForm((prev) => ({ ...prev, color: name }))}
+                  value={form.colorInfo}
+                  onChange={(c) => setForm((prev) => ({ ...prev, colorInfo: c }))}
                 />
               )}
               {allTrims.length === 0 ? (

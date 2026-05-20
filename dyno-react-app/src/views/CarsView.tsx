@@ -15,6 +15,50 @@ function OwnershipManager({ car, humans, onUpdated }: { car: Car; humans: Human[
   const [newOwnerId, setNewOwnerId] = React.useState("");
   const [newFrom, setNewFrom] = React.useState("");
   const [error, setError] = React.useState("");
+  // Which ownership row, if any, is currently being edited inline (date pickers).
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editFrom, setEditFrom] = React.useState("");
+  const [editTo, setEditTo] = React.useState("");
+
+  const toIsoDate = (d: string | Date | null | undefined) => {
+    if (!d) return "";
+    const date = typeof d === "string" ? new Date(d) : d;
+    return isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+  };
+
+  const startEditOwnership = (o: Ownership) => {
+    setEditingId(o._id);
+    setEditFrom(toIsoDate(o.from));
+    setEditTo(toIsoDate(o.to));
+    setError("");
+  };
+
+  const cancelEditOwnership = () => {
+    setEditingId(null);
+    setEditFrom("");
+    setEditTo("");
+    setError("");
+  };
+
+  const saveEditOwnership = async (o: Ownership) => {
+    setError("");
+    if (editFrom && editFrom > todayIso) return setError("Start date cannot be in the future");
+    if (editTo && editTo > todayIso) return setError("End date cannot be in the future");
+    if (editFrom && editTo && editFrom > editTo) return setError("Start date must be before end date");
+    try {
+      await axios.put(`${API}/ownerships/${o._id}`, {
+        from: editFrom || null,
+        to: editTo || null,
+      });
+    } catch (e: any) {
+      setError(e.response?.data?.error || "Failed to update ownership");
+      return;
+    }
+    const { data } = await axios.get(`${API}/cars`);
+    const updated = data.find((c: Car) => c._id === car._id);
+    if (updated) onUpdated(updated);
+    cancelEditOwnership();
+  };
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const currentOwnerships = car.ownershipHistory.filter((o) => !o.to);
@@ -65,9 +109,25 @@ function OwnershipManager({ car, humans, onUpdated }: { car: Car; humans: Human[
           {currentOwnerships.map((o) => (
             <li key={o._id} className="ownership-item">
               <span className="ownership-name">{o.owner.name}</span>
-              <span className="ownership-period ownership-current">current{o.from ? ` · since ${formatDate(o.from)}` : ""}</span>
-              <button className="ownership-action" onClick={() => handleEnd(o)}>End</button>
-              <button className="ownership-action ownership-remove" onClick={() => handleRemove(o)}>✕</button>
+              {editingId === o._id ? (
+                <OwnershipEditRow
+                  fromValue={editFrom}
+                  toValue={editTo}
+                  onFromChange={setEditFrom}
+                  onToChange={setEditTo}
+                  onSave={() => saveEditOwnership(o)}
+                  onCancel={cancelEditOwnership}
+                  maxDate={todayIso}
+                  error={error}
+                />
+              ) : (
+                <>
+                  <span className="ownership-period ownership-current">current{o.from ? ` · since ${formatDate(o.from)}` : ""}</span>
+                  <button className="ownership-action" onClick={() => startEditOwnership(o)}>Edit</button>
+                  <button className="ownership-action" onClick={() => handleEnd(o)}>End</button>
+                  <button className="ownership-action ownership-remove" onClick={() => handleRemove(o)}>✕</button>
+                </>
+              )}
             </li>
           ))}
         </ul>
@@ -77,8 +137,24 @@ function OwnershipManager({ car, humans, onUpdated }: { car: Car; humans: Human[
           {pastOwnerships.map((o) => (
             <li key={o._id} className="ownership-item ownership-item--past">
               <span className="ownership-name">{o.owner.name}</span>
-              <span className="ownership-period">{formatDate(o.from)} – {formatDate(o.to)}</span>
-              <button className="ownership-action ownership-remove" onClick={() => handleRemove(o)}>✕</button>
+              {editingId === o._id ? (
+                <OwnershipEditRow
+                  fromValue={editFrom}
+                  toValue={editTo}
+                  onFromChange={setEditFrom}
+                  onToChange={setEditTo}
+                  onSave={() => saveEditOwnership(o)}
+                  onCancel={cancelEditOwnership}
+                  maxDate={todayIso}
+                  error={error}
+                />
+              ) : (
+                <>
+                  <span className="ownership-period">{formatDate(o.from)} – {formatDate(o.to)}</span>
+                  <button className="ownership-action" onClick={() => startEditOwnership(o)}>Edit</button>
+                  <button className="ownership-action ownership-remove" onClick={() => handleRemove(o)}>✕</button>
+                </>
+              )}
             </li>
           ))}
         </ul>
@@ -110,13 +186,53 @@ function OwnershipManager({ car, humans, onUpdated }: { car: Car; humans: Human[
   );
 }
 
+// Inline date-range editor for a single ownership row. Both inputs are bounded
+// by today, parent owns state and persistence.
+function OwnershipEditRow({
+  fromValue,
+  toValue,
+  onFromChange,
+  onToChange,
+  onSave,
+  onCancel,
+  maxDate,
+  error,
+}: {
+  fromValue: string;
+  toValue: string;
+  onFromChange: (v: string) => void;
+  onToChange: (v: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  maxDate: string;
+  error: string;
+}) {
+  return (
+    <div className="ownership-edit-row">
+      <input type="date" value={fromValue} max={maxDate} onChange={(e) => onFromChange(e.target.value)} />
+      <span>–</span>
+      <input type="date" value={toValue} max={maxDate} onChange={(e) => onToChange(e.target.value)} />
+      <button className="ownership-action" onClick={onSave}>Save</button>
+      <button className="ownership-action" onClick={onCancel}>Cancel</button>
+      {error && <span className="form-error" style={{ width: "100%" }}>{error}</span>}
+    </div>
+  );
+}
+
 function CarDetail({ car, manufacturers }: { car: Car; manufacturers: Manufacturer[] }) {
   const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString() : "unknown";
   const currentOwnerships = car.ownershipHistory.filter((o) => !o.to);
   const pastOwnerships = car.ownershipHistory.filter((o) => o.to);
-  const colorEntry = car.color
-    ? getColors(manufacturers, car.manufacturer, car.model).find((c) => c.name === car.color)
-    : null;
+
+  // Prefer the new structured colorInfo; fall back to the legacy plain-string color
+  // for older records. If colorInfo has no hex but matches a canonical entry, use that hex.
+  const colorName = car.colorInfo?.name || car.color || null;
+  let colorHex: string | undefined = car.colorInfo?.hex;
+  if (colorName && !colorHex) {
+    const match = getColors(manufacturers, car.manufacturer, car.model).find((c) => c.name === colorName);
+    if (match) colorHex = match.hex;
+  }
+
   const features = car.trim
     ? getFeatures(manufacturers, car.manufacturer, car.model, car.trim, String(car.year))
     : [];
@@ -137,18 +253,30 @@ function CarDetail({ car, manufacturers }: { car: Car; manufacturers: Manufactur
         </div>
       )}
       <div className="car-detail-specs">
+        <span className="car-detail-spec">
+          <span className="car-detail-spec-label">Year</span>
+          <span className="car-detail-spec-value">{car.year}</span>
+        </span>
+        <span className="car-detail-spec">
+          <span className="car-detail-spec-label">Make</span>
+          <span className="car-detail-spec-value">{car.manufacturer}</span>
+        </span>
+        <span className="car-detail-spec">
+          <span className="car-detail-spec-label">Model</span>
+          <span className="car-detail-spec-value">{car.model}</span>
+        </span>
         {car.transmission && (
           <span className="car-detail-spec">
             <span className="car-detail-spec-label">Transmission</span>
             <span className="car-detail-spec-value">{car.transmission}</span>
           </span>
         )}
-        {car.color && (
+        {colorName && (
           <span className="car-detail-spec">
             <span className="car-detail-spec-label">Color</span>
             <span className="car-detail-color-value car-detail-spec-value">
-              {colorEntry && <span className="car-detail-color-dot" style={{ background: colorEntry.hex }} />}
-              {car.color}
+              {colorHex && <span className="car-detail-color-dot" style={{ background: colorHex }} />}
+              {colorName}
             </span>
           </span>
         )}
@@ -303,7 +431,11 @@ function CarList({
                 <option value="Electric">Electric</option>
               </select>
               {editColors.length > 0 && (
-                <ColorPicker colors={editColors} value={editForm.color} onChange={onColorChange} />
+                <ColorPicker
+                  colors={editColors}
+                  value={editForm.color ? { name: editForm.color, hex: editColors.find((c) => c.name === editForm.color)?.hex } : null}
+                  onChange={(c) => onColorChange(c?.name || "")}
+                />
               )}
               {editTrims.length > 0 ? (
                 <select

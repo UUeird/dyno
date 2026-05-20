@@ -133,13 +133,24 @@ const photoSchema = new mongoose.Schema({
 });
 const Photo = mongoose.model("Photo", photoSchema);
 
+// Color is structured to track whether it's a canonical manufacturer color or a
+// custom (aftermarket) one, plus an optional hex swatch.
+const carColorSchema = new mongoose.Schema({
+  name: String,
+  hex: String,                     // optional; canonical colors have one, custom may not
+  isCustom: { type: Boolean, default: false },
+}, { _id: false });
+
 const carSchema = new mongoose.Schema({
   manufacturer: String,
   model: String,
   year: Number,
   nickname: String,
   transmission: String,
+  // Legacy: plain string color. Kept for backward compatibility with old records.
+  // New writes populate `colorInfo` instead and leave `color` blank.
   color: String,
+  colorInfo: { type: carColorSchema, default: null },
   trim: String,
   vin: String,
   thumbnailPhoto: { type: mongoose.Schema.Types.ObjectId, ref: "Photo", default: null },
@@ -742,7 +753,7 @@ app.get("/api/cars", async (req, res) => {
 
 app.post("/api/cars", requireAuth, async (req, res) => {
   try {
-    const { manufacturer, model, year, nickname, transmission, color, trim, vin } = req.body;
+    const { manufacturer, model, year, nickname, transmission, colorInfo, trim, vin } = req.body;
     if (!manufacturer || !model || !year) {
       return res.status(400).json({ error: "manufacturer, model, and year are required" });
     }
@@ -760,8 +771,16 @@ app.post("/api/cars", requireAuth, async (req, res) => {
     const trimError = validateTrim(mfr, model, year, trim);
     if (trimError) return res.status(400).json({ error: trimError });
 
+    const normalizedColor = colorInfo && colorInfo.name
+      ? { name: String(colorInfo.name).trim(), hex: colorInfo.hex || undefined, isCustom: !!colorInfo.isCustom }
+      : null;
+
     try {
-      const car = await new Car({ manufacturer, model, year, nickname, transmission, color, trim, vin: vinValue }).save();
+      const car = await new Car({
+        manufacturer, model, year, nickname, transmission, trim,
+        vin: vinValue,
+        colorInfo: normalizedColor,
+      }).save();
       res.status(201).json(await attachOwnership(car));
     } catch (err) {
       if (err.code === 11000) return res.status(409).json({ error: "A car with this VIN already exists" });
@@ -801,7 +820,13 @@ app.put("/api/cars/:id", requireAuth, async (req, res) => {
       }
     }
 
-    const { owner: _owner, ...updateFields } = req.body;
+    const { owner: _owner, colorInfo, ...updateFields } = req.body;
+    // Normalize colorInfo if supplied
+    if (colorInfo !== undefined) {
+      updateFields.colorInfo = colorInfo && colorInfo.name
+        ? { name: String(colorInfo.name).trim(), hex: colorInfo.hex || undefined, isCustom: !!colorInfo.isCustom }
+        : null;
+    }
     const updated = await Car.findByIdAndUpdate(req.params.id, updateFields, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ error: "Car not found" });
     res.json(await attachOwnership(updated));
@@ -964,6 +989,39 @@ app.delete("/api/ownerships/:id", requireAuth, async (req, res) => {
     res.json({ message: "Ownership deleted" });
   } catch {
     res.status(500).send("Error deleting ownership");
+  }
+});
+
+// Edit an ownership's from/to dates. Same future-date and ordering rules as POST.
+// Pass null to clear a date; omit the field to leave it untouched.
+app.put("/api/ownerships/:id", requireAuth, async (req, res) => {
+  try {
+    const record = await Ownership.findById(req.params.id);
+    if (!record) return res.status(404).json({ error: "Ownership not found" });
+
+    const now = Date.now();
+    const fromProvided = Object.prototype.hasOwnProperty.call(req.body, "from");
+    const toProvided = Object.prototype.hasOwnProperty.call(req.body, "to");
+    const newFrom = fromProvided ? (req.body.from ? new Date(req.body.from) : null) : record.from;
+    const newTo = toProvided ? (req.body.to ? new Date(req.body.to) : null) : record.to;
+
+    if (newFrom && newFrom.getTime() > now) {
+      return res.status(400).json({ error: "Ownership start date cannot be in the future" });
+    }
+    if (newTo && newTo.getTime() > now) {
+      return res.status(400).json({ error: "Ownership end date cannot be in the future" });
+    }
+    if (newFrom && newTo && newFrom.getTime() > newTo.getTime()) {
+      return res.status(400).json({ error: "Ownership start date must be before end date" });
+    }
+
+    record.from = newFrom;
+    record.to = newTo;
+    await record.save();
+    await record.populate("owner", "name email");
+    res.json(record);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 

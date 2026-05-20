@@ -25,6 +25,12 @@ export type Ownership = {
   to: string | null;
 };
 
+export type CarColor = {
+  name: string;
+  hex?: string;
+  isCustom?: boolean;
+};
+
 export type Car = {
   _id: string;
   year: number;
@@ -32,7 +38,9 @@ export type Car = {
   model: string;
   nickname?: string;
   transmission?: string;
+  // Legacy plain string. Use colorInfo for new code; fall back to color if unset.
   color?: string;
+  colorInfo?: CarColor | null;
   trim?: string;
   vin?: string;
   thumbnailPhoto?: string | null;

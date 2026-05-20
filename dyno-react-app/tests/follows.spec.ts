@@ -17,48 +17,58 @@ test.describe("Following / Followers", () => {
     asSam();
   });
 
-  test("profile page Following section only lists people the user follows", async ({ page }) => {
-    // Sam follows Alex
+  test("profile header shows follower + following counts as links", async ({ page }) => {
+    // Sam follows Alex, Alex follows Sam (so both counts are 1)
     await axios.post(`${API}/follows`, { followee: FIXTURES.users.alex });
-
-    await page.goto("/profile");
-    const followingHeader = page.locator(".profile-section-heading", { hasText: "Following" });
-    await expect(followingHeader).toBeVisible();
-    const followingList = followingHeader.locator("xpath=following-sibling::ul[1]");
-    await expect(followingList.locator(".friend-name")).toHaveText(["Alex Rivera"]);
-  });
-
-  test("profile page Followers section is empty when no one follows you", async ({ page }) => {
-    await page.goto("/profile");
-    const followersHeader = page.locator(".profile-section-heading", { hasText: "Followers" });
-    await expect(followersHeader).toBeVisible();
-    const empty = followersHeader.locator("xpath=following-sibling::p[1]");
-    await expect(empty).toContainText("No followers");
-  });
-
-  test("profile page Followers section lists people who follow you", async ({ page }) => {
-    // Alex follows Sam
     asAlex();
     await axios.post(`${API}/follows`, { followee: FIXTURES.users.sam });
     asSam();
 
     await page.goto("/profile");
-    const followersHeader = page.locator(".profile-section-heading", { hasText: "Followers" });
-    const followersList = followersHeader.locator("xpath=following-sibling::ul[1]");
-    await expect(followersList.locator(".friend-name")).toHaveText(["Alex Rivera"]);
+    const following = page.locator(".profile-count", { hasText: "following" });
+    const followers = page.locator(".profile-count", { hasText: "followers" });
+    await expect(following).toContainText("1");
+    await expect(followers).toContainText("1");
+    // Both link to the dedicated list pages
+    await expect(following).toHaveAttribute("href", new RegExp(`/users/${FIXTURES.users.sam}/following$`));
+    await expect(followers).toHaveAttribute("href", new RegExp(`/users/${FIXTURES.users.sam}/followers$`));
   });
 
-  test("UserProfileView shows Following + Followers for any user", async ({ page }) => {
-    // Sam follows Alex
+  test("/users/:id/following lists people the user follows", async ({ page }) => {
+    await axios.post(`${API}/follows`, { followee: FIXTURES.users.alex });
+
+    await page.goto(`/users/${FIXTURES.users.sam}/following`);
+    await expect(page.locator(".model-title")).toContainText("Following");
+    await expect(page.locator(".friend-item .friend-name")).toHaveText(["Alex Rivera"]);
+  });
+
+  test("/users/:id/followers lists people who follow the user", async ({ page }) => {
+    asAlex();
+    await axios.post(`${API}/follows`, { followee: FIXTURES.users.sam });
+    asSam();
+
+    await page.goto(`/users/${FIXTURES.users.sam}/followers`);
+    await expect(page.locator(".model-title")).toContainText("Followers");
+    await expect(page.locator(".friend-item .friend-name")).toHaveText(["Sam Lawrence"]);
+  });
+
+  test("clicking a follower count navigates to the followers list page", async ({ page }) => {
+    asAlex();
+    await axios.post(`${API}/follows`, { followee: FIXTURES.users.sam });
+    asSam();
+
+    await page.goto("/profile");
+    await page.locator(".profile-count", { hasText: "followers" }).click();
+    await expect(page).toHaveURL(new RegExp(`/users/${FIXTURES.users.sam}/followers$`));
+    await expect(page.locator(".friend-item .friend-name")).toHaveText(["Sam Lawrence"]);
+  });
+
+  test("UserProfileView shows counts that link to the right user's pages", async ({ page }) => {
     await axios.post(`${API}/follows`, { followee: FIXTURES.users.alex });
 
     await page.goto(`/users/${FIXTURES.users.alex}`);
-    const followersHeader = page.locator(".profile-section-heading", { hasText: "Followers" });
-    const followersList = followersHeader.locator("xpath=following-sibling::ul[1]");
-    await expect(followersList.locator(".friend-name")).toHaveText(["Sam Lawrence"]);
-
-    const followingHeader = page.locator(".profile-section-heading", { hasText: "Following" });
-    const followingEmpty = followingHeader.locator("xpath=following-sibling::p[1]");
-    await expect(followingEmpty).toContainText("Not following");
+    const followers = page.locator(".profile-count", { hasText: "followers" });
+    await expect(followers).toContainText("1");
+    await expect(followers).toHaveAttribute("href", new RegExp(`/users/${FIXTURES.users.alex}/followers$`));
   });
 });

@@ -3,9 +3,9 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { Human, Experience, Car, BadgeInfo } from "../types";
 import CarThumbnail from "../components/CarThumbnail";
-import ProfileAvatar from "../components/ProfileAvatar";
 import FollowButton from "../components/FollowButton";
 import BadgeShelf from "../components/BadgeShelf";
+import ProfileHeader from "../components/ProfileHeader";
 import { modelPath } from "../lib/modelSlug";
 import { API } from "../lib/api";
 
@@ -56,18 +56,20 @@ export default function UserProfileView({
     <div className="view">
       <button className="modal-back" onClick={() => navigate(-1)}>← Back</button>
 
-      <div className="profile-header">
-        <ProfileAvatar human={human} size={72} />
-        <div className="profile-header-info">
-          <span className="profile-header-name">{human.name}</span>
-        </div>
-        {!isOwnProfile && currentUserId && (
-          <FollowButton
-            isFollowing={isFollowing}
-            onToggle={() => onFollowChange(human._id, !isFollowing)}
-          />
-        )}
-      </div>
+      <ProfileHeader
+        human={human}
+        followingCount={profile.following.length}
+        followerCount={profile.followers.length}
+        isOwn={isOwnProfile}
+        rightSlot={
+          !isOwnProfile && currentUserId ? (
+            <FollowButton
+              isFollowing={isFollowing}
+              onToggle={() => onFollowChange(human._id, !isFollowing)}
+            />
+          ) : undefined
+        }
+      />
 
       <BadgeShelf badges={badges ?? []} userId={human._id} />
 
@@ -122,68 +124,6 @@ export default function UserProfileView({
               </span>
             </li>
           ))}
-        </ul>
-      )}
-
-      <h2 className="profile-section-heading">
-        Following <span className="section-count">{profile.following.length}</span>
-      </h2>
-      {profile.following.length === 0 ? (
-        <p className="empty-state">Not following anyone yet.</p>
-      ) : (
-        <ul className="friends-list">
-          {profile.following.map((u) => {
-            const isSelf = u._id === currentUserId;
-            const iAmFollowing = following.includes(u._id);
-            return (
-              <li
-                key={u._id}
-                className="friend-item"
-                style={{ cursor: "pointer" }}
-                onClick={() => navigate(`/users/${u._id}`)}
-              >
-                <ProfileAvatar human={u} />
-                <span className="friend-name">{u.name}</span>
-                {!isSelf && currentUserId && (
-                  <FollowButton
-                    isFollowing={iAmFollowing}
-                    onToggle={() => onFollowChange(u._id, !iAmFollowing)}
-                  />
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      <h2 className="profile-section-heading">
-        Followers <span className="section-count">{profile.followers.length}</span>
-      </h2>
-      {profile.followers.length === 0 ? (
-        <p className="empty-state">No followers yet.</p>
-      ) : (
-        <ul className="friends-list">
-          {profile.followers.map((u) => {
-            const isSelf = u._id === currentUserId;
-            const iAmFollowing = following.includes(u._id);
-            return (
-              <li
-                key={u._id}
-                className="friend-item"
-                style={{ cursor: "pointer" }}
-                onClick={() => navigate(`/users/${u._id}`)}
-              >
-                <ProfileAvatar human={u} />
-                <span className="friend-name">{u.name}</span>
-                {!isSelf && currentUserId && (
-                  <FollowButton
-                    isFollowing={iAmFollowing}
-                    onToggle={() => onFollowChange(u._id, !iAmFollowing)}
-                  />
-                )}
-              </li>
-            );
-          })}
         </ul>
       )}
     </div>

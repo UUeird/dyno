@@ -3,6 +3,7 @@ export type Human = {
   name: string;
   email?: string;
   avatarUrl?: string;
+  username?: string | null;
   // Only set on /api/me responses, never on bulk humans list.
   isAdmin?: boolean;
 };

@@ -1583,6 +1583,45 @@
   color: var(--text-2);
 }
 
+.profile-counts {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.profile-count {
+  color: var(--text-2);
+  text-decoration: none;
+}
+
+.profile-count:hover {
+  color: var(--text-1);
+}
+
+.profile-count strong {
+  color: var(--text-1);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.profile-set-username {
+  align-self: flex-start;
+  background: none;
+  border: 1px dashed var(--border-mid);
+  color: var(--text-3);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+.profile-set-username:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 /* ─── Modal ──────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;

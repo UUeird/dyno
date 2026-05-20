@@ -87,8 +87,15 @@ const humanSchema = new mongoose.Schema({
   email: String,
   avatarUrl: String,
   clerkId: { type: String },
+  // Synced from Clerk on each /api/me call. Partial index covers only docs that
+  // have an actual string value, so missing/null usernames don't collide.
+  username: { type: String },
 });
 humanSchema.index({ clerkId: 1 }, { unique: true, sparse: true });
+humanSchema.index(
+  { username: 1 },
+  { unique: true, partialFilterExpression: { username: { $type: "string" } } }
+);
 const Human = mongoose.model("Human", humanSchema);
 
 const colorEntrySchema = new mongoose.Schema({ name: String, hex: String }, { _id: false });
@@ -507,16 +514,34 @@ async function getCurrentHuman(req) {
   const auth = getAuth(req);
   if (!auth?.userId) return null;
 
-  let human = await Human.findOne({ clerkId: auth.userId });
-  if (human) return human;
-
-  // First request for this Clerk user — provision a Human record from their Clerk profile.
+  // Fetch Clerk profile once per request so we can both provision new users and
+  // sync username changes for existing ones.
   const clerkUser = await clerkClient.users.getUser(auth.userId);
   const email = clerkUser.primaryEmailAddress?.emailAddress || clerkUser.emailAddresses?.[0]?.emailAddress;
   const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || email || "New user";
   const avatarUrl = clerkUser.imageUrl || undefined;
+  const username = clerkUser.username || undefined;
 
-  human = await Human.create({ name, email, avatarUrl, clerkId: auth.userId });
+  let human = await Human.findOne({ clerkId: auth.userId });
+  if (human) {
+    // Sync username + avatar when Clerk values drift from what we stored.
+    const currentUsername = human.username || undefined;
+    if (currentUsername !== username || human.avatarUrl !== avatarUrl) {
+      // Unset rather than set to null so the partial unique index stays clean.
+      if (username) {
+        human.username = username;
+      } else if (human.username) {
+        human.username = undefined;
+      }
+      if (avatarUrl) human.avatarUrl = avatarUrl;
+      await human.save();
+    }
+    return human;
+  }
+
+  const newDoc = { name, email, avatarUrl, clerkId: auth.userId };
+  if (username) newDoc.username = username;
+  human = await Human.create(newDoc);
   return human;
 }
 

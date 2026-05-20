@@ -12,6 +12,7 @@ import ProfileView from "./views/ProfileView";
 import UserProfileView from "./views/UserProfileView";
 import CarModelView from "./views/CarModelView";
 import AllBadgesView from "./views/AllBadgesView";
+import FollowListView from "./views/FollowListView";
 import AdminManufacturersView from "./views/AdminManufacturersView";
 import SignInView from "./views/SignInView";
 import SignUpView from "./views/SignUpView";
@@ -438,7 +439,7 @@ function App() {
                       experiences={experiences}
                       setExperiences={setExperiences}
                       onNewExperience={() => setShowNewExperience(true)}
-                      humans={humans}
+                      currentUser={currentUser}
                       cars={cars}
                       currentUserId={currentUserId}
                       following={following}
@@ -477,6 +478,28 @@ function App() {
             <Route
               path="/users/:id/badges"
               element={<AllBadgesView currentUserId={currentUserId} />}
+            />
+            <Route
+              path="/users/:id/followers"
+              element={
+                <FollowListView
+                  mode="followers"
+                  currentUserId={currentUserId}
+                  following={following}
+                  onFollowChange={handleFollowChange}
+                />
+              }
+            />
+            <Route
+              path="/users/:id/following"
+              element={
+                <FollowListView
+                  mode="following"
+                  currentUserId={currentUserId}
+                  following={following}
+                  onFollowChange={handleFollowChange}
+                />
+              }
             />
             <Route
               path="/admin/manufacturers"

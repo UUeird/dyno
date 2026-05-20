@@ -165,14 +165,14 @@
 }
 
 /* ─── Tab bar ────────────────────────────────────────────────────── */
-/* Container for the tab bar + version footer. Holds the iOS home-indicator
-   safe-area inset so the two sit at the bottom edge of the usable region. */
+/* Container for the tab bar + version footer. The version footer at the bottom
+   owns the iOS home-indicator safe-area inset, so the version text floats above
+   the indicator instead of an empty gap sitting below it. */
 .bottom-bar {
   flex-shrink: 0;
   background: rgba(10,10,10,0.9);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .tab-bar {
@@ -2475,7 +2475,10 @@
   text-align: center;
   font-size: 10px;
   color: var(--text-3);
-  padding: 2px 0 4px;
+  /* Bottom padding absorbs the iOS home-indicator safe-area. The visible text
+     sits just above the indicator. On non-iOS the env() is 0 and we render
+     normally. */
+  padding: 2px 0 calc(env(safe-area-inset-bottom, 0px) + 4px);
   opacity: 0.7;
   letter-spacing: 0.02em;
 }

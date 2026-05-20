@@ -49,7 +49,8 @@ test.describe("Following / Followers", () => {
 
     await page.goto(`/users/${FIXTURES.users.sam}/followers`);
     await expect(page.locator(".model-title")).toContainText("Followers");
-    await expect(page.locator(".friend-item .friend-name")).toHaveText(["Sam Lawrence"]);
+    // Alex follows Sam, so Sam's followers list should contain Alex
+    await expect(page.locator(".friend-item .friend-name")).toHaveText(["Alex Rivera"]);
   });
 
   test("clicking a follower count navigates to the followers list page", async ({ page }) => {
@@ -60,7 +61,7 @@ test.describe("Following / Followers", () => {
     await page.goto("/profile");
     await page.locator(".profile-count", { hasText: "followers" }).click();
     await expect(page).toHaveURL(new RegExp(`/users/${FIXTURES.users.sam}/followers$`));
-    await expect(page.locator(".friend-item .friend-name")).toHaveText(["Sam Lawrence"]);
+    await expect(page.locator(".friend-item .friend-name")).toHaveText(["Alex Rivera"]);
   });
 
   test("UserProfileView shows counts that link to the right user's pages", async ({ page }) => {

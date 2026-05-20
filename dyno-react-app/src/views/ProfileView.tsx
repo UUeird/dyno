@@ -27,7 +27,6 @@ export default function ProfileView({
   following: string[];
   onFollowChange: (targetId: string, nowFollowing: boolean) => Promise<void>;
 }) {
-  const navigate = useNavigate();
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
   const [badges, setBadges] = React.useState<BadgeInfo[]>([]);
   const [wishlist, setWishlist] = React.useState<WishlistItem[]>([]);

@@ -29,6 +29,9 @@
   max-width: 480px;
   margin: 0 auto;
   background: var(--bg);
+  /* Suppress double-tap-to-zoom and remove the 300ms click delay. Pinch is
+     handled by the viewport meta + gesture listeners in index.tsx (PWA only). */
+  touch-action: manipulation;
 }
 
 /* ─── Header ─────────────────────────────────────────────────────── */

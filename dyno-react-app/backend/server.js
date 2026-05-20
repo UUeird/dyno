@@ -74,6 +74,7 @@ mongoose
     await migrateLegacyOwners();
     await seedBadgeSeries();
     await seedManufacturers();
+    await migrateLegacyColors();
     // Ensure schema-declared indexes (e.g. Car.vin unique, Human.clerkId unique) are actually built
     await Car.syncIndexes();
     await Human.syncIndexes();
@@ -279,6 +280,36 @@ async function migrateLegacyOwners() {
   if (carsWithLegacyOwner.length > 0) {
     console.log(`Migrated ${carsWithLegacyOwner.length} legacy owner(s) to Ownership records`);
   }
+}
+
+// Backfill legacy plain-string `color` into the new structured `colorInfo` field.
+// We look up the manufacturer's canonical color list for the car's model — if the
+// color name matches, it's canonical (we copy the hex too); otherwise we mark it
+// custom. The legacy `color` field is unset once moved so we have one source of
+// truth going forward.
+async function migrateLegacyColors() {
+  const cars = await Car.find({
+    color: { $exists: true, $ne: null, $ne: "" },
+    $or: [{ colorInfo: null }, { colorInfo: { $exists: false } }],
+  });
+  if (cars.length === 0) return;
+
+  // Pre-load all manufacturers once so we don't refetch per car
+  const manufacturers = await Manufacturer.find().lean();
+  const mfrByName = new Map(manufacturers.map((m) => [m.name, m]));
+
+  for (const car of cars) {
+    const mfr = mfrByName.get(car.manufacturer);
+    const canonical = mfr?.colors
+      ? (mfr.colors instanceof Map ? mfr.colors.get(car.model) || mfr.colors.get("*") : mfr.colors[car.model] || mfr.colors["*"])
+      : null;
+    const match = Array.isArray(canonical) ? canonical.find((c) => c.name === car.color) : null;
+    const colorInfo = match
+      ? { name: match.name, hex: match.hex, isCustom: false }
+      : { name: car.color, isCustom: true };
+    await Car.updateOne({ _id: car._id }, { $set: { colorInfo }, $unset: { color: "" } });
+  }
+  console.log(`Backfilled colorInfo on ${cars.length} car(s)`);
 }
 
 // Starter list of common manufacturers + a handful of models each. Idempotent —

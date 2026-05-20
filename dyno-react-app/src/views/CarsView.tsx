@@ -1,12 +1,22 @@
 import React from "react";
 import axios from "axios";
-import { Car, ColorEntry, TrimEntry, Manufacturer, Human, Ownership } from "../types";
+import { Car, CarColor, ColorEntry, TrimEntry, Manufacturer, Human, Ownership } from "../types";
 import CarThumbnail from "../components/CarThumbnail";
 import PhotoManager from "../components/PhotoManager";
 import ColorPicker from "../components/ColorPicker";
 import { API } from "../lib/api";
+import { getColorOptions } from "../lib/colors";
 
-const emptyCar = { manufacturer: "", model: "", year: "", nickname: "", transmission: "", color: "", trim: "", vin: "" };
+const emptyCar = {
+  manufacturer: "",
+  model: "",
+  year: "",
+  nickname: "",
+  transmission: "",
+  colorInfo: null as CarColor | null,
+  trim: "",
+  vin: "",
+};
 
 type CarsTab = "owned" | "friends" | "all";
 
@@ -394,12 +404,12 @@ function CarList({
   onDelete: (id: string) => void;
   onToggleMenu: (id: string) => void;
   onToggleExpand: (id: string) => void;
-  onColorChange: (name: string) => void;
+  onColorChange: (color: CarColor | null) => void;
   onTrimChange: (name: string) => void;
   onCarUpdated: (car: Car) => void;
   emptyMessage: string;
 }) {
-  const editColors = getColors(manufacturers, editForm.manufacturer, editForm.model);
+  const { options: editColors } = getColorOptions(manufacturers, editForm.manufacturer, editForm.model);
   const editTrims = getTrims(manufacturers, editForm.manufacturer, editForm.model, editForm.year);
 
   if (cars.length === 0) return <p className="empty-state">{emptyMessage}</p>;
@@ -430,11 +440,11 @@ function CarList({
                 <option value="Automatic">Automatic</option>
                 <option value="Electric">Electric</option>
               </select>
-              {editColors.length > 0 && (
+              {editForm.manufacturer && editForm.model && (
                 <ColorPicker
                   colors={editColors}
-                  value={editForm.color ? { name: editForm.color, hex: editColors.find((c) => c.name === editForm.color)?.hex } : null}
-                  onChange={(c) => onColorChange(c?.name || "")}
+                  value={editForm.colorInfo}
+                  onChange={onColorChange}
                 />
               )}
               {editTrims.length > 0 ? (
@@ -478,9 +488,18 @@ function CarList({
                     <span className="car-owner"> · {car.currentOwners.map((o) => o.name).join(", ")}</span>
                   )}
                 </span>
-                {car.color && (() => {
-                  const ce = getColors(manufacturers, car.manufacturer, car.model).find((c) => c.name === car.color);
-                  return ce ? <span className="car-color-dot" style={{ background: ce.hex }} title={car.color} /> : null;
+                {(() => {
+                  // Show a small color dot when we have a usable hex. Prefer the
+                  // stored hex on colorInfo; fall back to canonical lookup by name
+                  // (covers older records with only the legacy `color` string).
+                  const name = car.colorInfo?.name || car.color;
+                  if (!name) return null;
+                  let hex = car.colorInfo?.hex;
+                  if (!hex) {
+                    const ce = getColors(manufacturers, car.manufacturer, car.model).find((c) => c.name === name);
+                    hex = ce?.hex;
+                  }
+                  return hex ? <span className="car-color-dot" style={{ background: hex }} title={name} /> : null;
                 })()}
                 <div className="car-menu-wrap">
                   <button className="btn-menu" onClick={(e) => { e.stopPropagation(); onToggleMenu(car._id); }}>⋯</button>
@@ -535,9 +554,9 @@ export default function CarsView({
     const { name, value } = e.target;
     setEditError("");
     if (name === "manufacturer") {
-      setEditForm({ ...editForm, manufacturer: value, model: "", color: "", trim: "" });
+      setEditForm({ ...editForm, manufacturer: value, model: "", colorInfo: null, trim: "" });
     } else if (name === "model") {
-      setEditForm({ ...editForm, model: value, color: "", trim: "" });
+      setEditForm({ ...editForm, model: value, colorInfo: null, trim: "" });
     } else if (name === "year") {
       setEditForm((prev) => ({ ...prev, year: value, trim: "" }));
     } else {
@@ -573,13 +592,21 @@ export default function CarsView({
     setOpenMenuId(null);
     setExpandedId(null);
     setEditingId(car._id);
+    // Prefer the new structured colorInfo. If only the legacy `color` string is
+    // present (a record the migration hasn't touched), wrap it as a custom color
+    // — it gets normalized on save.
+    const colorInfo: CarColor | null = car.colorInfo
+      ? car.colorInfo
+      : car.color
+        ? { name: car.color, isCustom: true }
+        : null;
     setEditForm({
       manufacturer: car.manufacturer,
       model: car.model,
       year: String(car.year),
       nickname: car.nickname || "",
       transmission: car.transmission || "",
-      color: car.color || "",
+      colorInfo,
       trim: car.trim || "",
       vin: car.vin || "",
     });
@@ -631,7 +658,7 @@ export default function CarsView({
     onDelete: handleDelete,
     onToggleMenu: toggleMenu,
     onToggleExpand: toggleExpand,
-    onColorChange: (name: string) => setEditForm((prev) => ({ ...prev, color: name })),
+    onColorChange: (color: CarColor | null) => setEditForm((prev) => ({ ...prev, colorInfo: color })),
     onTrimChange: (name: string) => setEditForm((prev) => ({ ...prev, trim: name })),
     onCarUpdated: handleCarUpdated,
   };

@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BadgeInfo } from "../types";
 import BadgeCircle from "./BadgeCircle";
 
@@ -8,8 +8,9 @@ export default function BadgeShelf({
   userId,
 }: {
   badges: BadgeInfo[];
-  userId?: string;
+  userId: string;
 }) {
+  const navigate = useNavigate();
   const hasEarned = badges.length > 0;
 
   return (
@@ -23,6 +24,7 @@ export default function BadgeShelf({
                 level={b.level}
                 maxLevel={b.maxLevel}
                 title={`${b.seriesName} — ${b.name}`}
+                onClick={() => navigate(`/users/${userId}/badges#${b.seriesSlug}`)}
               />
               <span className="badge-shelf-name">{b.seriesName}</span>
             </div>
@@ -31,11 +33,9 @@ export default function BadgeShelf({
       ) : (
         <p className="empty-state badge-shelf-empty">No badges earned yet.</p>
       )}
-      {userId && (
-        <Link to={`/users/${userId}/badges`} className="badge-shelf-see-all">
-          See all →
-        </Link>
-      )}
+      <Link to={`/users/${userId}/badges`} className="badge-shelf-see-all">
+        See all →
+      </Link>
     </div>
   );
 }

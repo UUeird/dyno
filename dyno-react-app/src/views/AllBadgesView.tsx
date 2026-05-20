@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { BadgeProgress, Human } from "../types";
 import BadgeCircle from "../components/BadgeCircle";
@@ -8,9 +8,14 @@ import { API } from "../lib/api";
 export default function AllBadgesView({ currentUserId }: { currentUserId?: string }) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const userId = id || currentUserId;
   const [progress, setProgress] = React.useState<BadgeProgress[] | null>(null);
   const [human, setHuman] = React.useState<Human | null>(null);
+  // When this page is opened via a deep link like /users/:id/badges#drive-count,
+  // we scroll the matching item into view and briefly highlight it. The CSS class
+  // is removed after ~1.5s.
+  const [highlighted, setHighlighted] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!userId) return;
@@ -28,6 +33,23 @@ export default function AllBadgesView({ currentUserId }: { currentUserId?: strin
       .catch(console.error);
     return () => { cancelled = true; };
   }, [userId]);
+
+  // After progress loads, if there's a hash in the URL, scroll to it and highlight.
+  React.useEffect(() => {
+    if (!progress) return;
+    const slug = location.hash.replace(/^#/, "");
+    if (!slug) return;
+    // Defer to next frame so the DOM has the IDs rendered before we query.
+    const t = setTimeout(() => {
+      const el = document.getElementById(`badge-${slug}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlighted(slug);
+        setTimeout(() => setHighlighted(null), 1600);
+      }
+    }, 50);
+    return () => clearTimeout(t);
+  }, [progress, location.hash]);
 
   if (!userId) return <div className="view"><p className="empty-state">No user.</p></div>;
   if (!progress) return <div className="view"><p className="empty-state">Loading…</p></div>;
@@ -52,7 +74,11 @@ export default function AllBadgesView({ currentUserId }: { currentUserId?: strin
             : 1;
 
           return (
-            <li key={p.seriesSlug} className="all-badges-item">
+            <li
+              key={p.seriesSlug}
+              id={`badge-${p.seriesSlug}`}
+              className={`all-badges-item${highlighted === p.seriesSlug ? " all-badges-item--highlighted" : ""}`}
+            >
               <BadgeCircle
                 emoji={displayLevelDef?.emoji || "❓"}
                 level={p.level}

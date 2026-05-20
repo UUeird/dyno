@@ -88,7 +88,7 @@ export default function ProfileView({
         </div>
       )}
 
-      <BadgeShelf badges={badges} userId={currentUserId} />
+      {currentUserId && <BadgeShelf badges={badges} userId={currentUserId} />}
 
       {myCars.length > 0 && (
         <>

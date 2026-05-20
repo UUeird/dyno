@@ -2142,6 +2142,13 @@
   background: var(--surface-2, #1a1a1a);
   border: 1px solid var(--border);
   border-radius: 10px;
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+
+/* Applied briefly when the page is opened anchored to this badge. */
+.all-badges-item--highlighted {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim, rgba(245, 166, 35, 0.25));
 }
 
 .all-badges-info {

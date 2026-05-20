@@ -14,13 +14,25 @@ function OwnershipManager({ car, humans, onUpdated }: { car: Car; humans: Human[
   const [addingOwner, setAddingOwner] = React.useState(false);
   const [newOwnerId, setNewOwnerId] = React.useState("");
   const [newFrom, setNewFrom] = React.useState("");
+  const [error, setError] = React.useState("");
 
+  const todayIso = new Date().toISOString().slice(0, 10);
   const currentOwnerships = car.ownershipHistory.filter((o) => !o.to);
   const pastOwnerships = car.ownershipHistory.filter((o) => o.to);
 
   const handleAdd = async () => {
     if (!newOwnerId) return;
-    await axios.post(`${API}/ownerships`, { car: car._id, owner: newOwnerId, from: newFrom || null });
+    setError("");
+    if (newFrom && newFrom > todayIso) {
+      setError("Ownership start date cannot be in the future");
+      return;
+    }
+    try {
+      await axios.post(`${API}/ownerships`, { car: car._id, owner: newOwnerId, from: newFrom || null });
+    } catch (e: any) {
+      setError(e.response?.data?.error || "Failed to add owner");
+      return;
+    }
     const { data } = await axios.get(`${API}/cars`);
     const updated = data.find((c: Car) => c._id === car._id);
     if (updated) onUpdated(updated);
@@ -78,10 +90,17 @@ function OwnershipManager({ car, humans, onUpdated }: { car: Car; humans: Human[
             <option value="" disabled hidden>Select person</option>
             {humans.map((h) => <option key={h._id} value={h._id}>{h.name}</option>)}
           </select>
-          <input type="date" value={newFrom} onChange={(e) => setNewFrom(e.target.value)} placeholder="From (optional)" />
+          <input
+            type="date"
+            value={newFrom}
+            max={todayIso}
+            onChange={(e) => setNewFrom(e.target.value)}
+            placeholder="From (optional)"
+          />
+          {error && <p className="form-error">{error}</p>}
           <div className="form-buttons">
             <button type="button" onClick={handleAdd} disabled={!newOwnerId}>Add</button>
-            <button type="button" onClick={() => setAddingOwner(false)}>Cancel</button>
+            <button type="button" onClick={() => { setAddingOwner(false); setError(""); }}>Cancel</button>
           </div>
         </div>
       ) : (

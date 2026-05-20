@@ -916,7 +916,21 @@ app.post("/api/ownerships", requireAuth, async (req, res) => {
   try {
     const { car, owner, from, to } = req.body;
     if (!car || !owner) return res.status(400).json({ error: "car and owner are required" });
-    const record = await new Ownership({ car, owner, from: from || null, to: to || null }).save();
+
+    const now = Date.now();
+    const fromDate = from ? new Date(from) : null;
+    const toDate = to ? new Date(to) : null;
+    if (fromDate && fromDate.getTime() > now) {
+      return res.status(400).json({ error: "Ownership start date cannot be in the future" });
+    }
+    if (toDate && toDate.getTime() > now) {
+      return res.status(400).json({ error: "Ownership end date cannot be in the future" });
+    }
+    if (fromDate && toDate && fromDate.getTime() > toDate.getTime()) {
+      return res.status(400).json({ error: "Ownership start date must be before end date" });
+    }
+
+    const record = await new Ownership({ car, owner, from: fromDate, to: toDate }).save();
     await record.populate("owner", "name email");
     res.status(201).json(record);
   } catch (err) {
@@ -926,9 +940,14 @@ app.post("/api/ownerships", requireAuth, async (req, res) => {
 
 app.patch("/api/ownerships/:id/end", requireAuth, async (req, res) => {
   try {
+    const now = Date.now();
+    const to = req.body.to ? new Date(req.body.to) : new Date();
+    if (to.getTime() > now) {
+      return res.status(400).json({ error: "Ownership end date cannot be in the future" });
+    }
     const record = await Ownership.findByIdAndUpdate(
       req.params.id,
-      { to: req.body.to || new Date() },
+      { to },
       { new: true }
     ).populate("owner", "name email");
     if (!record) return res.status(404).json({ error: "Ownership not found" });

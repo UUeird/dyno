@@ -59,7 +59,7 @@ Fixture IDs are stable across runs — see [tests/seed.ts](dyno-react-app/tests/
 
 ## Syncing tests to Qase
 
-We mirror Playwright tests into Qase as test cases for tracking + manual run reporting.
+We mirror Playwright tests into Qase as test cases for tracking + manual run reporting. The sync runs automatically on every `git push` (via a pre-push hook installed by `npm install`), and can also be invoked manually:
 
 ```bash
 cd dyno-react-app
@@ -73,6 +73,8 @@ Mechanics:
 - Idempotency: each case's description embeds `External ID: \`<spec>.spec.ts::<test name>\``. The script parses that marker from existing cases on every run, so re-runs only create/update cases that have new or renamed titles
 - Required env (read from `.env.local`): `QASE_API_TOKEN`, optionally `QASE_PROJECT_CODE` (defaults to `DYNO`)
 - Implementation: [scripts/sync-qase.js](dyno-react-app/scripts/sync-qase.js)
+
+**Pre-push hook**: [scripts/hooks/pre-push](dyno-react-app/scripts/hooks/pre-push) runs the sync before each push. Failures don't block — if Qase is unreachable the push proceeds and a warning prints. The hook is installed by `scripts/install-hooks.js`, which runs as a `postinstall` script — collaborators get it set up automatically when they run `npm install`. They can also re-run with `npm run install-hooks`.
 
 ## Adding a feature — typical pattern
 

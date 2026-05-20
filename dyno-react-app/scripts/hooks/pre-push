@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Pre-push hook: sync Playwright tests to Qase before each push.
+#
+# Failures here are warnings, not blockers — if Qase is down or the token is
+# missing, the push still succeeds. Re-run `npm run sync-qase` manually to retry.
+
+set +e
+
+# Locate the dyno-react-app directory relative to the repo root.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$REPO_ROOT" ]; then
+  echo "pre-push: can't find repo root; skipping qase sync"
+  exit 0
+fi
+
+APP_DIR="$REPO_ROOT/dyno-react-app"
+if [ ! -f "$APP_DIR/scripts/sync-qase.js" ]; then
+  echo "pre-push: sync-qase.js not found; skipping"
+  exit 0
+fi
+
+echo "pre-push: syncing tests to Qase…"
+(cd "$APP_DIR" && node scripts/sync-qase.js)
+RC=$?
+if [ $RC -ne 0 ]; then
+  echo "pre-push: qase sync failed (rc=$RC). Push proceeds; run \`npm run sync-qase\` manually to retry."
+fi
+
+# Always exit 0 — we don't block pushes on sync failures.
+exit 0

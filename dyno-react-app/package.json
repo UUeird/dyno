@@ -25,6 +25,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "sync-qase": "node scripts/sync-qase.js",
+    "install-hooks": "node scripts/install-hooks.js",
+    "postinstall": "node scripts/install-hooks.js --quiet",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

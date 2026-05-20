@@ -6,6 +6,7 @@ Living reference for the Dyno project. Audience: me + future Claude.
 - **[architecture.md](architecture.md)** — how it's built. Stack, process model, data flow, file organization, known tooling quirks.
 - **[api.md](api.md)** — every endpoint with its request/response shape and side effects.
 - **[deploy.md](deploy.md)** — step-by-step guide for deploying to Render + Vercel + Atlas.
+- **[roadmap.md](roadmap.md)** — what's coming next. Soon vs. later, with rough scope.
 
 For working conventions (run commands, test policy, gotchas), see [../CLAUDE.md](../CLAUDE.md).
 For the user-facing README, see [../README.md](../README.md).

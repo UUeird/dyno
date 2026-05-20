@@ -6,6 +6,7 @@ For deeper reference:
 - **[docs/product.md](docs/product.md)** — concepts and flows
 - **[docs/architecture.md](docs/architecture.md)** — stack, data flow, organization
 - **[docs/api.md](docs/api.md)** — full endpoint reference
+- **[docs/roadmap.md](docs/roadmap.md)** — what's queued up next
 
 ## Repo layout
 

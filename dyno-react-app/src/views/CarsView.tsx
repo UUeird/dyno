@@ -264,10 +264,6 @@ function CarDetail({ car, manufacturers }: { car: Car; manufacturers: Manufactur
       )}
       <div className="car-detail-specs">
         <span className="car-detail-spec">
-          <span className="car-detail-spec-label">Year</span>
-          <span className="car-detail-spec-value">{car.year}</span>
-        </span>
-        <span className="car-detail-spec">
           <span className="car-detail-spec-label">Make</span>
           <span className="car-detail-spec-value">{car.manufacturer}</span>
         </span>
@@ -275,10 +271,10 @@ function CarDetail({ car, manufacturers }: { car: Car; manufacturers: Manufactur
           <span className="car-detail-spec-label">Model</span>
           <span className="car-detail-spec-value">{car.model}</span>
         </span>
-        {car.transmission && (
+        {car.trim && (
           <span className="car-detail-spec">
-            <span className="car-detail-spec-label">Transmission</span>
-            <span className="car-detail-spec-value">{car.transmission}</span>
+            <span className="car-detail-spec-label">Trim</span>
+            <span className="car-detail-spec-value">{car.trim}</span>
           </span>
         )}
         {colorName && (
@@ -290,10 +286,10 @@ function CarDetail({ car, manufacturers }: { car: Car; manufacturers: Manufactur
             </span>
           </span>
         )}
-        {car.trim && (
+        {car.transmission && (
           <span className="car-detail-spec">
-            <span className="car-detail-spec-label">Trim</span>
-            <span className="car-detail-spec-value">{car.trim}</span>
+            <span className="car-detail-spec-label">Transmission</span>
+            <span className="car-detail-spec-value">{car.transmission}</span>
           </span>
         )}
         {car.vin && (

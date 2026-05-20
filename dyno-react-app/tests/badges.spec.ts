@@ -24,6 +24,9 @@ test.describe("Achievement badges", () => {
   });
 
   test("badge toast appears in UI after logging first drive", async ({ page }) => {
+    // Long multi-step flow (5 clicks through the experience modal, then the toast
+    // poll loop). Default 15s isn't quite enough headroom under load.
+    test.setTimeout(25000);
     await axios.post(`${API}/test/reset-badges`);
 
     await page.goto("/profile");

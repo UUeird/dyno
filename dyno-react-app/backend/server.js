@@ -148,9 +148,6 @@ const carSchema = new mongoose.Schema({
   year: Number,
   nickname: String,
   transmission: String,
-  // Legacy: plain string color. Kept for backward compatibility with old records.
-  // New writes populate `colorInfo` instead and leave `color` blank.
-  color: String,
   colorInfo: { type: carColorSchema, default: null },
   trim: String,
   vin: String,
@@ -288,10 +285,13 @@ async function migrateLegacyOwners() {
 // custom. The legacy `color` field is unset once moved so we have one source of
 // truth going forward.
 async function migrateLegacyColors() {
-  const cars = await Car.find({
+  // The legacy `color` field is no longer on the Mongoose schema, so we go
+  // directly through the raw collection to read it. Once the migration has run
+  // on a deployment, this query returns 0 docs and is a fast no-op.
+  const cars = await mongoose.connection.db.collection("cars").find({
     color: { $exists: true, $ne: null, $ne: "" },
     $or: [{ colorInfo: null }, { colorInfo: { $exists: false } }],
-  });
+  }).toArray();
   if (cars.length === 0) return;
 
   // Pre-load all manufacturers once so we don't refetch per car

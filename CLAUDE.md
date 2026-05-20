@@ -57,6 +57,23 @@ Tests run **serially** (workers: 1) because they share a DB.
 
 Fixture IDs are stable across runs — see [tests/seed.ts](dyno-react-app/tests/seed.ts) for the IDs and what they map to (Sam, Alex, Civic, Impala, Tesla Model 3).
 
+## Syncing tests to Qase
+
+We mirror Playwright tests into Qase as test cases for tracking + manual run reporting.
+
+```bash
+cd dyno-react-app
+npm run sync-qase            # creates/updates cases
+npm run sync-qase -- --dry-run   # preview without writing
+```
+
+Mechanics:
+- One Qase suite per `test.describe(...)` block
+- One Qase case per `test(...)` inside a describe
+- Idempotency: each case's description embeds `External ID: \`<spec>.spec.ts::<test name>\``. The script parses that marker from existing cases on every run, so re-runs only create/update cases that have new or renamed titles
+- Required env (read from `.env.local`): `QASE_API_TOKEN`, optionally `QASE_PROJECT_CODE` (defaults to `DYNO`)
+- Implementation: [scripts/sync-qase.js](dyno-react-app/scripts/sync-qase.js)
+
 ## Adding a feature — typical pattern
 
 1. **Schema** in [backend/server.js](dyno-react-app/backend/server.js) (single-file Express server, all schemas defined inline)

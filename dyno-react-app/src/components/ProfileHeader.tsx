@@ -22,7 +22,7 @@ export default function ProfileHeader({
   rightSlot?: React.ReactNode; // e.g. FollowButton on other users' profiles
 }) {
   const clerk = useClerk();
-  const displayHandle = human.username ? `@${human.username}` : human.name;
+  const displayHandle = human.username || human.name;
 
   return (
     <div className="profile-header">

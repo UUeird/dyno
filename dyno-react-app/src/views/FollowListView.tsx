@@ -41,7 +41,7 @@ export default function FollowListView({
   }, [id, mode]);
 
   const title = mode === "followers" ? "Followers" : "Following";
-  const ownerLabel = owner ? (owner.username ? `@${owner.username}` : owner.name) : "";
+  const ownerLabel = owner ? (owner.username || owner.name) : "";
 
   return (
     <div className="view">
@@ -68,7 +68,7 @@ export default function FollowListView({
                 onClick={() => navigate(`/users/${u._id}`)}
               >
                 <ProfileAvatar human={u} />
-                <span className="friend-name">{u.username ? `@${u.username}` : u.name}</span>
+                <span className="friend-name">{u.username || u.name}</span>
                 {!isSelf && currentUserId && (
                   <FollowButton
                     isFollowing={iAmFollowing}

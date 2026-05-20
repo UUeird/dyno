@@ -186,7 +186,7 @@ export default function ProfileView({
         </ul>
       )}
 
-      <h2 className="profile-section-heading">Want to Drive</h2>
+      <h2 className="profile-section-heading profile-section-heading--spaced">Wishlist</h2>
       {wishlist.length === 0 ? (
         <p className="empty-state">Nothing on your wishlist yet.</p>
       ) : (

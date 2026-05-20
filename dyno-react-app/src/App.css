@@ -157,6 +157,13 @@
   border-bottom: 1px solid var(--border);
 }
 
+/* Extra top margin for sections that benefit from a stronger visual break
+   from the section above (e.g. the Wishlist section after the long Experiences
+   list on a profile page). */
+.profile-section-heading--spaced {
+  margin-top: 56px;
+}
+
 .empty-state {
   color: var(--text-3);
   font-size: 14px;

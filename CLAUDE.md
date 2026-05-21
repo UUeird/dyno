@@ -71,7 +71,9 @@ npm run sync-qase -- --dry-run   # preview without writing
 Mechanics:
 - One Qase suite per `test.describe(...)` block
 - One Qase case per `test(...)` inside a describe
-- Idempotency: each case's description embeds `External ID: \`<spec>.spec.ts::<test name>\``. The script parses that marker from existing cases on every run, so re-runs only create/update cases that have new or renamed titles
+- Each case's test steps are parsed from the test body: consecutive UI actions collapse into one step whose `expected_result` is the next `expect(...)`. API tests emit one step per axios call. A `Steps hash: <sha>` marker in the description detects when steps have drifted and triggers an update
+- Idempotency: each case's description embeds `External ID: \`<spec>.spec.ts::<test name>\``. The script parses that marker from existing cases on every run
+- **Overriding auto-generated steps**: add `// @qase-step: …` and `// @qase-expect: …` comments at the top of the test body. The script uses those verbatim instead of parsing the code — useful for tests where the auto-parsed steps read mechanically and a QA tester needs better prose
 - Required env (read from `.env.local`): `QASE_API_TOKEN`, optionally `QASE_PROJECT_CODE` (defaults to `DYNO`)
 - Implementation: [scripts/sync-qase.js](dyno-react-app/scripts/sync-qase.js)
 

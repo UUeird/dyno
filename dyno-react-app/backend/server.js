@@ -751,7 +751,7 @@ app.put("/api/manufacturers/:id/trims/:model", requireAdmin, async (req, res) =>
       const years = Array.isArray(t.years) ? t.years.map((y) => ({
         from: y?.from == null || y?.from === "" ? null : Number(y.from),
         to: y?.to == null || y?.to === "" ? null : Number(y.to),
-      })).filter((y) => !(y.from == null && y.to == null) || true) : [];
+      })).filter((y) => !(y.from == null && y.to == null)) : [];
       // Validate each range
       for (const y of years) {
         if (y.from != null && (!Number.isFinite(y.from) || y.from < 1900 || y.from > 2100)) {

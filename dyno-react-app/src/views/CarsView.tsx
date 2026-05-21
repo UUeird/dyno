@@ -633,7 +633,7 @@ export default function CarsView({
     c.ownershipHistory.some((o) => o.owner._id === currentUserId)
   );
   const friendsCars = cars.filter((c) =>
-    c.currentOwners.some((o) => o._id !== currentUserId)
+    c.currentOwners.length > 0 && c.currentOwners.every((o) => o._id !== currentUserId)
   );
 
   const sharedProps = {

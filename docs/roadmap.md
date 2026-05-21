@@ -2,6 +2,13 @@
 
 What's coming next. Items below are not committed plans — directional intent. Lifted out of the per-session scratch file (`~/.claude/plans/...`) so future-me and collaborators have visibility.
 
+## Tech debt
+
+- **N+1 queries in feed/experiences** — `attachOwnership` runs separate `Ownership.find()` and `Photo.find()` per car for every experience in the feed. Fine at current scale; will degrade noticeably as data grows. Fix: batch ownership and photo lookups by car ID before mapping.
+- **`GET /api/experiences` open to unauthenticated callers** — intentional for the public feed, and location is already stripped for non-authors. But it's easy to accidentally expose future private fields here. Should add auth awareness so private fields are never leaked, even if the endpoint stays public.
+- **`GET /api/experiences?followedBy` doesn't verify identity** — any caller can pass another user's ID as `followedBy` and get their social feed. No private data exposed today (location is stripped), but worth locking down so the requester can only query their own following list.
+- **Search scans all matching cars before deduping** — `server.js` `GET /api/search` fetches unbounded car results then dedupes in memory. Needs a `.limit()` on the DB query, or a migration to a unique `{manufacturer, model}` index on a models collection.
+
 ## Soon
 
 - **Push notifications / in-app alerts** — surface new follower, follower's drive, etc. iOS web push is finicky; investigate before committing to a shape.

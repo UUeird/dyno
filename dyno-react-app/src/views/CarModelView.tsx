@@ -246,7 +246,6 @@ export default function CarModelView({
                     {exp.loggedBy && (
                       <span
                         className="experience-author"
-                        style={{ cursor: "pointer" }}
                         onClick={() => navigate(`/users/${exp.loggedBy!._id}`)}
                       >
                         {exp.loggedBy.name}

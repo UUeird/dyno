@@ -64,7 +64,6 @@ export default function FollowListView({
               <li
                 key={u._id}
                 className="friend-item"
-                style={{ cursor: "pointer" }}
                 onClick={() => navigate(`/users/${u._id}`)}
               >
                 <ProfileAvatar human={u} />

@@ -471,7 +471,6 @@ function CarList({
               <div
                 className="car-item-row"
                 onClick={() => onToggleExpand(car._id)}
-                style={{ cursor: "pointer" }}
               >
                 <CarThumbnail car={car} />
                 <span className="car-info">

@@ -8,6 +8,7 @@ What's coming next. Items below are not committed plans — directional intent. 
 - **`GET /api/experiences` open to unauthenticated callers** — intentional for the public feed, and location is already stripped for non-authors. But it's easy to accidentally expose future private fields here. Should add auth awareness so private fields are never leaked, even if the endpoint stays public.
 - **`GET /api/experiences?followedBy` doesn't verify identity** — any caller can pass another user's ID as `followedBy` and get their social feed. No private data exposed today (location is stripped), but worth locking down so the requester can only query their own following list.
 - **Search scans all matching cars before deduping** — `server.js` `GET /api/search` fetches unbounded car results then dedupes in memory. Needs a `.limit()` on the DB query, or a migration to a unique `{manufacturer, model}` index on a models collection.
+- **Migrate frontend from CRA to Vite** — `react-scripts` pins old transitive deps (webpack-dev-server, nth-check, lodash inside Jest, etc.) that can't be upgraded without ejecting. ~18 Dependabot alerts are permanently stuck there. Vite would eliminate most of them and is much faster for dev/build. A day's migration work; not urgent but worth doing before the CRA maintenance situation gets worse.
 
 ## Soon
 

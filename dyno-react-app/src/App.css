@@ -272,6 +272,38 @@
   text-transform: uppercase;
 }
 
+/* ─── Feed switcher ──────────────────────────────────────────────── */
+.feed-switcher {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  background: var(--surface-2);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1);
+}
+
+.feed-switcher-btn {
+  flex: 1;
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--font-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-base), color var(--dur-base);
+}
+
+.feed-switcher-btn--active {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+
+.feed-switcher-btn:not(.feed-switcher-btn--active):hover {
+  color: var(--text-1);
+}
+
 /* ─── Section heading + inline button row ────────────────────────── */
 .section-heading-row {
   display: flex;

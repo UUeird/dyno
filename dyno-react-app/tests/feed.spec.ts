@@ -22,31 +22,33 @@ test.describe("Feed", () => {
     await page.goto("/");
   });
 
-  test("shows Friends and Public section headings", async ({ page }) => {
-    await expect(page.locator(".feed-section-heading").nth(0)).toContainText("Friends");
-    await expect(page.locator(".feed-section-heading").nth(1)).toContainText("Public");
+  test("shows Friends and Public switcher buttons", async ({ page }) => {
+    await expect(page.locator(".feed-switcher-btn").nth(0)).toContainText("Friends");
+    await expect(page.locator(".feed-switcher-btn").nth(1)).toContainText("Public");
+    await expect(page.locator(".feed-switcher-btn--active")).toContainText("Friends");
   });
 
   test("shows empty state in Friends when not following anyone", async ({ page }) => {
-    await expect(page.locator(".empty-state").first()).toContainText("No activity from people you follow");
+    await expect(page.locator(".empty-state")).toContainText("No activity from people you follow");
   });
 
-  test("own experiences do not appear in either section", async ({ page }) => {
+  test("own experiences do not appear in either tab", async ({ page }) => {
     const { data } = await axios.post(`${API}/experiences`, { car: FIXTURES.cars.civic, type: "drove" }, { headers: samHeaders });
     const expId = data.experience._id;
 
     await page.reload();
-    // Sam's own post should not appear anywhere in the feed
+    // Check Friends tab
     const items = page.locator(".experience-item");
-    const count = await items.count();
-    for (let i = 0; i < count; i++) {
-      await expect(items.nth(i)).not.toContainText("Sam Lawrence");
-    }
+    expect(await items.count()).toBe(0);
+
+    // Check Public tab
+    await page.locator('.feed-switcher-btn:has-text("Public")').click();
+    expect(await items.count()).toBe(0);
 
     await axios.delete(`${API}/experiences/${expId}`, { headers: samHeaders });
   });
 
-  test("followed user's experience appears in Friends section", async ({ page }) => {
+  test("followed user's experience appears in Friends tab", async ({ page }) => {
     asAlex();
     const { data } = await axios.post(`${API}/experiences`, { car: FIXTURES.cars.civic, type: "drove" }, { headers: alexHeaders });
     const expId = data.experience._id;
@@ -55,8 +57,8 @@ test.describe("Feed", () => {
 
     try {
       await page.reload();
-      // Friends list is the first .experience-list after the Friends heading
-      await expect(page.locator(".experience-list").first()).toBeVisible();
+      // Friends tab is active by default
+      await expect(page.locator(".experience-list")).toBeVisible();
       await expect(page.locator(".experience-car").first()).toContainText("Civic");
     } finally {
       await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });
@@ -65,7 +67,7 @@ test.describe("Feed", () => {
     }
   });
 
-  test("unfollowed user's experience appears in Public section", async ({ page }) => {
+  test("unfollowed user's experience appears in Public tab", async ({ page }) => {
     asAlex();
     const { data } = await axios.post(`${API}/experiences`, { car: FIXTURES.cars.civic, type: "spotted" }, { headers: alexHeaders });
     const expId = data.experience._id;
@@ -73,8 +75,11 @@ test.describe("Feed", () => {
 
     try {
       await page.reload();
-      // Should appear in the second experience-list (Public), not zero
-      await expect(page.locator(".experience-list")).toHaveCount(1);
+      // Friends tab should be empty, Public should show Alex's post
+      await expect(page.locator(".empty-state")).toBeVisible();
+      await page.locator('.feed-switcher-btn:has-text("Public")').click();
+      await expect(page.locator(".experience-list")).toBeVisible();
+      await expect(page.locator(".experience-car").first()).toContainText("Civic");
     } finally {
       await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });
     }
@@ -91,6 +96,7 @@ test.describe("Feed", () => {
     asSam();
 
     await page.reload();
+    await page.locator('.feed-switcher-btn:has-text("Public")').click();
     await expect(page.locator(".experience-notes").first()).toContainText("Canyon run");
 
     await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });
@@ -107,6 +113,7 @@ test.describe("Feed", () => {
     asSam();
 
     await page.reload();
+    await page.locator('.feed-switcher-btn:has-text("Public")').click();
     const icon = page.locator(".star-icon").first();
     await expect(icon).toBeVisible();
     await expect(icon).toHaveClass(/star-icon--filled/);
@@ -125,6 +132,7 @@ test.describe("Feed", () => {
     asSam();
 
     await page.reload();
+    await page.locator('.feed-switcher-btn:has-text("Public")').click();
     const icon = page.locator(".star-icon").first();
     await expect(icon).toHaveClass(/star-icon--unrated/);
     await expect(icon.locator(".star-icon-glow")).toHaveCount(0);
@@ -143,6 +151,7 @@ test.describe("Feed", () => {
     asSam();
 
     await page.reload();
+    await page.locator('.feed-switcher-btn:has-text("Public")').click();
     const icon = page.locator(".star-icon").first();
     await expect(icon).toHaveClass(/star-icon--empty/);
     await expect(icon.locator(".star-icon-glow")).toHaveCount(0);
@@ -161,6 +170,7 @@ test.describe("Feed", () => {
     asSam();
 
     await page.reload();
+    await page.locator('.feed-switcher-btn:has-text("Public")').click();
     const wrap = page.locator(".star-icon-wrap").first();
     const expandRow = wrap.locator(".star-icon-expand-row");
 
@@ -185,6 +195,7 @@ test.describe("Feed", () => {
     asSam();
 
     await page.reload();
+    await page.locator('.feed-switcher-btn:has-text("Public")').click();
     await expect(page.locator(".reaction-bar").first()).toBeVisible();
 
     await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });

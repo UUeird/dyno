@@ -201,3 +201,39 @@ test.describe("Feed", () => {
     await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });
   });
 });
+
+test.describe("Friends feed API authorization", () => {
+  test.beforeAll(() => asSam());
+
+  test("rejects unauthenticated followedBy queries", async () => {
+    const res = await axios.get(`${API}/experiences?followedBy=${FIXTURES.users.sam}`, {
+      headers: { "x-test-user-id": "" },
+      validateStatus: () => true,
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test("rejects followedBy when it doesn't match the requester", async () => {
+    const res = await axios.get(`${API}/experiences?followedBy=${FIXTURES.users.alex}`, {
+      headers: samHeaders,
+      validateStatus: () => true,
+    });
+    expect(res.status).toBe(403);
+  });
+
+  test("accepts followedBy=me and returns own + followees' experiences", async () => {
+    await samFollowsAlex();
+    const { data: samExp } = await axios.post(`${API}/experiences`, { car: FIXTURES.cars.civic, type: "drove" }, { headers: samHeaders });
+    const { data: alexExp } = await axios.post(`${API}/experiences`, { car: FIXTURES.cars.impala, type: "drove" }, { headers: alexHeaders });
+    try {
+      const res = await axios.get(`${API}/experiences?followedBy=me`, { headers: samHeaders });
+      const ids = res.data.map((e: { _id: string }) => e._id);
+      expect(ids).toContain(samExp.experience._id);
+      expect(ids).toContain(alexExp.experience._id);
+    } finally {
+      await axios.delete(`${API}/experiences/${samExp.experience._id}`, { headers: samHeaders });
+      await axios.delete(`${API}/experiences/${alexExp.experience._id}`, { headers: alexHeaders });
+      await samUnfollowsAlex();
+    }
+  });
+});

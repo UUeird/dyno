@@ -424,6 +424,7 @@ function App() {
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [humans, setHumans] = useState<Human[]>([]);
   const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [friendsExperiences, setFriendsExperiences] = useState<Experience[]>([]);
   const [following, setFollowing] = useState<string[]>([]);
   const [showNewExperience, setShowNewExperience] = useState(false);
   const [pendingBadges, setPendingBadges] = useState<BadgeInfo[]>([]);
@@ -449,10 +450,17 @@ function App() {
   }, [authLoaded, isSignedIn]);
 
   useEffect(() => {
-    if (!currentUserId) return;
+    if (!currentUserId) {
+      setFriendsExperiences([]);
+      return;
+    }
     axios
       .get(`${API}/follows?follower=${currentUserId}`)
       .then((r) => setFollowing(r.data.map((f: { followee: { _id: string } }) => f.followee._id)))
+      .catch(console.error);
+    axios
+      .get(`${API}/experiences?followedBy=me`)
+      .then((r) => setFriendsExperiences(r.data))
       .catch(console.error);
   }, [currentUserId]);
 
@@ -475,13 +483,16 @@ function App() {
 
   const handleExperienceCreated = (newBadges: BadgeInfo[]) => {
     axios.get(`${API}/experiences`).then((r) => setExperiences(r.data)).catch(console.error);
+    if (currentUserId) {
+      axios.get(`${API}/experiences?followedBy=me`).then((r) => setFriendsExperiences(r.data)).catch(console.error);
+    }
     if (newBadges.length > 0) setPendingBadges(newBadges);
   };
 
   const handleReactionsChange = (experienceId: string, reactions: Reaction[]) => {
-    setExperiences((prev) =>
-      prev.map((e) => (e._id === experienceId ? { ...e, reactions } : e))
-    );
+    const apply = (e: Experience) => (e._id === experienceId ? { ...e, reactions } : e);
+    setExperiences((prev) => prev.map(apply));
+    setFriendsExperiences((prev) => prev.map(apply));
   };
 
   return (
@@ -514,6 +525,7 @@ function App() {
               element={
                 <FeedView
                   experiences={experiences}
+                  friendsExperiences={friendsExperiences}
                   currentUserId={currentUserId}
                   following={following}
                   onReactionsChange={handleReactionsChange}

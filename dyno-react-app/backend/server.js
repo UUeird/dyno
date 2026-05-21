@@ -1131,15 +1131,17 @@ app.put("/api/ownerships/:id", requireAuth, async (req, res) => {
 
 app.get("/api/experiences", async (req, res) => {
   try {
+    const requester = await getCurrentHuman(req);
+    const requesterId = requester ? String(requester._id) : null;
     let filter = {};
     if (req.query.followedBy) {
-      const followerId = req.query.followedBy;
+      if (!requesterId) return res.status(401).json({ error: "Authentication required" });
+      const followerId = req.query.followedBy === "me" ? requesterId : String(req.query.followedBy);
+      if (followerId !== requesterId) return res.status(403).json({ error: "Cannot query another user's feed" });
       const follows = await Follow.find({ follower: followerId }).lean();
       const followeeIds = follows.map((f) => f.followee);
       filter = { loggedBy: { $in: [followerId, ...followeeIds] } };
     }
-    const requester = await getCurrentHuman(req);
-    const requesterId = requester ? String(requester._id) : null;
     const experiences = await Experience.find(filter)
       .populate("car")
       .populate("loggedBy", "name email avatarUrl")

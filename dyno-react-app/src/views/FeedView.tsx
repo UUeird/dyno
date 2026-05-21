@@ -10,28 +10,29 @@ type FeedTab = "friends" | "public";
 
 export default function FeedView({
   experiences,
+  friendsExperiences,
   currentUserId,
   following,
   onReactionsChange,
 }: {
   experiences: Experience[];
+  friendsExperiences: Experience[];
   currentUserId?: string;
   following: string[];
   onReactionsChange: (experienceId: string, reactions: Reaction[]) => void;
 }) {
   const [activeTab, setActiveTab] = React.useState<FeedTab>("friends");
 
-  const friendsExperiences = experiences.filter((exp) => {
-    const authorId = exp.loggedBy?._id;
-    return !!authorId && authorId !== currentUserId && following.includes(authorId);
-  });
+  const friendsOnly = friendsExperiences.filter(
+    (exp) => exp.loggedBy?._id && exp.loggedBy._id !== currentUserId
+  );
 
   const publicExperiences = experiences.filter((exp) => {
     const authorId = exp.loggedBy?._id;
     return !!authorId && authorId !== currentUserId && !following.includes(authorId);
   });
 
-  const activeExperiences = activeTab === "friends" ? friendsExperiences : publicExperiences;
+  const activeExperiences = activeTab === "friends" ? friendsOnly : publicExperiences;
 
   return (
     <div className="view">

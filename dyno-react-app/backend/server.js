@@ -544,7 +544,45 @@ async function attachOwnership(carDoc) {
 }
 
 async function attachOwnershipToMany(carDocs) {
-  return Promise.all(carDocs.map(attachOwnership));
+  if (carDocs.length === 0) return [];
+  const cars = carDocs.map((c) => (c.toObject ? c.toObject() : { ...c }));
+  const carIds = cars.map((c) => c._id);
+
+  const [ownerships, photos] = await Promise.all([
+    Ownership.find({ car: { $in: carIds } })
+      .populate("owner", "name email")
+      .sort({ from: 1 }),
+    Photo.find({ car: { $in: carIds } })
+      .populate("uploadedBy", "name")
+      .sort({ createdAt: 1 }),
+  ]);
+
+  const ownershipsByCar = {};
+  for (const o of ownerships) {
+    const key = String(o.car);
+    if (!ownershipsByCar[key]) ownershipsByCar[key] = [];
+    ownershipsByCar[key].push(o);
+  }
+  const photosByCar = {};
+  for (const p of photos) {
+    const key = String(p.car);
+    if (!photosByCar[key]) photosByCar[key] = [];
+    photosByCar[key].push(p);
+  }
+
+  return cars.map((car) => {
+    const carOwnerships = ownershipsByCar[String(car._id)] || [];
+    const carPhotos = photosByCar[String(car._id)] || [];
+    car.currentOwners = carOwnerships.filter((o) => !o.to).map((o) => o.owner);
+    car.ownershipHistory = carOwnerships;
+    car.photos = carPhotos;
+    if (car.thumbnailPhoto) {
+      car.thumbnail = carPhotos.find((p) => String(p._id) === String(car.thumbnailPhoto)) || carPhotos[0] || null;
+    } else {
+      car.thumbnail = carPhotos[0] || null;
+    }
+    return car;
+  });
 }
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
@@ -1088,14 +1126,17 @@ app.get("/api/experiences", async (req, res) => {
       if (!reactionsByExp[key]) reactionsByExp[key] = [];
       reactionsByExp[key].push(r);
     }
-    const result = await Promise.all(experiences.map(async (exp) => {
+    const enrichedCars = await attachOwnershipToMany(experiences.map((e) => e.car));
+    const carById = {};
+    for (const c of enrichedCars) carById[String(c._id)] = c;
+    const result = experiences.map((exp) => {
       const expObj = exp.toObject();
-      expObj.car = await attachOwnership(exp.car);
+      expObj.car = carById[String(exp.car._id)];
       expObj.reactions = reactionsByExp[String(exp._id)] || [];
       const isAuthor = requesterId && String(exp.loggedBy?._id || exp.loggedBy) === requesterId;
       if (!isAuthor) delete expObj.location;
       return expObj;
-    }));
+    });
     res.json(result);
   } catch {
     res.status(500).send("Error fetching experiences");
@@ -1249,16 +1290,19 @@ app.get("/api/users/:id/profile", async (req, res) => {
       if (!reactionsByExp[key]) reactionsByExp[key] = [];
       reactionsByExp[key].push(r);
     }
-    const experiences = await Promise.all(experienceDocs.map(async (exp) => {
+    const enrichedExpCars = await attachOwnershipToMany(experienceDocs.map((e) => e.car));
+    const expCarById = {};
+    for (const c of enrichedExpCars) expCarById[String(c._id)] = c;
+    const experiences = experienceDocs.map((exp) => {
       const expObj = exp.toObject();
-      expObj.car = await attachOwnership(exp.car);
+      expObj.car = expCarById[String(exp.car._id)];
       expObj.reactions = reactionsByExp[String(exp._id)] || [];
       if (!isOwner) delete expObj.location;
       return expObj;
-    }));
+    });
 
     const ownerships = await Ownership.find({ owner: humanId, to: null }).populate("car");
-    const ownedCars = await Promise.all(ownerships.map((o) => attachOwnership(o.car)));
+    const ownedCars = await attachOwnershipToMany(ownerships.map((o) => o.car));
 
     const followingDocs = await Follow.find({ follower: humanId })
       .populate("followee", "name email avatarUrl");

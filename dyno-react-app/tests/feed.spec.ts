@@ -1,9 +1,19 @@
 import { test, expect } from "@playwright/test";
 import axios from "axios";
 import { FIXTURES } from "./seed";
-import { asSam, pageAsSam } from "./auth";
+import { asSam, asAlex, pageAsSam } from "./auth";
 
 const API = "http://localhost:5000/api";
+
+const samHeaders = { "x-test-user-id": FIXTURES.users.sam };
+const alexHeaders = { "x-test-user-id": FIXTURES.users.alex };
+
+async function samFollowsAlex() {
+  await axios.post(`${API}/follows`, { followee: FIXTURES.users.alex }, { headers: samHeaders });
+}
+async function samUnfollowsAlex() {
+  await axios.delete(`${API}/follows`, { data: { followee: FIXTURES.users.alex }, headers: samHeaders });
+}
 
 test.describe("Feed", () => {
   test.beforeAll(() => asSam());
@@ -12,132 +22,171 @@ test.describe("Feed", () => {
     await page.goto("/");
   });
 
-  test("shows feed heading and subtitle", async ({ page }) => {
-    await expect(page.locator("h2")).toContainText("Feed");
-    await expect(page.locator(".view-subtitle")).toBeVisible();
+  test("shows Friends and Public section headings", async ({ page }) => {
+    await expect(page.locator(".feed-section-heading").nth(0)).toContainText("Friends");
+    await expect(page.locator(".feed-section-heading").nth(1)).toContainText("Public");
   });
 
-  test("shows empty state when no followed experiences", async ({ page }) => {
-    await expect(page.locator(".empty-state")).toContainText("No activity yet");
+  test("shows empty state in Friends when not following anyone", async ({ page }) => {
+    await expect(page.locator(".empty-state").first()).toContainText("No activity from people you follow");
   });
 
-  test("shows experience after it is logged by current user", async ({ page }) => {
-    // Log an experience via API
-    const { data } = await axios.post(`${API}/experiences`, {
-      car: FIXTURES.cars.civic,
-      type: "drove",
-    });
+  test("own experiences do not appear in either section", async ({ page }) => {
+    const { data } = await axios.post(`${API}/experiences`, { car: FIXTURES.cars.civic, type: "drove" }, { headers: samHeaders });
     const expId = data.experience._id;
 
-    // Reload and verify it appears
     await page.reload();
-    await expect(page.locator(".experience-list")).toBeVisible();
-    await expect(page.locator(".experience-car").first()).toContainText("Civic");
+    // Sam's own post should not appear anywhere in the feed
+    const items = page.locator(".experience-item");
+    const count = await items.count();
+    for (let i = 0; i < count; i++) {
+      await expect(items.nth(i)).not.toContainText("Sam Lawrence");
+    }
 
-    // Cleanup
-    await axios.delete(`${API}/experiences/${expId}`);
+    await axios.delete(`${API}/experiences/${expId}`, { headers: samHeaders });
+  });
+
+  test("followed user's experience appears in Friends section", async ({ page }) => {
+    asAlex();
+    const { data } = await axios.post(`${API}/experiences`, { car: FIXTURES.cars.civic, type: "drove" }, { headers: alexHeaders });
+    const expId = data.experience._id;
+    asSam();
+    await samFollowsAlex();
+
+    try {
+      await page.reload();
+      // Friends list is the first .experience-list after the Friends heading
+      await expect(page.locator(".experience-list").first()).toBeVisible();
+      await expect(page.locator(".experience-car").first()).toContainText("Civic");
+    } finally {
+      await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });
+      await samUnfollowsAlex();
+      asSam();
+    }
+  });
+
+  test("unfollowed user's experience appears in Public section", async ({ page }) => {
+    asAlex();
+    const { data } = await axios.post(`${API}/experiences`, { car: FIXTURES.cars.civic, type: "spotted" }, { headers: alexHeaders });
+    const expId = data.experience._id;
+    asSam();
+
+    try {
+      await page.reload();
+      // Should appear in the second experience-list (Public), not zero
+      await expect(page.locator(".experience-list")).toHaveCount(1);
+    } finally {
+      await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });
+    }
   });
 
   test("experience with notes shows note text", async ({ page }) => {
+    asAlex();
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
       notes: "Canyon run, perfect conditions",
-    });
+    }, { headers: alexHeaders });
     const expId = data.experience._id;
+    asSam();
 
     await page.reload();
     await expect(page.locator(".experience-notes").first()).toContainText("Canyon run");
 
-    await axios.delete(`${API}/experiences/${expId}`);
+    await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });
   });
 
   test("drove experience with rating shows filled star icon", async ({ page }) => {
+    asAlex();
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
       rating: 3.5,
-    });
+    }, { headers: alexHeaders });
     const expId = data.experience._id;
+    asSam();
 
     await page.reload();
     const icon = page.locator(".star-icon").first();
     await expect(icon).toBeVisible();
     await expect(icon).toHaveClass(/star-icon--filled/);
-    // Fill path is rendered for non-zero ratings
     await expect(icon.locator(".star-icon-glow")).toBeAttached();
 
-    await axios.delete(`${API}/experiences/${expId}`);
+    await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });
   });
 
-  test("drove experience with no rating shows unrated (greyed) star icon", async ({ page }) => {
+  test("drove experience with no rating shows unrated star icon", async ({ page }) => {
+    asAlex();
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
-    });
+    }, { headers: alexHeaders });
     const expId = data.experience._id;
+    asSam();
 
     await page.reload();
     const icon = page.locator(".star-icon").first();
     await expect(icon).toHaveClass(/star-icon--unrated/);
-    // No fill path when unrated
     await expect(icon.locator(".star-icon-glow")).toHaveCount(0);
 
-    await axios.delete(`${API}/experiences/${expId}`);
+    await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });
   });
 
-  test("drove experience with 0-star rating shows empty (outline-only) star icon", async ({ page }) => {
+  test("drove experience with 0-star rating shows empty star icon", async ({ page }) => {
+    asAlex();
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
       rating: 0,
-    });
+    }, { headers: alexHeaders });
     const expId = data.experience._id;
+    asSam();
 
     await page.reload();
     const icon = page.locator(".star-icon").first();
     await expect(icon).toHaveClass(/star-icon--empty/);
-    // No fill path when rating is 0
     await expect(icon.locator(".star-icon-glow")).toHaveCount(0);
 
-    await axios.delete(`${API}/experiences/${expId}`);
+    await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });
   });
 
   test("hovering star icon expands to full rating row (desktop)", async ({ page }) => {
+    asAlex();
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "drove",
       rating: 3.5,
-    });
+    }, { headers: alexHeaders });
     const expId = data.experience._id;
+    asSam();
 
     await page.reload();
     const wrap = page.locator(".star-icon-wrap").first();
     const expandRow = wrap.locator(".star-icon-expand-row");
 
-    // Pre-hover: expand row is collapsed (max-width 0)
     const collapsedWidth = await expandRow.evaluate((el) => (el as HTMLElement).offsetWidth);
     expect(collapsedWidth).toBe(0);
 
     await wrap.hover();
-    // After hover: expand row has width
-    await page.waitForTimeout(350); // wait for transition
+    await page.waitForTimeout(350);
     const expandedWidth = await expandRow.evaluate((el) => (el as HTMLElement).offsetWidth);
     expect(expandedWidth).toBeGreaterThan(40);
 
-    await axios.delete(`${API}/experiences/${expId}`);
+    await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });
   });
 
   test("reaction bar renders on each feed card", async ({ page }) => {
+    asAlex();
     const { data } = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic,
       type: "spotted",
-    });
+    }, { headers: alexHeaders });
     const expId = data.experience._id;
+    asSam();
 
     await page.reload();
     await expect(page.locator(".reaction-bar").first()).toBeVisible();
 
-    await axios.delete(`${API}/experiences/${expId}`);
+    await axios.delete(`${API}/experiences/${expId}`, { headers: alexHeaders });
   });
 });

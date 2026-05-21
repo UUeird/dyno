@@ -23,7 +23,7 @@ import AuthBridge from "./components/AuthBridge";
 import { API } from "./lib/api";
 import { useAuth, SignedIn, SignedOut, UserButton, RedirectToSignIn } from "./lib/auth";
 
-type ExperienceStep = "choose" | "library" | "vin" | "new-car" | "experience-type";
+type ExperienceStep = "choose" | "library" | "vin" | "new-car" | "experience-type" | "location";
 
 const emptyCar = {
   manufacturer: "",
@@ -63,6 +63,9 @@ function NewExperienceModal({
   const [notes, setNotes] = useState("");
   const [rating, setRating] = useState<number | null>(null);
   const [droveSelected, setDroveSelected] = useState(false);
+  const [locationDisplay, setLocationDisplay] = useState("");
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "fetching" | "done" | "error">("idle");
 
   const selectedManufacturer = manufacturers.find((m) => m.name === form.manufacturer);
   const availableModels = selectedManufacturer?.models || [];
@@ -117,19 +120,61 @@ function NewExperienceModal({
     setStep("experience-type");
   };
 
-  const handleSelectExperienceType = async (type: "spotted" | "drove") => {
+  const requestLocation = async () => {
+    if (!navigator.geolocation) {
+      setLocationStatus("error");
+      return;
+    }
+    setLocationStatus("fetching");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setLocationCoords({ lat, lng });
+        try {
+          const r = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+            { headers: { "Accept-Language": "en" } }
+          );
+          const data = await r.json();
+          const a = data.address || {};
+          const display = [a.neighbourhood || a.suburb, a.city || a.town || a.village, a.country]
+            .filter(Boolean)
+            .join(", ");
+          setLocationDisplay(display || data.display_name || "");
+        } catch {
+          setLocationDisplay(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+        }
+        setLocationStatus("done");
+      },
+      () => setLocationStatus("error")
+    );
+  };
+
+  const submitExperience = async (type: "spotted" | "drove") => {
     if (!selectedCar) return;
     try {
+      const location = type === "spotted" && locationDisplay.trim()
+        ? { display: locationDisplay.trim(), lat: locationCoords?.lat ?? null, lng: locationCoords?.lng ?? null }
+        : undefined;
       const { data } = await axios.post(`${API}/experiences`, {
         car: selectedCar._id,
         type,
         notes: notes.trim() || null,
         rating: type === "drove" ? rating : null,
+        location,
       });
       onExperienceCreated(data.newBadges || []);
       onClose();
     } catch {
       onClose();
+    }
+  };
+
+  const handleSelectExperienceType = (type: "spotted" | "drove") => {
+    if (type === "spotted") {
+      setStep("location");
+    } else {
+      submitExperience("drove");
     }
   };
 
@@ -198,7 +243,7 @@ function NewExperienceModal({
               />
               <button className="btn-primary" disabled={vin.length !== 17}>Look up</button>
             </div>
-            <p className="modal-subtitle" style={{ marginTop: 16 }}>VIN lookup coming soon.</p>
+            <p className="modal-subtitle modal-subtitle--spaced">VIN lookup coming soon.</p>
           </>
         )}
 
@@ -292,7 +337,7 @@ function NewExperienceModal({
               <div className="drove-rating-step">
                 <p className="modal-subtitle">Rate this drive (optional)</p>
                 <StarRating rating={rating} onClick={setRating} />
-                <div className="experience-options" style={{ marginTop: 20 }}>
+                <div className="experience-options experience-options--spaced">
                   <button className="experience-option" onClick={() => { setDroveSelected(false); setRating(null); }}>
                     <span className="option-icon">👀</span>
                     <span className="option-label">Spotted</span>
@@ -319,6 +364,53 @@ function NewExperienceModal({
                 </button>
               </div>
             )}
+          </>
+        )}
+
+        {step === "location" && selectedCar && (
+          <>
+            <h2>Where did you spot it?</h2>
+            <p className="modal-subtitle">Optional — only visible to you.</p>
+            <div className="location-row">
+              {locationStatus === "idle" && (
+                <button className="btn-location" onClick={requestLocation}>
+                  📍 Use my location
+                </button>
+              )}
+              {locationStatus === "fetching" && (
+                <p className="location-status">Getting location…</p>
+              )}
+              {locationStatus === "error" && (
+                <p className="location-status location-status--error">Couldn't get location.</p>
+              )}
+              {(locationStatus === "done" || locationStatus === "error") && (
+                <input
+                  className="location-input"
+                  placeholder="e.g. Brooklyn, NY"
+                  value={locationDisplay}
+                  onChange={(e) => setLocationDisplay(e.target.value)}
+                />
+              )}
+              {locationStatus === "idle" && (
+                <input
+                  className="location-input"
+                  placeholder="Or type a location…"
+                  value={locationDisplay}
+                  onChange={(e) => setLocationDisplay(e.target.value)}
+                />
+              )}
+            </div>
+            <div className="experience-options experience-options--spaced">
+              <button className="experience-option" onClick={() => { setLocationDisplay(""); setLocationCoords(null); setLocationStatus("idle"); submitExperience("spotted"); }}>
+                <span className="option-label">Skip</span>
+                <span className="option-desc">Log without location</span>
+              </button>
+              <button className="experience-option experience-option--primary" onClick={() => submitExperience("spotted")}>
+                <span className="option-icon">👀</span>
+                <span className="option-label">Log Spot</span>
+                <span className="option-desc">{locationDisplay.trim() || "No location"}</span>
+              </button>
+            </div>
           </>
         )}
       </div>

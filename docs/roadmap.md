@@ -9,24 +9,14 @@ What's coming next. Items below are not committed plans — directional intent. 
 
 ## Later
 
-### Wishlist: distinguish "want to drive" vs. "want to own"
+### Wishlist: distinguish "want to drive" vs. "want to buy"
 
-Today the Wishlist is one undifferentiated list. The intent of an entry varies — sometimes the user just wants to *experience* a car (a track day, a friend's lend), other times they want to *own* it. These have different signals (recommendations, garage planning) and we should split them.
+Today the Wishlist is one undifferentiated list. The intent of an entry varies — sometimes the user just wants to *experience* a car (a track day, a friend's lend), other times they want to *buy* it (to own, flip, collect, etc.). These have different signals (recommendations, garage planning) and we should split them.
 
 **Likely shape (TBD):**
 
-- Schema: add `intent: "drive" | "own"` to `WishlistItem`, default `"drive"` for back-compat
+- Schema: add `intent: "drive" | "buy"` to `WishlistItem`, default `"drive"` for back-compat
 - Model page wishlist button becomes a small two-state toggle / segmented control instead of a single "Want to drive" button
 - Profile Wishlist section gains a filter or splits into two galleries (e.g. tabbed)
-- A drove experience only auto-removes the *drive*-intent entries; own-intent entries persist until the user actually owns the car (we could auto-remove those when an `Ownership` is logged)
+- A drove experience only auto-removes the *drive*-intent entries; buy-intent entries persist until the user actually acquires the car (we could auto-remove those when an `Ownership` is logged)
 
-### Location tagging on spots
-
-Optional city/neighborhood field on **spotted** experiences. Waiting on location services being set up in the app — once we have proper geocoding/place lookup, this becomes much more useful than a free-text field.
-
-**Scope (when we pick this back up):**
-
-- Schema: `location` field on `experienceSchema` (shape TBD based on geocoding integration)
-- Modal: location picker on the spotted flow
-- Display: small "📍 Brooklyn, NY" line under the experience card
-- Aggregate top locations on model pages

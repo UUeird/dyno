@@ -174,6 +174,11 @@ const experienceSchema = new mongoose.Schema({
   notes: String,
   rating: { type: Number, min: 0, max: 5, default: null },
   loggedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Human", default: null },
+  location: {
+    display: { type: String, default: null },
+    lat: { type: Number, default: null },
+    lng: { type: Number, default: null },
+  },
 });
 const Experience = mongoose.model("Experience", experienceSchema);
 
@@ -1067,6 +1072,8 @@ app.get("/api/experiences", async (req, res) => {
       const followeeIds = follows.map((f) => f.followee);
       filter = { loggedBy: { $in: [followerId, ...followeeIds] } };
     }
+    const requester = await getCurrentHuman(req);
+    const requesterId = requester ? String(requester._id) : null;
     const experiences = await Experience.find(filter)
       .populate("car")
       .populate("loggedBy", "name email avatarUrl")
@@ -1085,6 +1092,8 @@ app.get("/api/experiences", async (req, res) => {
       const expObj = exp.toObject();
       expObj.car = await attachOwnership(exp.car);
       expObj.reactions = reactionsByExp[String(exp._id)] || [];
+      const isAuthor = requesterId && String(exp.loggedBy?._id || exp.loggedBy) === requesterId;
+      if (!isAuthor) delete expObj.location;
       return expObj;
     }));
     res.json(result);
@@ -1095,10 +1104,11 @@ app.get("/api/experiences", async (req, res) => {
 
 app.post("/api/experiences", requireAuth, async (req, res) => {
   try {
-    const { car, type, notes, rating } = req.body;
+    const { car, type, notes, rating, location } = req.body;
     if (!car || !type) return res.status(400).json({ error: "car and type are required" });
     const loggedBy = req.currentHuman._id;
-    const experience = new Experience({ car, type, notes, rating: rating ?? null, loggedBy });
+    const loc = location?.display ? { display: location.display, lat: location.lat ?? null, lng: location.lng ?? null } : undefined;
+    const experience = new Experience({ car, type, notes, rating: rating ?? null, loggedBy, location: loc });
     await experience.save();
     await experience.populate("loggedBy", "name email avatarUrl");
 
@@ -1222,6 +1232,9 @@ app.get("/api/users/:id/profile", async (req, res) => {
     const human = await Human.findById(humanId);
     if (!human) return res.status(404).json({ error: "User not found" });
 
+    const requester = await getCurrentHuman(req);
+    const isOwner = requester && String(requester._id) === String(humanId);
+
     const experienceDocs = await Experience.find({ loggedBy: humanId })
       .populate("car")
       .populate("loggedBy", "name email avatarUrl")
@@ -1240,6 +1253,7 @@ app.get("/api/users/:id/profile", async (req, res) => {
       const expObj = exp.toObject();
       expObj.car = await attachOwnership(exp.car);
       expObj.reactions = reactionsByExp[String(exp._id)] || [];
+      if (!isOwner) delete expObj.location;
       return expObj;
     }));
 

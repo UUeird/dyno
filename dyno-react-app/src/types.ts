@@ -66,6 +66,7 @@ export type Experience = {
   rating?: number | null;
   loggedBy?: Human;
   reactions: Reaction[];
+  location?: { display: string; lat: number | null; lng: number | null } | null;
 };
 
 export type BadgeInfo = {

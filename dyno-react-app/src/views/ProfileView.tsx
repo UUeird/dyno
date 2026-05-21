@@ -179,6 +179,9 @@ export default function ProfileView({
                   {exp.type === "drove" && (
                     <StarIcon rating={exp.rating} />
                   )}
+                  {exp.type === "spotted" && exp.location?.display && (
+                    <p className="experience-location">📍 {exp.location.display}</p>
+                  )}
                 </div>
               </div>
             </li>

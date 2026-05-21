@@ -65,8 +65,9 @@ We mirror Playwright tests into Qase as test cases for tracking + manual run rep
 
 ```bash
 cd dyno-react-app
-npm run sync-qase            # creates/updates cases
+npm run sync-qase            # creates/updates cases (code → Qase)
 npm run sync-qase -- --dry-run   # preview without writing
+npm run qase-orphans         # list Qase cases with no matching test (tester inbox)
 ```
 
 Mechanics:

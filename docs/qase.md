@@ -144,6 +144,67 @@ The fixes:
 
 These four together make multi-line statement reconstruction reliable. Without them, ~30% of tests produced subtly wrong steps.
 
+## Collaboration model — humans and AI across Qase and Playwright
+
+The sync as-built is **one-way: code → Qase**. Tests are written in Playwright, the script pushes them up. That asymmetry is fine when only developers contribute, but breaks down once QA testers want to participate. Below is the working model we landed on, plus what's still ad-hoc.
+
+### Who owns what
+
+- **Test code** in `tests/*.spec.ts` is the source of truth for *what* is tested.
+- **Step prose** in Qase is the source of truth for *how it reads to a manual tester*. Two flavours:
+  - For most tests, the prose is auto-derived from the code. The developer doesn't think about Qase.
+  - For high-value or hard-to-read tests, the developer (or the tester via a chat/PR request) adds `// @qase-step:` / `// @qase-expect:` comments to the test body. Those override the auto-output and travel with the code.
+- **Tester-only cases** (exploratory, perf, a11y, anything without a Playwright equivalent) live in Qase only. They have no `External ID:` marker, so the sync ignores them.
+
+### What happens when a tester edits steps in the Qase UI
+
+**Manual edits stick until the test code changes.** The sync script only re-pushes a case when the *code-derived steps* hash changes. Editing prose in the Qase UI doesn't trigger anything on the next sync, so the tester's refinement survives.
+
+Once the underlying test is touched — even a small edit — the sync sees a fresh hash, regenerates from code, and overwrites the manual prose. The expectation we set with testers:
+
+> "Polish prose in Qase if you want, but treat it as ephemeral. If the prose is *important* (regulatory, customer-facing, etc.), file it as a `// @qase-step:` annotation in the test so it's preserved across edits."
+
+This trades some honesty ("code is source of truth") for ergonomics ("testers can iterate without filing a PR for every word"). It works because:
+
+- Most tests change rarely; manual prose has a long life.
+- The annotation escape hatch exists for the high-value cases.
+- The CLI message on sync makes it clear when a case has been re-pushed.
+
+### What happens when a tester creates a new case in Qase
+
+The case sits in Qase with no `External ID:` marker. The sync ignores it (it can't be matched to any test). To surface it as work-to-do, we have a companion script:
+
+```bash
+cd dyno-react-app
+npm run qase-orphans
+```
+
+It lists two kinds of cases:
+
+- **Untagged**: created in the UI, no test exists. These are tester requests for new coverage.
+- **Orphan**: synced from a test that has since been renamed or deleted. These usually want cleanup.
+
+The script is read-only — it doesn't auto-translate cases into tests. A developer (or AI assistant) picks them up, writes the Playwright spec, and the next sync attaches the case via its External ID.
+
+If the tester wants the AI to translate a case, the natural ask in chat is: "Look at Qase case #243 and write the Playwright test for it." The AI can read the case via the Qase API and turn the step prose into a spec.
+
+### What happens when an AI edits a test
+
+Same as a developer editing it. The sync pushes the new code-derived steps. Any prior manual prose in Qase is overwritten unless it was captured as a `// @qase-step:` annotation. If the AI cares about preserving a tester's refinement, it should:
+
+1. Read the existing case from Qase before editing the test.
+2. If the live prose differs from what code would generate, ask the user whether to lift the prose into annotations.
+3. Then make the code change.
+
+This isn't enforced; it's a manners thing. The deterministic part is that the sync will overwrite — so the burden is on the editor to check first if they care.
+
+### Things we haven't solved
+
+- **Two-way drift detection.** We don't tell the tester when their manual edits are about to be overwritten. A dry-run mode could diff "what's in Qase" vs "what code would push" and warn the user before sync.
+- **Tester-authored test bodies.** Today the tester writes prose; a developer writes code. There's no shape for "tester drafts the test in Qase, AI converts it to a Playwright body, dev reviews." The orphan script is step one; the conversion script is step two.
+- **Run results back-fill.** Test runs in CI could close Qase Test Runs automatically. We don't have CI yet, so this is deferred.
+- **Manual-only tag respected by sync.** A `manual-only` tag on a Qase case would tell the sync to skip it even if it has an `External ID:`. Useful when a test exists in code but is being intentionally documented as manual until automation catches up. Not implemented.
+
 ## What we'd do differently in a plugin
 
 If we extracted this into a reusable package, the changes worth making:

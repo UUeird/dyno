@@ -68,6 +68,7 @@ cd dyno-react-app
 npm run sync-qase            # creates/updates cases (code → Qase)
 npm run sync-qase -- --dry-run   # preview without writing
 npm run qase-orphans         # list Qase cases with no matching test (tester inbox)
+npm run qase-drift           # list cases where the tester edited Qase prose (drift inbox)
 ```
 
 Mechanics:
@@ -76,6 +77,7 @@ Mechanics:
 - Each case's test steps are parsed from the test body: consecutive UI actions collapse into one step whose `expected_result` is the next `expect(...)`. API tests emit one step per axios call. A `Steps hash: <sha>` marker in the description detects when steps have drifted and triggers an update
 - Idempotency: each case's description embeds `External ID: \`<spec>.spec.ts::<test name>\``. The script parses that marker from existing cases on every run
 - **Overriding auto-generated steps**: add `// @qase-step: …` and `// @qase-expect: …` comments at the top of the test body. The script uses those verbatim instead of parsing the code — useful for tests where the auto-parsed steps read mechanically and a QA tester needs better prose
+- **Before editing a test that may have been polished by a tester in Qase**, run `npm run qase-drift`. If it reports the case as TESTER-REFINED or CONFLICT, lift the tester's prose into `// @qase-step:` / `// @qase-expect:` annotations *before* changing the test body — otherwise the next sync will overwrite their work. The drift script is manual on purpose; it's not in the pre-push hook
 - Required env (read from `.env.local`): `QASE_API_TOKEN`, optionally `QASE_PROJECT_CODE` (defaults to `DYNO`)
 - Implementation: [scripts/sync-qase.js](dyno-react-app/scripts/sync-qase.js)
 

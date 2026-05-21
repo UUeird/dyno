@@ -160,13 +160,29 @@ The sync as-built is **one-way: code → Qase**. Tests are written in Playwright
 
 **Manual edits stick until the test code changes.** The sync script only re-pushes a case when the *code-derived steps* hash changes. Editing prose in the Qase UI doesn't trigger anything on the next sync, so the tester's refinement survives.
 
-Once the underlying test is touched — even a small edit — the sync sees a fresh hash, regenerates from code, and overwrites the manual prose. The expectation we set with testers:
+Once the underlying test is touched — even a small edit — the sync sees a fresh hash, regenerates from code, and overwrites the manual prose. We don't want those edits to silently evaporate, so we have a companion script:
 
-> "Polish prose in Qase if you want, but treat it as ephemeral. If the prose is *important* (regulatory, customer-facing, etc.), file it as a `// @qase-step:` annotation in the test so it's preserved across edits."
+```bash
+cd dyno-react-app
+npm run qase-drift
+```
+
+`qase-drift` reads every synced case, fetches its live steps, and compares three hashes: the stored `Steps hash:` from the description (the steps as they were at last push), a fresh hash of the live Qase steps, and a fresh hash of what the current code would generate. The 2×2 of "code changed?" × "Qase changed?" sorts cases into three categories:
+
+- **TESTER-REFINED** — code unchanged, Qase prose edited. The tester's refinement is intact. Lift it into `// @qase-step:` annotations on the test if you want it preserved across future code changes.
+- **CONFLICT** — both code and Qase prose changed since the last sync. The interesting case: the tester's insight may still apply to the new behavior, may be obsoleted, or may reveal a gap in the auto-generated steps. The script prints both the tester's current prose and the prose the next sync *would* push, so a human (or AI in chat) can reconcile.
+- **CODE-AHEAD** — code changed, Qase untouched. The next sync will overwrite cleanly. Listed for awareness only.
+
+The script is read-only. It surfaces signal; it doesn't act on it. The actual reconciliation — whether to lift prose, rewrite a test, or accept the overwrite — is a judgment call that lives in chat or a PR.
+
+The expectation we set with testers:
+
+> "Polish prose in Qase whenever it helps. Run `qase-drift` before any sync that might touch a case you care about, and lift important refinements into `// @qase-step:` annotations so they survive."
 
 This trades some honesty ("code is source of truth") for ergonomics ("testers can iterate without filing a PR for every word"). It works because:
 
 - Most tests change rarely; manual prose has a long life.
+- `qase-drift` gives developers and AI assistants a way to mine tester edits as input before they're overwritten.
 - The annotation escape hatch exists for the high-value cases.
 - The CLI message on sync makes it clear when a case has been re-pushed.
 
@@ -200,7 +216,7 @@ This isn't enforced; it's a manners thing. The deterministic part is that the sy
 
 ### Things we haven't solved
 
-- **Two-way drift detection.** We don't tell the tester when their manual edits are about to be overwritten. A dry-run mode could diff "what's in Qase" vs "what code would push" and warn the user before sync.
+- **Sync-time drift warnings.** `qase-drift` surfaces tester edits as an out-of-band report, but the sync script itself still happily overwrites without a heads-up. The natural next step is for `sync-qase --dry-run` (or a new `--check-drift` flag) to call into the same drift detector and refuse to overwrite CONFLICT/TESTER-REFINED cases without `--force`.
 - **Tester-authored test bodies.** Today the tester writes prose; a developer writes code. There's no shape for "tester drafts the test in Qase, AI converts it to a Playwright body, dev reviews." The orphan script is step one; the conversion script is step two.
 - **Run results back-fill.** Test runs in CI could close Qase Test Runs automatically. We don't have CI yet, so this is deferred.
 - **Manual-only tag respected by sync.** A `manual-only` tag on a Qase case would tell the sync to skip it even if it has an `External ID:`. Useful when a test exists in code but is being intentionally documented as manual until automation catches up. Not implemented.

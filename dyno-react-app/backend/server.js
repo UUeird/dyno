@@ -585,6 +585,34 @@ async function attachOwnershipToMany(carDocs) {
   });
 }
 
+// Serialize an Experience for API output using a strict whitelist. Any field
+// not listed here is dropped — adding a private field to the schema is then a
+// "this field won't appear in responses until you decide where it goes"
+// situation, which is the safer default.
+//
+// `public` is returned to every caller. `authorOnly` is added only when the
+// viewer is the experience's author.
+const EXPERIENCE_PUBLIC_FIELDS = [
+  "_id", "type", "date", "notes", "rating", "loggedBy", "car", "reactions",
+];
+const EXPERIENCE_AUTHOR_ONLY_FIELDS = ["location"];
+
+function serializeExperience(exp, { viewerId } = {}) {
+  const src = exp && exp.toObject ? exp.toObject() : (exp || {});
+  const authorId = src.loggedBy && (src.loggedBy._id || src.loggedBy);
+  const isAuthor = !!viewerId && !!authorId && String(authorId) === String(viewerId);
+  const out = {};
+  for (const f of EXPERIENCE_PUBLIC_FIELDS) {
+    if (src[f] !== undefined) out[f] = src[f];
+  }
+  if (isAuthor) {
+    for (const f of EXPERIENCE_AUTHOR_ONLY_FIELDS) {
+      if (src[f] !== undefined) out[f] = src[f];
+    }
+  }
+  return out;
+}
+
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 
 // Resolve the calling user's Human record, creating one on first login.
@@ -1133,9 +1161,7 @@ app.get("/api/experiences", async (req, res) => {
       const expObj = exp.toObject();
       expObj.car = carById[String(exp.car._id)];
       expObj.reactions = reactionsByExp[String(exp._id)] || [];
-      const isAuthor = requesterId && String(exp.loggedBy?._id || exp.loggedBy) === requesterId;
-      if (!isAuthor) delete expObj.location;
-      return expObj;
+      return serializeExperience(expObj, { viewerId: requesterId });
     });
     res.json(result);
   } catch {
@@ -1274,7 +1300,7 @@ app.get("/api/users/:id/profile", async (req, res) => {
     if (!human) return res.status(404).json({ error: "User not found" });
 
     const requester = await getCurrentHuman(req);
-    const isOwner = requester && String(requester._id) === String(humanId);
+    const requesterId = requester ? String(requester._id) : null;
 
     const experienceDocs = await Experience.find({ loggedBy: humanId })
       .populate("car")
@@ -1297,8 +1323,7 @@ app.get("/api/users/:id/profile", async (req, res) => {
       const expObj = exp.toObject();
       expObj.car = expCarById[String(exp.car._id)];
       expObj.reactions = reactionsByExp[String(exp._id)] || [];
-      if (!isOwner) delete expObj.location;
-      return expObj;
+      return serializeExperience(expObj, { viewerId: requesterId });
     });
 
     const ownerships = await Ownership.find({ owner: humanId, to: null }).populate("car");
@@ -1549,14 +1574,14 @@ app.get("/api/models/:mfr/:model", async (req, res) => {
     const carIds = cars.map((c) => c._id);
 
     // All experiences for any instance of this model, newest first
-    const experiences = await Experience.find({ car: { $in: carIds } })
+    const experienceDocs = await Experience.find({ car: { $in: carIds } })
       .populate("car")
       .populate("loggedBy", "name email avatarUrl")
       .sort({ date: -1 })
       .lean();
 
     // Attach reactions to each experience
-    const expIds = experiences.map((e) => e._id);
+    const expIds = experienceDocs.map((e) => e._id);
     const allReactions = await Reaction.find({ experience: { $in: expIds } })
       .populate("human", "name")
       .lean();
@@ -1566,9 +1591,13 @@ app.get("/api/models/:mfr/:model", async (req, res) => {
       if (!reactionsByExp.has(k)) reactionsByExp.set(k, []);
       reactionsByExp.get(k).push(r);
     }
-    for (const e of experiences) {
+    for (const e of experienceDocs) {
       e.reactions = reactionsByExp.get(String(e._id)) ?? [];
     }
+
+    const requester = await getCurrentHuman(req);
+    const requesterId = requester ? String(requester._id) : null;
+    const experiences = experienceDocs.map((e) => serializeExperience(e, { viewerId: requesterId }));
 
     // Community rating: average of all rated experiences for this model
     const rated = experiences.filter((e) => e.rating != null);

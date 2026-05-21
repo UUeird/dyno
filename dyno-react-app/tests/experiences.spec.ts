@@ -176,4 +176,33 @@ test.describe("Location tagging on spotted experiences", () => {
       if (expId) await axios.delete(`${API}/experiences/${expId}`, { headers: { "x-test-user-id": FIXTURES.users.sam } });
     }
   });
+
+  test("location is stripped from the model page API response for non-authors", async () => {
+    let expId: string | undefined;
+    try {
+      const { data } = await axios.post(`${API}/experiences`, {
+        car: FIXTURES.cars.civic,
+        type: "spotted",
+        location: { display: "Topanga, CA", lat: 34.0936, lng: -118.6017 },
+      }, { headers: { "x-test-user-id": FIXTURES.users.sam } });
+      expId = data.experience._id;
+
+      // Alex views the Civic model page — should not see Sam's location
+      const model = await axios.get(`${API}/models/honda/civic`, {
+        headers: { "x-test-user-id": FIXTURES.users.alex },
+      });
+      const exp = model.data.experiences.find((e: any) => e._id === expId);
+      expect(exp).toBeDefined();
+      expect(exp?.location).toBeUndefined();
+
+      // Sam viewing the same page sees the location
+      const ownModel = await axios.get(`${API}/models/honda/civic`, {
+        headers: { "x-test-user-id": FIXTURES.users.sam },
+      });
+      const ownExp = ownModel.data.experiences.find((e: any) => e._id === expId);
+      expect(ownExp?.location?.display).toBe("Topanga, CA");
+    } finally {
+      if (expId) await axios.delete(`${API}/experiences/${expId}`, { headers: { "x-test-user-id": FIXTURES.users.sam } });
+    }
+  });
 });

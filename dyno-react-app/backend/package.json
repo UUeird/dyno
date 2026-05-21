@@ -14,7 +14,7 @@
     "cloudinary": "^2.10.0",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
-    "express": "^4.21.0",
+    "express": "^5.2.1",
     "mongoose": "^8.6.2",
     "multer": "^2.1.1",
     "node-fetch": "^2.7.0"

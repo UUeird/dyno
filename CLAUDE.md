@@ -7,7 +7,9 @@ For deeper reference:
 - **[docs/architecture.md](docs/architecture.md)** — stack, data flow, organization
 - **[docs/api.md](docs/api.md)** — full endpoint reference
 - **[docs/qase.md](docs/qase.md)** — Qase API quirks and sync-design principles (portable to other projects)
-- **[docs/roadmap.md](docs/roadmap.md)** — what's queued up next
+- **[plan.json](plan.json)** — what's queued up next, as a kanban board. View/edit it
+  with the tada MCP server (wired in `.mcp.json`), or open it in the browser:
+  `python3 $TADA_HOME/server.py --data plan.json`
 
 ## Repo layout
 

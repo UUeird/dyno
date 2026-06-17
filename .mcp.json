@@ -3,6 +3,17 @@
     "playwright": {
       "command": "npx",
       "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "tada": {
+      "command": "python3",
+      "args": [
+        "${TADA_HOME}/mcp_server.py",
+        "--data",
+        "plan.json"
+      ],
+      "env": {
+        "TADA_PORT": "8770"
+      }
     }
   }
 }

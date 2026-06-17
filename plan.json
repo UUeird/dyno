@@ -1,0 +1,56 @@
+{
+  "meta": {
+    "title": "dyno — Roadmap",
+    "blurb": "What's coming next. Directional intent, not committed plans — migrated from docs/roadmap.md. Keep it honest.",
+    "version": "2026.06.17.1",
+    "updated": "2026-06-17"
+  },
+  "types": [
+    { "id": "story", "title": "Story", "kind": "todo" },
+    { "id": "bug", "title": "Bug", "kind": "debt" }
+  ],
+  "items": [
+    {
+      "title": "Verify identity on GET /api/experiences?followedBy",
+      "type": "bug",
+      "status": "todo",
+      "note": "Any caller can pass another user's ID as followedBy and get their social feed. No private data exposed today (location is stripped), but restrict so the requester can only query their own following list."
+    },
+    {
+      "title": "Limit search before deduping in memory",
+      "type": "bug",
+      "status": "todo",
+      "note": "server.js GET /api/search fetches unbounded car results then dedupes in memory. Add a .limit() on the DB query, or migrate to a unique {manufacturer, model} index on a models collection."
+    },
+    {
+      "title": "Migrate frontend from CRA to Vite",
+      "type": "bug",
+      "status": "todo",
+      "note": "react-scripts pins old transitive deps (webpack-dev-server, nth-check, lodash in Jest) that can't be upgraded without ejecting. ~18 Dependabot alerts stuck there. Vite clears most and is faster. ~A day's work; not urgent but worth doing before CRA maintenance worsens."
+    },
+    {
+      "title": "Push notifications / in-app alerts",
+      "type": "story",
+      "status": "todo",
+      "note": "Surface new follower, follower's drive, etc. iOS web push is finicky — investigate before committing to a shape."
+    },
+    {
+      "title": "Rotate exposed secrets",
+      "type": "bug",
+      "status": "todo",
+      "note": "Clerk sk_, Cloudinary, Atlas password were all pasted into AI conversations during initial setup. Cycle them."
+    },
+    {
+      "title": "Wishlist: distinguish \"want to drive\" vs. \"want to buy\"",
+      "type": "story",
+      "status": "idea",
+      "note": "Today the Wishlist is one undifferentiated list, but intent varies (experience a car vs. buy it). These have different signals (recommendations, garage planning) and should split. Likely shape is TBD.",
+      "children": [
+        { "title": "Schema: add intent: \"drive\" | \"buy\" to WishlistItem, default \"drive\" for back-compat", "status": "todo" },
+        { "title": "Model page wishlist button becomes a two-state toggle / segmented control", "status": "todo" },
+        { "title": "Profile Wishlist gains a filter or splits into two galleries (tabbed)", "status": "todo" },
+        { "title": "A drove experience auto-removes only drive-intent entries; buy-intent persist until an Ownership is logged", "status": "todo" }
+      ]
+    }
+  ]
+}

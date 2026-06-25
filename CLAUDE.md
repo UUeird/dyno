@@ -7,9 +7,12 @@ For deeper reference:
 - **[docs/architecture.md](docs/architecture.md)** — stack, data flow, organization
 - **[docs/api.md](docs/api.md)** — full endpoint reference
 - **[docs/qase.md](docs/qase.md)** — Qase API quirks and sync-design principles (portable to other projects)
-- **[plan.json](plan.json)** — what's queued up next, as a kanban board. View/edit it
-  with the tada MCP server (wired in `.mcp.json`), or open it in the browser:
-  `python3 $TADA_HOME/server.py --data plan.json`
+- **[plan.json](plan.json)** — what's queued up next, as a kanban board, managed via
+  the hosted tada board (`https://tada-board.fly.dev`, project `dyno`). View/edit it with
+  the tada MCP server, wired in `.mcp.json`. That file is gitignored (it references
+  per-machine env vars and a secret), so set it up on a fresh clone:
+  `cp .mcp.json.example .mcp.json`, then export `TADA_HOME` (path to your local tada
+  checkout, containing `mcp_server.py`) and `TADA_API_KEY` (board API key) in your shell.
 
 ## Repo layout
 

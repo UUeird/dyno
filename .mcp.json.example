@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "tada": {
+      "command": "python3",
+      "args": [
+        "${TADA_HOME}/mcp_server.py",
+        "--url", "https://tada-board.fly.dev",
+        "--project", "dyno"
+      ],
+      "env": {
+        "TADA_API_KEY": "${TADA_API_KEY}"
+      }
+    }
+  }
+}

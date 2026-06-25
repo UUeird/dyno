@@ -9,10 +9,13 @@ For deeper reference:
 - **[docs/qase.md](docs/qase.md)** — Qase API quirks and sync-design principles (portable to other projects)
 - **[plan.json](plan.json)** — what's queued up next, as a kanban board, managed via
   the hosted tada board (`https://tada-board.fly.dev`, project `dyno`). View/edit it with
-  the tada MCP server, wired in `.mcp.json`. That file is gitignored (it references
-  per-machine env vars and a secret), so set it up on a fresh clone:
-  `cp .mcp.json.example .mcp.json`, then export `TADA_HOME` (path to your local tada
-  checkout, containing `mcp_server.py`) and `TADA_API_KEY` (board API key) in your shell.
+  the tada MCP server, wired in `.mcp.json`. That file is gitignored (it references the
+  per-machine `${TADA_HOME}` path), so set it up on a fresh clone: `cp .mcp.json.example
+  .mcp.json`, then export `TADA_HOME` (path to your local tada checkout, containing
+  `mcp_server.py`) in your shell profile. The write API key is **not** configured here —
+  the tada server auto-loads `TADA_API_KEY` from a gitignored `.env` in `$TADA_HOME`. Set
+  that once in the tada repo and writes work everywhere. Restart Claude Code after changing
+  the env so the MCP server re-launches.
 
 ## Repo layout
 

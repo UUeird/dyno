@@ -14,3 +14,6 @@ playwright-report/
 
 # MCP config (local-only)
 .mcp.json
+
+# Local env (secrets) — never commit
+.env

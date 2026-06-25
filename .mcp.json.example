@@ -10,10 +10,7 @@
         "${TADA_HOME}/mcp_server.py",
         "--url", "https://tada-board.fly.dev",
         "--project", "dyno"
-      ],
-      "env": {
-        "TADA_API_KEY": "${TADA_API_KEY}"
-      }
+      ]
     }
   }
 }

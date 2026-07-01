@@ -22,7 +22,7 @@ For deeper reference:
 ```
 dyno/
 └── dyno-react-app/
-    ├── src/             # React frontend (CRA, react-scripts 3.0.1)
+    ├── src/             # React frontend (Vite)
     ├── backend/         # Express + Mongoose API server
     └── tests/           # Playwright E2E specs
 ```
@@ -103,12 +103,6 @@ Mechanics:
 
 ## Quirks to know
 
-**react-scripts 3.0.1's Babel 7 + TypeScript plugin is from early 2019.** It chokes on some modern TS:
-- Inline tuple type generics like `Array<[number, number]>` — use parallel `number[]` arrays
-- CSS custom property keys inside `React.CSSProperties` casts — use `transitionDelay` inline or a CSS class
-
-The error you'll see is `Syntax error: Cannot read properties of undefined (reading 'map') (0:undefined)` with no useful line info. If you see `(0:undefined)`, suspect a Babel parser limit before suspecting your logic.
-
 **Stale async responses can overwrite newer state.** When a `useEffect` re-fires on a dependency change (e.g. `currentUserId` loading later than the component mounting), in-flight requests can resolve out of order. Use a `cancelled` flag in the effect cleanup to drop stale responses. Example pattern in [src/views/CarModelView.tsx](dyno-react-app/src/views/CarModelView.tsx).
 
 **Authentication uses Clerk** (magic-link email). Frontend wraps the app in `<ClerkProvider>` (see [src/index.tsx](dyno-react-app/src/index.tsx)); backend uses `clerkMiddleware()` and checks the bearer token. On a user's first authenticated request, the backend auto-provisions a `Human` record linked by `clerkId` — see `getCurrentHuman()` in [backend/server.js](dyno-react-app/backend/server.js). Write endpoints require auth via `requireAuth` middleware.
@@ -121,7 +115,9 @@ The error you'll see is `Syntax error: Cannot read properties of undefined (read
 
 **Manufacturer registry.** On backend startup, `seedManufacturers()` idempotently inserts a starter list of ~20 brands. Admins (users whose email is in `ADMIN_EMAILS`) can add more manufacturers and models via `/admin/manufacturers`. New cars must reference an existing manufacturer+model combination, so this is how the registry grows.
 
-**API base URL** comes from `process.env.REACT_APP_API_URL` (falls back to `http://localhost:5000` in dev). Import `API` (root + `/api`) or `API_ORIGIN` (root only, for `/uploads/...` paths) from [src/lib/api.ts](dyno-react-app/src/lib/api.ts) — never hardcode URLs.
+**API base URL** comes from `import.meta.env.REACT_APP_API_URL` (falls back to `http://localhost:5000` in dev). Import `API` (root + `/api`) or `API_ORIGIN` (root only, for `/uploads/...` paths) from [src/lib/api.ts](dyno-react-app/src/lib/api.ts) — never hardcode URLs. Env var names keep the `REACT_APP_` prefix post-Vite-migration via `envPrefix` in [vite.config.ts](dyno-react-app/vite.config.ts), so no dashboard changes were needed.
+
+Vite has no equivalent of CRA's `CI=true`-treats-warnings-as-errors behavior — a build can no longer fail just because a lint warning fired.
 
 **Model URL slugs** are lowercase, hyphenated (`/cars/honda/civic`, `/cars/mercedes-benz/s-class`). Backend converts back via `slugToRegex` for case-insensitive matching. Helpers in [src/lib/modelSlug.ts](dyno-react-app/src/lib/modelSlug.ts).
 

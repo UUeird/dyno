@@ -1,12 +1,13 @@
 ---
 name: release
-description: "Ship open work: commit, push, open/merge the PR, clean up the branch, move the board ticket. Use when the user says 'release', 'ship it', 'land this'. This repo has no CI gate and no deploy pipeline yet — there is nothing to wait for between merge and cleanup. If that changes, extend this skill to await the gate/deploy before cleanup, mirroring tada's /release."
+description: "Ship open work: commit, push, open/merge the PR, wait for the Vercel prod deploy, clean up the branch, move the board ticket. Use when the user says 'release', 'ship it', 'land this'. PR checks include CodeQL and a Vercel preview deploy; after merge, main's commit gets its own 'Vercel' commit status once production deploy finishes — that's the gate for moving the board ticket to done, not the merge itself."
 ---
 
-Take one piece of open work from branch to merged and cleaned up. Dyno has **no
-GitHub Actions test gate and no deploy pipeline** (only `.github/dependabot.yml`
-exists) — so this is a single-PR flow with no batching, no "await CI," and no
-"wait for deploy" step. Don't invent one.
+Take one piece of open work from branch to merged, deployed, and cleaned up.
+PR checks (CodeQL, Vercel preview) run automatically on GitHub — nothing to
+configure, just wait for them. There's no separate test-gate workflow beyond
+that, so this is a single-PR flow with no batching or "await CI" step of its
+own. The one real wait is **after** merge: production deploy to Vercel.
 
 ### 1. Finish and push
 
@@ -23,11 +24,10 @@ exists) — so this is a single-PR flow with no batching, no "await CI," and no
 
 ### 2. Merge
 
-- No CI gate to wait for. Merge once you've confirmed the relevant tests pass
-  locally: `gh pr merge <PR#> --squash` (squash is the convention here — see
+- Wait for `gh pr checks <PR#>` to go green (CodeQL analyze, Vercel preview
+  deploy). Don't merge over a red or still-pending one — poll, don't guess.
+- Merge with `gh pr merge <PR#> --squash` (squash is the convention here — see
   git history).
-- If `gh pr checks` reports anything (e.g. a Dependabot-triggered check), don't
-  merge over a red one — stop and report.
 
 ### 3. Clean up the branch
 
@@ -40,15 +40,30 @@ git push origin --delete <branch>
 A squash-merge makes `git branch -d` warn "not yet merged to HEAD" and delete
 anyway — expected. If it *refuses*, stop and check why instead of forcing `-D`.
 
-### 4. Move the board ticket
+### 4. Wait for the prod deploy
 
-If the released work corresponds to a story/subtask on the tada board, move it
-to `done`: `mcp__tada__set_status` for the whole story, or
-`mcp__tada__set_subtask_status` for just the subtask.
+Merging to `main` kicks off a production Vercel deploy — this is the real
+"done" signal, not the merge itself. Poll the merge commit's status:
+
+```
+sha=$(git rev-parse origin/main)
+gh api repos/{owner}/{repo}/commits/$sha/status --jq '.statuses[] | select(.context=="Vercel")'
+```
+
+Wait until `state` is `success`. If it comes back `failure` or `error`, stop
+and report — don't move the board ticket, the deploy didn't actually ship.
+
+### 5. Move the board ticket
+
+Only after step 4 confirms the prod deploy succeeded: if the released work
+corresponds to a story/subtask on the tada board, move it to `done`:
+`mcp__tada__set_status` for the whole story, or `mcp__tada__set_subtask_status`
+for just the subtask.
 
 ---
 
 ## After the release
 
-Report what shipped: PR number, merged, branch cleaned up. Don't claim a
-branch is done unless it's actually merged and gone.
+Report what shipped: PR number, merged, deploy status, branch cleaned up.
+Don't claim a branch is done unless it's actually merged and gone, and don't
+move the board ticket until the prod deploy check is green.

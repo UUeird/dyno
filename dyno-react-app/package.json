@@ -4,38 +4,26 @@
   "private": true,
   "dependencies": {
     "@clerk/clerk-react": "^5.61.6",
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.30",
+    "@types/node": "^22.10.0",
     "axios": "^1.16.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.18.1",
-    "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "react-scripts start",
+    "start": "vite",
     "prebuild": "node scripts/gen-version.js && node scripts/gen-icons.js",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "build": "vite build",
+    "preview": "vite preview --port 3000",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "sync-qase": "node scripts/sync-qase.js",
     "qase-orphans": "node scripts/qase-orphans.js",
     "qase-drift": "node scripts/qase-drift.js",
     "install-hooks": "node scripts/install-hooks.js",
-    "postinstall": "node scripts/install-hooks.js --quiet",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "postinstall": "node scripts/install-hooks.js --quiet"
   },
   "browserslist": {
     "production": [
@@ -53,7 +41,9 @@
     "@playwright/test": "^1.60.0",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.3.4",
     "sharp": "^0.34.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^6.0.0"
   }
 }

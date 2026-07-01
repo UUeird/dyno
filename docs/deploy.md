@@ -83,7 +83,11 @@ Until production is set up, you can deploy with the dev keys (`pk_test_` / `sk_t
 1. Sign up at [vercel.com](https://vercel.com) with GitHub
 2. **Add New** → **Project** → import the `dyno` repo
 3. Configure:
-   - **Framework Preset**: Create React App
+   - **Framework Preset**: Vite (the committed `dyno-react-app/vercel.json`
+     pins `framework`/`buildCommand`/`outputDirectory`, so this should
+     auto-detect — but double-check the dashboard dropdown after the first
+     deploy and flip it to Vite by hand if it didn't pick it up, especially
+     since this project uses a non-root **Root Directory**)
    - **Root Directory**: `dyno-react-app`
    - **Build Command**: (default; `npm run build`)
    - **Output Directory**: (default; `build`)

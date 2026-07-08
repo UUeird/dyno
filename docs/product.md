@@ -9,7 +9,7 @@ flowchart TD
     subgraph PlatonicCar["Platonic Car"]
         Nation
         Manufacturer --> Model
-        CanonicalColors["Canonical Colors"]
+        Model --> CanonicalColors["Canonical Colors"]
     end
     PlatonicCar --> Instance["Instance (Car)"] --> Experience
     Trim --> Instance

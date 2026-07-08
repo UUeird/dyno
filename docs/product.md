@@ -18,6 +18,7 @@ flowchart TD
         CustomColor["Custom color"]
     end
     PlatonicCar --> Instance
+    Instance --> Experience
     User --> Experience
     User -. owns .-> Instance
     User -. formerly owned .-> PastInstance

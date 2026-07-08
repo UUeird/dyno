@@ -10,6 +10,7 @@ flowchart TD
         Nation
         Manufacturer --> Model
         Model --> CanonicalColors["Canonical Colors"]
+        Model --> Trim
     end
     PlatonicCar --> Instance["Instance (Car)"] --> Experience
     Trim --> Instance

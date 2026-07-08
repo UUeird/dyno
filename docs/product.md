@@ -22,12 +22,12 @@ flowchart TD
     PlatonicCar --> Instance
     subgraph Experience["Experience"]
         SmileScore["Smile score"]
+        DrivePath["Drive path"] --> Elevation["Elevation changes"]
     end
     Instance --> Experience
     User --> Experience
 
     subgraph RealityData["Reality Data"]
-        DrivePath["Drive path"] --> Elevation["Elevation changes"]
         Weather
         DateTime["Date, Time"]
         Traffic

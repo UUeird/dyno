@@ -9,9 +9,11 @@ flowchart TD
     subgraph PlatonicCar["Platonic Car"]
         direction TD
         Nation --> Manufacturer --> Model
-        Model --> CanonicalColors["Canonical Colors"]
-        Model --> Trim
-        Model --> Drivetrain
+        subgraph Model["Model"]
+            CanonicalColors["Canonical Colors"]
+            Trim
+            Drivetrain
+        end
         Year
     end
     subgraph Instance["Instance (Car)"]

@@ -8,11 +8,19 @@ Dyno is a social car-tracking app. Users log their driving and spotting experien
 flowchart TD
     Manufacturer --> Model --> Instance["Instance (Car)"] --> Experience
     Trim --> Instance
+    Drivetrain --> Instance
     User --> Experience
     CanonicalColors["Canonical Colors"] --> Model
     CustomColor["Color (Custom)"] --> Instance
-    Location --> Experience
     User -. owns .-> Instance
+
+    subgraph RealityData["Reality Data"]
+        Path
+        Weather
+        DateTime["Date, Time"]
+        Traffic
+    end
+    RealityData --> Experience
 ```
 
 ### Experience

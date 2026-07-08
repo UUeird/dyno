@@ -16,6 +16,7 @@ flowchart TD
     subgraph Instance["Instance (Car)"]
         CustomColor["Custom color"]
     end
+    PlatonicCar --> Instance
     User --> Experience
     User -. formerly owned .-> PastInstance
     SmileScore["Smile score"] --> Experience

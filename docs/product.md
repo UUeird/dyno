@@ -6,16 +6,19 @@ Dyno is a social car-tracking app. Users log their driving and spotting experien
 
 ```mermaid
 flowchart TD
-    Manufacturer --> Model --> Instance["Instance (Car)"] --> Experience
+    Nation --> Manufacturer --> Model --> Instance["Instance (Car)"] --> Experience
+    Model --> PastInstance["Instance (Car, past)"]
     Trim --> Instance
     Drivetrain --> Instance
+    Year --> Instance
     User --> Experience
     CanonicalColors["Canonical Colors"] --> Model
-    CustomColor["Color (Custom)"] --> Instance
+    CustomColor["Custom color"] --> Instance
     User -. owns .-> Instance
+    User -. formerly owned .-> PastInstance
 
     subgraph RealityData["Reality Data"]
-        Path
+        DrivePath["Drive path"]
         Weather
         DateTime["Date, Time"]
         Traffic
@@ -26,6 +29,7 @@ flowchart TD
 ### Experience
 
 The central unit of activity. An experience is one user's encounter with one specific car, of one of two types:
+
 - **drove** — the user drove the car. Can have a rating (0–5 stars, half-step increments).
 - **spotted** — the user saw the car. No rating.
 
@@ -76,25 +80,30 @@ Visual: badges are rendered as circular icons with a progress ring around the ci
 ## Core flows
 
 ### Logging an experience
+
 1. Pick or create a Car
 2. Choose drove or spotted, optionally add notes and (for drove) a rating
 3. POST `/api/experiences` — server saves the experience, auto-removes matching wishlist items if drove, re-evaluates badges, returns the experience + any new badges
 4. UI shows the experience in the feed; if `newBadges` non-empty, shows a celebration
 
 ### Reacting
+
 - Tap an emoji on a friend's experience → POST `/api/experiences/:id/reactions` with `{human, emoji}`
 - Tap the same emoji again → DELETE `/api/experiences/:id/reactions` to remove
 
 ### Following
+
 - POST `/api/follows` with `{follower, followee}` → 409 if already following, 400 if same user
 - Feed is filtered to `loggedBy ∈ {currentUser} ∪ following`
 
 ### Wishlisting
+
 - POST `/api/wishlist` with `{human, manufacturer, model, yearFrom?, yearTo?}` → 409 if a matching drove experience exists
 - DELETE with `{human, manufacturer, model}` to remove
 - Driving a car that satisfies a wishlist entry removes it automatically
 
 ### Discovering a model
+
 - Click a model name anywhere → `/cars/<mfr-slug>/<model-slug>` (lowercase, hyphenated)
 - Page shows: total experiences, community rating, all instances of that model on the platform, recent experiences across all instances, wishlist count, and per-user wishlist/driven state
 

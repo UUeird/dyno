@@ -11,10 +11,10 @@ flowchart TD
         Manufacturer --> Model
         Model --> CanonicalColors["Canonical Colors"]
         Model --> Trim
+        Year
     end
     PlatonicCar --> Instance["Instance (Car)"] --> Experience
     Drivetrain --> Instance
-    Year --> Instance
     User --> Experience
     CustomColor["Custom color"] --> Instance
     User -. owns .-> Instance

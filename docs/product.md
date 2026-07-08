@@ -13,7 +13,7 @@ flowchart TD
             CanonicalColors["Canonical Colors"]
             Trim["Trim Levels"]
             Drivetrain["Drivetrains"]
-            Year
+            Year["Years"]
         end
     end
     subgraph Instance["Instance (Car)"]

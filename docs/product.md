@@ -20,9 +20,11 @@ flowchart TD
         CustomColor["Custom color"]
     end
     PlatonicCar --> Instance
+    subgraph Experience["Experience"]
+        SmileScore["Smile score"]
+    end
     Instance --> Experience
     User --> Experience
-    SmileScore["Smile score"] --> Experience
 
     subgraph RealityData["Reality Data"]
         DrivePath["Drive path"] --> Elevation["Elevation changes"]

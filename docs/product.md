@@ -26,7 +26,6 @@ flowchart TD
     end
     Instance --> Experience
     User --> Experience
-    User -. owns .-> Instance
 
     subgraph RealityData["Reality Data"]
         Weather

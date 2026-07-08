@@ -1455,7 +1455,9 @@ app.get("/api/search", async (req, res) => {
     const matchingCars = await Car.find(
       { $or: [{ manufacturer: rx }, { model: rx }] },
       { manufacturer: 1, model: 1 }
-    ).lean();
+    )
+      .limit(200)
+      .lean();
     const seen = new Set();
     const models = [];
     for (const c of matchingCars) {

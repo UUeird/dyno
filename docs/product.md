@@ -6,8 +6,9 @@ Dyno is a social car-tracking app. Users log their driving and spotting experien
 
 ```mermaid
 flowchart TD
-    Manufacturer --> Model --> Instance["Instance (Car)"] --> Experience --> User
+    Manufacturer --> Model --> Instance["Instance (Car)"] --> Experience
     Trim --> Instance
+    User --> Experience
 ```
 
 ### Experience

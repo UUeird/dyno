@@ -22,7 +22,6 @@ flowchart TD
     PlatonicCar --> Instance
     Instance --> Experience
     User --> Experience
-    User -. owns .-> Instance
     SmileScore["Smile score"] --> Experience
 
     subgraph RealityData["Reality Data"]

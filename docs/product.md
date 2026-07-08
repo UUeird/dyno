@@ -11,8 +11,8 @@ flowchart TD
         Nation --> Manufacturer --> Model
         subgraph Model["Model"]
             CanonicalColors["Canonical Colors"]
-            Trim
-            Drivetrain
+            Trim["Trim Levels"]
+            Drivetrain["Drivetrains"]
         end
         Year
     end

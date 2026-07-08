@@ -18,6 +18,7 @@ flowchart TD
     end
     PlatonicCar --> Instance
     User --> Experience
+    User -. owns .-> Instance
     User -. formerly owned .-> PastInstance
     SmileScore["Smile score"] --> Experience
 

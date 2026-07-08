@@ -9,6 +9,10 @@ flowchart TD
     Manufacturer --> Model --> Instance["Instance (Car)"] --> Experience
     Trim --> Instance
     User --> Experience
+    CanonicalColors["Canonical Colors"] --> Model
+    CustomColor["Color (Custom)"] --> Instance
+    Location --> Experience
+    User -. owns .-> Instance
 ```
 
 ### Experience

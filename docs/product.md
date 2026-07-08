@@ -13,7 +13,6 @@ flowchart TD
         Model --> Trim
     end
     PlatonicCar --> Instance["Instance (Car)"] --> Experience
-    Trim --> Instance
     Drivetrain --> Instance
     Year --> Instance
     User --> Experience

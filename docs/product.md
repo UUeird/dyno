@@ -6,12 +6,15 @@ Dyno is a social car-tracking app. Users log their driving and spotting experien
 
 ```mermaid
 flowchart TD
-    Nation --> Manufacturer --> Model --> Instance["Instance (Car)"] --> Experience
+    subgraph PlatonicCar["Platonic Car"]
+        Nation --> Manufacturer --> Model
+        CanonicalColors["Canonical Colors"] --> Model
+    end
+    PlatonicCar --> Instance["Instance (Car)"] --> Experience
     Trim --> Instance
     Drivetrain --> Instance
     Year --> Instance
     User --> Experience
-    CanonicalColors["Canonical Colors"] --> Model
     CustomColor["Custom color"] --> Instance
     User -. owns .-> Instance
     User -. formerly owned .-> PastInstance

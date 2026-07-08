@@ -15,6 +15,7 @@ flowchart TD
     CustomColor["Custom color"] --> Instance
     User -. owns .-> Instance
     User -. formerly owned .-> PastInstance
+    SmileScore["Smile score"] --> Experience
 
     subgraph RealityData["Reality Data"]
         DrivePath["Drive path"] --> Elevation["Elevation changes"]

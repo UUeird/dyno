@@ -4,6 +4,11 @@ Dyno is a social car-tracking app. Users log their driving and spotting experien
 
 ## Core concepts
 
+```mermaid
+flowchart TD
+    Manufacturer --> Model --> Instance["Instance (Car)"] --> Experience --> User
+```
+
 ### Experience
 
 The central unit of activity. An experience is one user's encounter with one specific car, of one of two types:

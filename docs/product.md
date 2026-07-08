@@ -23,7 +23,6 @@ flowchart TD
     subgraph Experience["Experience"]
         SmileScore["Smile score"]
         DrivePath["Drive path"] --> Elevation["Elevation changes"]
-        DateTime["Date, Time"]
     end
     Instance --> Experience
     User --> Experience

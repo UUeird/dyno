@@ -13,10 +13,10 @@ flowchart TD
         Model --> Drivetrain
         Year
     end
-    PlatonicCar --> Instance["Instance (Car)"] --> Experience
+    subgraph Instance["Instance (Car)"]
+        CustomColor["Custom color"]
+    end
     User --> Experience
-    CustomColor["Custom color"] --> Instance
-    User -. owns .-> Instance
     User -. formerly owned .-> PastInstance
     SmileScore["Smile score"] --> Experience
 

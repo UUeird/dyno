@@ -17,7 +17,7 @@ flowchart TD
     User -. formerly owned .-> PastInstance
 
     subgraph RealityData["Reality Data"]
-        DrivePath["Drive path"]
+        DrivePath["Drive path"] --> Elevation["Elevation changes"]
         Weather
         DateTime["Date, Time"]
         Traffic

@@ -8,7 +8,7 @@ Dyno is a social car-tracking app. Users log their driving and spotting experien
 flowchart TD
     subgraph PlatonicCar["Platonic Car"]
         direction TD
-        Nation --> Manufacturer --> Model
+        Manufacturer --> Model
         subgraph Model["Model"]
             CanonicalColors["Canonical Colors"]
             Trim["Trim Levels"]

@@ -1075,6 +1075,12 @@
   color: var(--text-3);
 }
 
+.experience-weather {
+  margin: 4px 0 0;
+  font-size: var(--font-sm2);
+  color: var(--text-3);
+}
+
 .experience-notes {
   margin: 0;
   font-size: var(--font-base);

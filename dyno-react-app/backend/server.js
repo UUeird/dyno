@@ -179,8 +179,67 @@ const experienceSchema = new mongoose.Schema({
     lat: { type: Number, default: null },
     lng: { type: Number, default: null },
   },
+  weather: {
+    tempC: { type: Number, default: null },
+    conditions: { type: String, default: null },
+    windKph: { type: Number, default: null },
+    precipitationMm: { type: Number, default: null },
+  },
 });
 const Experience = mongoose.model("Experience", experienceSchema);
+
+// WMO weather codes (used by Open-Meteo) collapsed to short human-readable labels.
+const WMO_CONDITIONS = {
+  0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+  45: "Fog", 48: "Fog",
+  51: "Light drizzle", 53: "Drizzle", 55: "Dense drizzle",
+  61: "Light rain", 63: "Rain", 65: "Heavy rain",
+  71: "Light snow", 73: "Snow", 75: "Heavy snow", 77: "Snow grains",
+  80: "Light showers", 81: "Showers", 82: "Violent showers",
+  85: "Light snow showers", 86: "Snow showers",
+  95: "Thunderstorm", 96: "Thunderstorm w/ hail", 99: "Thunderstorm w/ hail",
+};
+
+// Fetches a weather snapshot for a lat/lng + date from Open-Meteo. Returns null on
+// missing coords or any fetch/parse failure — weather is best-effort and must never
+// block experience creation.
+async function fetchWeatherSnapshot(lat, lng, date) {
+  if (lat == null || lng == null) return null;
+  try {
+    const isoDate = new Date(date ?? Date.now()).toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
+    const base = isoDate < today
+      ? "https://archive-api.open-meteo.com/v1/archive"
+      : "https://api.open-meteo.com/v1/forecast";
+    const params = new URLSearchParams({
+      latitude: lat,
+      longitude: lng,
+      start_date: isoDate,
+      end_date: isoDate,
+      hourly: "temperature_2m,weathercode,windspeed_10m,precipitation",
+      timezone: "auto",
+    });
+    const resp = await fetch(`${base}?${params}`);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const hourly = data?.hourly;
+    if (!hourly?.time?.length) return null;
+    // Pick the hour closest to noon local time as a representative reading.
+    const idx = hourly.time.reduce((best, t, i) => {
+      const hour = Number(t.slice(11, 13));
+      const bestHour = Number(hourly.time[best].slice(11, 13));
+      return Math.abs(hour - 12) < Math.abs(bestHour - 12) ? i : best;
+    }, 0);
+    return {
+      tempC: hourly.temperature_2m?.[idx] ?? null,
+      conditions: WMO_CONDITIONS[hourly.weathercode?.[idx]] ?? null,
+      windKph: hourly.windspeed_10m?.[idx] ?? null,
+      precipitationMm: hourly.precipitation?.[idx] ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
 
 const followSchema = new mongoose.Schema({
   follower: { type: mongoose.Schema.Types.ObjectId, ref: "Human", required: true },
@@ -595,7 +654,7 @@ async function attachOwnershipToMany(carDocs) {
 const EXPERIENCE_PUBLIC_FIELDS = [
   "_id", "type", "date", "notes", "rating", "loggedBy", "car", "reactions",
 ];
-const EXPERIENCE_AUTHOR_ONLY_FIELDS = ["location"];
+const EXPERIENCE_AUTHOR_ONLY_FIELDS = ["location", "weather"];
 
 function serializeExperience(exp, { viewerId } = {}) {
   const src = exp && exp.toObject ? exp.toObject() : (exp || {});
@@ -1177,7 +1236,8 @@ app.post("/api/experiences", requireAuth, async (req, res) => {
     if (!car || !type) return res.status(400).json({ error: "car and type are required" });
     const loggedBy = req.currentHuman._id;
     const loc = location?.display ? { display: location.display, lat: location.lat ?? null, lng: location.lng ?? null } : undefined;
-    const experience = new Experience({ car, type, notes, rating: rating ?? null, loggedBy, location: loc });
+    const weather = await fetchWeatherSnapshot(loc?.lat, loc?.lng, undefined);
+    const experience = new Experience({ car, type, notes, rating: rating ?? null, loggedBy, location: loc, weather });
     await experience.save();
     await experience.populate("loggedBy", "name email avatarUrl");
 

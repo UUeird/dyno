@@ -182,6 +182,12 @@ export default function ProfileView({
                   {exp.type === "spotted" && exp.location?.display && (
                     <p className="experience-location">📍 {exp.location.display}</p>
                   )}
+                  {exp.weather?.conditions && (
+                    <p className="experience-weather">
+                      {exp.weather.conditions}
+                      {exp.weather.tempC != null && `, ${Math.round(exp.weather.tempC)}°C`}
+                    </p>
+                  )}
                 </div>
               </div>
             </li>

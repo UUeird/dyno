@@ -206,3 +206,60 @@ test.describe("Location tagging on spotted experiences", () => {
     }
   });
 });
+
+test.describe("Weather snapshot on experiences", () => {
+  test("weather is attached when lat/lng are provided", async () => {
+    let expId: string | undefined;
+    try {
+      const { data } = await axios.post(`${API}/experiences`, {
+        car: FIXTURES.cars.civic,
+        type: "spotted",
+        location: { display: "Malibu, CA", lat: 34.0259, lng: -118.7798 },
+      }, { headers: { "x-test-user-id": FIXTURES.users.sam } });
+      expId = data.experience._id;
+
+      expect(data.experience.weather).toBeDefined();
+      expect(data.experience.weather).not.toBeNull();
+      expect(typeof data.experience.weather.tempC).toBe("number");
+      expect(typeof data.experience.weather.conditions).toBe("string");
+    } finally {
+      if (expId) await axios.delete(`${API}/experiences/${expId}`, { headers: { "x-test-user-id": FIXTURES.users.sam } });
+    }
+  });
+
+  test("weather is absent when no location is provided", async () => {
+    let expId: string | undefined;
+    try {
+      const { data } = await axios.post(`${API}/experiences`, {
+        car: FIXTURES.cars.civic,
+        type: "drove",
+        rating: 4,
+      }, { headers: { "x-test-user-id": FIXTURES.users.sam } });
+      expId = data.experience._id;
+
+      expect(data.experience.weather == null).toBeTruthy();
+    } finally {
+      if (expId) await axios.delete(`${API}/experiences/${expId}`, { headers: { "x-test-user-id": FIXTURES.users.sam } });
+    }
+  });
+
+  test("weather is stripped from another user's view, same as location", async () => {
+    let expId: string | undefined;
+    try {
+      const { data } = await axios.post(`${API}/experiences`, {
+        car: FIXTURES.cars.civic,
+        type: "spotted",
+        location: { display: "Santa Monica, CA", lat: 34.0195, lng: -118.4912 },
+      }, { headers: { "x-test-user-id": FIXTURES.users.sam } });
+      expId = data.experience._id;
+
+      const profile = await axios.get(`${API}/users/${FIXTURES.users.sam}/profile`, {
+        headers: { "x-test-user-id": FIXTURES.users.alex },
+      });
+      const exp = profile.data.experiences.find((e: any) => e._id === expId);
+      expect(exp?.weather).toBeUndefined();
+    } finally {
+      if (expId) await axios.delete(`${API}/experiences/${expId}`, { headers: { "x-test-user-id": FIXTURES.users.sam } });
+    }
+  });
+});

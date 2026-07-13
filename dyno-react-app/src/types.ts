@@ -67,6 +67,7 @@ export type Experience = {
   loggedBy?: Human;
   reactions: Reaction[];
   location?: { display: string; lat: number | null; lng: number | null } | null;
+  weather?: { tempC: number | null; conditions: string | null; windKph: number | null; precipitationMm: number | null } | null;
 };
 
 export type BadgeInfo = {

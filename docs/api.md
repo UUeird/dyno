@@ -202,13 +202,18 @@ End an ongoing ownership.
 ## Experiences
 
 ### `GET /api/experiences?followedBy=<userId>`
-Returns experiences with `car`, `loggedBy`, and `reactions` populated, sorted newest first.
+Returns experiences with `car` (or `vehicleModel`/`vehicleManufacturer` for loose experiences), `loggedBy`, and `reactions` populated, sorted newest first.
 
 When `followedBy` is provided, filters to experiences logged by that user OR anyone they follow (feed mode). Without it, returns all experiences.
 
 ### `POST /api/experiences` 🔒
-**Body**: `{car, type, notes?, rating?}`
+**Body**: `{car?, vehicleModel?, yearGuess?, colorGuess?, type, notes?, rating?}`
 - `type`: `"drove"` | `"spotted"`
+- Exactly one of `car` / `vehicleModel` is required:
+  - `car`: a real Car's ObjectId — a VIN-identified, strongly-linked vehicle
+  - `vehicleModel`: a Model's ObjectId — the loose "spotted it, didn't ID the exact car" case. No Car doc is created. `yearGuess`/`colorGuess` are optional free-form hints (not validated against the model's registry — they're guesses, not identified data)
+  - `type === "drove"` always requires `car` — driving a car means you were with the actual vehicle, so loose linking isn't allowed
+  - `400` if both or neither are set, or if `vehicleModel` doesn't reference a real Model
 - `rating`: number 0–5 (half-step increments allowed), only meaningful for drove
 - `loggedBy` is derived from the session
 

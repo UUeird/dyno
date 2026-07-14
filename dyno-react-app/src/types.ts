@@ -61,7 +61,15 @@ export type Reaction = {
 
 export type Experience = {
   _id: string;
-  car: Car;
+  // Exactly one of `car` / `vehicleModel` is set. `car` is a VIN-identified,
+  // strongly-linked vehicle. `vehicleModel` is the loose "spotted it, didn't
+  // ID the exact car" case — "drove" experiences always have `car`.
+  car?: Car | null;
+  vehicleModel?: string;
+  vehicleModelId?: string;
+  vehicleManufacturer?: string;
+  yearGuess?: number | null;
+  colorGuess?: string | null;
   type: "spotted" | "drove";
   date: string;
   notes?: string;

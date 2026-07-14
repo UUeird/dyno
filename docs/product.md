@@ -43,10 +43,12 @@ flowchart TD
 
 ### Experience
 
-The central unit of activity. An experience is one user's encounter with one specific car, of one of two types:
+The central unit of activity. An experience is one user's encounter with a vehicle, of one of two types:
 
-- **drove** — the user drove the car. Can have a rating (0–5 stars, half-step increments).
-- **spotted** — the user saw the car. No rating.
+- **drove** — the user drove the car. Can have a rating (0–5 stars, half-step increments). Always linked to a real, VIN-identifiable `Car`.
+- **spotted** — the user saw the car. No rating. Can either strongly link to a real `Car` (if the user IDs it, e.g. by VIN) or go **loose** — just the Model, no `Car` record, for the common "saw a cool car, didn't catch the VIN" case. Loose experiences carry an optional year/color guess instead of a Car's real data.
+
+The loose path exists to keep `Car` meaningful as "a real, identified vehicle" rather than accumulating duplicate Car records every time someone logs a casual spot.
 
 Experiences have optional notes and can collect emoji reactions from other users.
 

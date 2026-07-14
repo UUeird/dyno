@@ -187,7 +187,18 @@ const ownershipSchema = new mongoose.Schema({
 const Ownership = mongoose.model("Ownership", ownershipSchema);
 
 const experienceSchema = new mongoose.Schema({
-  car: { type: mongoose.Schema.Types.ObjectId, ref: "Car", required: true },
+  // Exactly one of `car` / `vehicleModel` is set — enforced in the route
+  // handlers, not here, so the two creation paths can each return a clear
+  // 400 rather than relying on a generic schema-validation error.
+  //
+  // `car`: a VIN-identified experience, strongly linked to one canonical Car.
+  // `vehicleModel` + loose fields: a "spotted it, didn't ID the exact car"
+  // experience — still tied to a real Model so ratings/wishlist-matching/
+  // model-page aggregation keep working, but doesn't mint a new Car doc.
+  car: { type: mongoose.Schema.Types.ObjectId, ref: "Car", default: null },
+  vehicleModel: { type: mongoose.Schema.Types.ObjectId, ref: "Model", default: null },
+  yearGuess: { type: Number, default: null },
+  colorGuess: { type: String, default: null },
   type: { type: String, enum: ["spotted", "drove"], required: true },
   date: { type: Date, default: Date.now },
   notes: String,
@@ -654,6 +665,20 @@ function flattenCarModel(car) {
   return car;
 }
 
+// Same idea as flattenCarModel, but for a loose Experience's `vehicleModel`
+// (no Car doc in between). Replaces the populated Model doc in place with
+// plain `manufacturer`/`model` name strings, keeping loose and VIN-linked
+// experiences shaped consistently for the frontend.
+function flattenExperienceVehicleModel(exp) {
+  const modelDoc = exp.vehicleModel;
+  if (modelDoc && typeof modelDoc === "object") {
+    exp.vehicleModelId = String(modelDoc._id);
+    exp.vehicleManufacturer = modelDoc.manufacturer?.name ?? null;
+    exp.vehicleModel = modelDoc.name;
+  }
+  return exp;
+}
+
 async function attachOwnership(carDoc) {
   const car = carDoc.toObject ? carDoc.toObject() : { ...carDoc };
   flattenCarModel(car);
@@ -726,6 +751,7 @@ async function attachOwnershipToMany(carDocs) {
 // viewer is the experience's author.
 const EXPERIENCE_PUBLIC_FIELDS = [
   "_id", "type", "date", "notes", "rating", "loggedBy", "car", "reactions",
+  "vehicleModel", "vehicleModelId", "vehicleManufacturer", "yearGuess", "colorGuess",
 ];
 const EXPERIENCE_AUTHOR_ONLY_FIELDS = ["location", "route", "weather"];
 
@@ -1351,6 +1377,7 @@ app.get("/api/experiences", async (req, res) => {
     }
     const experiences = await Experience.find(filter)
       .populate({ path: "car", populate: CAR_MODEL_POPULATE })
+      .populate({ path: "vehicleModel", populate: "manufacturer" })
       .populate("loggedBy", "name email avatarUrl")
       .sort({ date: -1 });
     const expIds = experiences.map((e) => e._id);
@@ -1363,12 +1390,13 @@ app.get("/api/experiences", async (req, res) => {
       if (!reactionsByExp[key]) reactionsByExp[key] = [];
       reactionsByExp[key].push(r);
     }
-    const enrichedCars = await attachOwnershipToMany(experiences.map((e) => e.car));
+    const enrichedCars = await attachOwnershipToMany(experiences.map((e) => e.car).filter(Boolean));
     const carById = {};
     for (const c of enrichedCars) carById[String(c._id)] = c;
     const result = experiences.map((exp) => {
       const expObj = exp.toObject();
-      expObj.car = carById[String(exp.car._id)];
+      expObj.car = exp.car ? carById[String(exp.car._id)] : null;
+      flattenExperienceVehicleModel(expObj);
       expObj.reactions = reactionsByExp[String(exp._id)] || [];
       return serializeExperience(expObj, { viewerId: requesterId });
     });
@@ -1380,13 +1408,35 @@ app.get("/api/experiences", async (req, res) => {
 
 app.post("/api/experiences", requireAuth, async (req, res) => {
   try {
-    const { car, type, notes, rating, location, route } = req.body;
-    if (!car || !type) return res.status(400).json({ error: "car and type are required" });
+    const { car, vehicleModel, yearGuess, colorGuess, type, notes, rating, location, route } = req.body;
+    if (!type) return res.status(400).json({ error: "type is required" });
+    // "drove" always needs a real, VIN-identifiable Car — you were in the actual
+    // vehicle. "spotted" can go loose (just a Model) for the fleeting/from-a-distance
+    // case that's most of what drives duplicate Car creation.
+    if (type === "drove" && !car) {
+      return res.status(400).json({ error: "car is required for a drove experience" });
+    }
+    if (!car && !vehicleModel) {
+      return res.status(400).json({ error: "either car or vehicleModel is required" });
+    }
+    if (car && vehicleModel) {
+      return res.status(400).json({ error: "car and vehicleModel are mutually exclusive" });
+    }
+    if (vehicleModel) {
+      const modelDoc = await Model.findById(vehicleModel);
+      if (!modelDoc) return res.status(400).json({ error: "invalid vehicleModel" });
+    }
     const loggedBy = req.currentHuman._id;
     const loc = location?.display ? { display: location.display, lat: location.lat ?? null, lng: location.lng ?? null } : undefined;
     const weatherOrigin = loc ?? route?.[0];
     const weather = await fetchWeatherSnapshot(weatherOrigin?.lat, weatherOrigin?.lng, undefined);
-    const experience = new Experience({ car, type, notes, rating: rating ?? null, loggedBy, location: loc, route, weather });
+    const experience = new Experience({
+      car: car || null,
+      vehicleModel: car ? null : vehicleModel,
+      yearGuess: car ? null : (yearGuess ?? null),
+      colorGuess: car ? null : (colorGuess ?? null),
+      type, notes, rating: rating ?? null, loggedBy, location: loc, route, weather,
+    });
     await experience.save();
     await experience.populate("loggedBy", "name email avatarUrl");
 
@@ -1511,6 +1561,7 @@ app.get("/api/users/:id/profile", async (req, res) => {
 
     const experienceDocs = await Experience.find({ loggedBy: humanId })
       .populate({ path: "car", populate: CAR_MODEL_POPULATE })
+      .populate({ path: "vehicleModel", populate: "manufacturer" })
       .populate("loggedBy", "name email avatarUrl")
       .sort({ date: -1 });
     const expIds = experienceDocs.map((e) => e._id);
@@ -1523,12 +1574,13 @@ app.get("/api/users/:id/profile", async (req, res) => {
       if (!reactionsByExp[key]) reactionsByExp[key] = [];
       reactionsByExp[key].push(r);
     }
-    const enrichedExpCars = await attachOwnershipToMany(experienceDocs.map((e) => e.car));
+    const enrichedExpCars = await attachOwnershipToMany(experienceDocs.map((e) => e.car).filter(Boolean));
     const expCarById = {};
     for (const c of enrichedExpCars) expCarById[String(c._id)] = c;
     const experiences = experienceDocs.map((exp) => {
       const expObj = exp.toObject();
-      expObj.car = expCarById[String(exp.car._id)];
+      expObj.car = exp.car ? expCarById[String(exp.car._id)] : null;
+      flattenExperienceVehicleModel(expObj);
       expObj.reactions = reactionsByExp[String(exp._id)] || [];
       return serializeExperience(expObj, { viewerId: requesterId });
     });

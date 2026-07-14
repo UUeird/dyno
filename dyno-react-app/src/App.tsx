@@ -23,7 +23,9 @@ import AuthBridge from "./components/AuthBridge";
 import { API } from "./lib/api";
 import { useAuth, SignedIn, SignedOut, UserButton, RedirectToSignIn } from "./lib/auth";
 
-type ExperienceStep = "choose" | "library" | "vin" | "new-car" | "experience-type" | "location";
+type ExperienceStep = "choose" | "library" | "vin" | "new-car" | "spot-loose" | "experience-type" | "location";
+
+const emptyLooseVehicle = { manufacturer: "", model: "", yearGuess: "", colorGuess: "" };
 
 const emptyCar = {
   manufacturer: "",
@@ -61,6 +63,8 @@ function NewExperienceModal({
   const [form, setForm] = useState(emptyCar);
   const [formError, setFormError] = useState("");
   const [vin, setVin] = useState("");
+  const [looseVehicle, setLooseVehicle] = useState(emptyLooseVehicle);
+  const [looseError, setLooseError] = useState("");
   const [notes, setNotes] = useState("");
   const [rating, setRating] = useState<number | null>(null);
   const [droveSelected, setDroveSelected] = useState(false);
@@ -70,6 +74,19 @@ function NewExperienceModal({
 
   const selectedManufacturer = manufacturers.find((m) => m.name === form.manufacturer);
   const availableModels = selectedManufacturer?.models || [];
+
+  const looseManufacturer = manufacturers.find((m) => m.name === looseVehicle.manufacturer);
+  const looseModels = looseManufacturer?.models || [];
+
+  const handleLooseChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setLooseError("");
+    if (name === "manufacturer") {
+      setLooseVehicle({ ...looseVehicle, manufacturer: value, model: "" });
+    } else {
+      setLooseVehicle({ ...looseVehicle, [name]: value });
+    }
+  };
   const selectedModel = availableModels.find((m) => m._id === form.model);
   const { options: availableColors } = getColorOptions(selectedModel);
   const allTrims = selectedModel?.trims ?? [];
@@ -159,13 +176,16 @@ function NewExperienceModal({
   };
 
   const submitExperience = async (type: "spotted" | "drove") => {
-    if (!selectedCar) return;
+    if (!selectedCar && !looseVehicle.model) return;
     try {
       const location = type === "spotted" && locationDisplay.trim()
         ? { display: locationDisplay.trim(), lat: locationCoords?.lat ?? null, lng: locationCoords?.lng ?? null }
         : undefined;
       const { data } = await axios.post(`${API}/experiences`, {
-        car: selectedCar._id,
+        car: selectedCar?._id,
+        vehicleModel: selectedCar ? undefined : looseVehicle.model,
+        yearGuess: selectedCar || !looseVehicle.yearGuess ? undefined : Number(looseVehicle.yearGuess),
+        colorGuess: selectedCar || !looseVehicle.colorGuess ? undefined : looseVehicle.colorGuess,
         type,
         notes: notes.trim() || null,
         rating: type === "drove" ? rating : null,
@@ -184,6 +204,16 @@ function NewExperienceModal({
     } else {
       submitExperience("drove");
     }
+  };
+
+  const handleLooseVehicleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLooseError("");
+    if (!looseVehicle.model) {
+      setLooseError("Pick a manufacturer and model");
+      return;
+    }
+    setStep("location");
   };
 
   return (
@@ -210,6 +240,11 @@ function NewExperienceModal({
                 <span className="option-icon">✚</span>
                 <span className="option-label">New car</span>
                 <span className="option-desc">Add a car you haven't logged yet</span>
+              </button>
+              <button className="experience-option" onClick={() => setStep("spot-loose")}>
+                <span className="option-icon">👀</span>
+                <span className="option-label">Just spotted it</span>
+                <span className="option-desc">Didn't catch the VIN — just the model</span>
               </button>
             </div>
           </>
@@ -336,6 +371,36 @@ function NewExperienceModal({
           </>
         )}
 
+        {step === "spot-loose" && (
+          <>
+            <button className="modal-back" onClick={() => setStep("choose")}>← Back</button>
+            <h2>What did you spot?</h2>
+            <p className="modal-subtitle">No car record is created — just tracks that you saw this model.</p>
+            <form className="car-form" onSubmit={handleLooseVehicleSubmit}>
+              <select name="manufacturer" value={looseVehicle.manufacturer} onChange={handleLooseChange} required>
+                <option value="" disabled hidden>Manufacturer</option>
+                {manufacturers.map((m) => (
+                  <option key={m._id} value={m.name}>{m.name}</option>
+                ))}
+              </select>
+              <select name="model" value={looseVehicle.model} onChange={handleLooseChange} required disabled={!looseVehicle.manufacturer}>
+                <option value="" disabled hidden>
+                  {looseVehicle.manufacturer ? "Model" : "Select manufacturer first"}
+                </option>
+                {looseModels.map((m) => (
+                  <option key={m._id} value={m._id}>{m.name}</option>
+                ))}
+              </select>
+              <input name="yearGuess" placeholder="Year (optional)" type="number" value={looseVehicle.yearGuess} onChange={handleLooseChange} />
+              <input name="colorGuess" placeholder="Color (optional)" value={looseVehicle.colorGuess} onChange={handleLooseChange} />
+              {looseError && <p className="form-error">{looseError}</p>}
+              <div className="form-buttons">
+                <button type="submit">Next →</button>
+              </div>
+            </form>
+          </>
+        )}
+
         {step === "experience-type" && selectedCar && (
           <>
             <h2>What was this experience?</h2>
@@ -383,7 +448,7 @@ function NewExperienceModal({
           </>
         )}
 
-        {step === "location" && selectedCar && (
+        {step === "location" && (selectedCar || looseVehicle.model) && (
           <>
             <h2>Where did you spot it?</h2>
             <p className="modal-subtitle">Optional — only visible to you.</p>

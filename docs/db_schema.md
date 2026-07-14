@@ -49,7 +49,10 @@ erDiagram
         date to
     }
     Experience {
-        objectId car FK
+        objectId car FK "optional - see notes"
+        objectId vehicleModel FK "required if car is absent"
+        number yearGuess
+        string colorGuess
         string type "spotted or drove"
         date date
         string notes
@@ -94,6 +97,7 @@ erDiagram
     Car ||--o{ Photo : "car"
     Car ||--|| Photo : "thumbnailPhoto"
     Car ||--o{ Experience : "car"
+    Model ||--o{ Experience : "vehicleModel"
     Human ||--o{ Experience : "loggedBy"
     Human ||--o{ Follow : "follower"
     Human ||--o{ Follow : "followee"
@@ -110,5 +114,6 @@ erDiagram
 - `Car.owner` is a legacy field mid-migration to `Ownership` (see `migrateLegacyOwners()` in server.js) — unrelated to the Model work above, still in progress.
 - `Experience.loggedBy` is required — every experience must be logged by an authenticated Human (enforced by `requireAuth` on the creating route), so the `Human ||--o{ Experience` edge is a true one-or-many, not optional.
 - `Experience.location` and `Experience.route` are mutually exclusive by `type`: `spotted` populates `location` (single point), `drove` populates `route` (path as an array of points). Backend accepts `route` in `POST /api/experiences`; no frontend map/path-drawing UI exists yet.
+- `Experience.car` and `Experience.vehicleModel` are mutually exclusive: exactly one must be set. `car` strongly links a VIN-identified vehicle (reuses or creates a real `Car` doc). `vehicleModel` + optional `yearGuess`/`colorGuess` is the loose "spotted it, didn't ID the exact car" case — no `Car` doc is created, avoiding duplicate-Car churn from casual spots. Loose linking is **`spotted`-only**: a `drove` experience always requires `car`, since driving a car means you were with the actual vehicle. `serializeExperience` exposes both sets of fields publicly (same tier as `car`).
 - `Model.drivetrains` is a flat string list (unlike `trims`, drivetrain doesn't vary by year) — same free-form-fallback validation pattern as trims: a model with no drivetrains registered imposes no constraint on `Car.drivetrain`.
 - `Model.years` is distinct from `trims[].years`: the former is the model's own production-year range(s), the latter is when a specific trim was offered within the model's lifetime. `Model.years` validation is stricter than trim/drivetrain — once any range is registered, every `Car.year` for that model must fall within one, with no free-form fallback.

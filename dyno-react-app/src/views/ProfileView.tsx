@@ -6,6 +6,7 @@ import CarThumbnail from "../components/CarThumbnail";
 import BadgeShelf from "../components/BadgeShelf";
 import StarIcon from "../components/StarIcon";
 import ProfileHeader from "../components/ProfileHeader";
+import ExperienceVehicleLabel from "../components/ExperienceVehicleLabel";
 import { modelPath } from "../lib/modelSlug";
 import { API, API_ORIGIN } from "../lib/api";
 
@@ -133,21 +134,10 @@ export default function ProfileView({
                     <span className={`experience-badge experience-badge--${exp.type}`}>
                       {exp.type === "spotted" ? "👀 Spotted" : "🏎️ Drove"}
                     </span>
-                    <span className="experience-car">
-                      {exp.car.year}{" "}
-                      <Link
-                        to={modelPath(exp.car.manufacturer, exp.car.model)}
-                        className="model-name-link"
-                      >
-                        {exp.car.manufacturer} {exp.car.model}
-                      </Link>
-                      {exp.car.currentOwners?.length > 0 && (
-                        <span className="experience-owner">
-                          {" · "}
-                          {exp.car.currentOwners.map((o) => o.name).join(", ")}
-                        </span>
-                      )}
-                    </span>
+                    <ExperienceVehicleLabel
+                      experience={exp}
+                      ownerNames={exp.car?.currentOwners?.length ? exp.car.currentOwners.map((o) => o.name).join(", ") : undefined}
+                    />
                     <span className="experience-date">
                       {new Date(exp.date).toLocaleDateString()}
                     </span>

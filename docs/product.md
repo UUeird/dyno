@@ -18,6 +18,13 @@ flowchart TD
     end
     subgraph Instance["Instance (Car)"]
         CustomColor["Custom color"]
+        InstanceYear["Year"]
+        Nickname["Nickname"]
+        Transmission["Transmission"]
+        SelectedTrim["Selected trim"]
+        VIN["VIN"]
+        ThumbnailPhoto["Thumbnail photo"]
+        Ownership["Ownership history / current owners"]
     end
     PlatonicCar --> Instance
     subgraph Experience["Experience"]
@@ -36,10 +43,12 @@ flowchart TD
 
 ### Experience
 
-The central unit of activity. An experience is one user's encounter with one specific car, of one of two types:
+The central unit of activity. An experience is one user's encounter with a vehicle, of one of two types:
 
-- **drove** — the user drove the car. Can have a rating (0–5 stars, half-step increments).
-- **spotted** — the user saw the car. No rating.
+- **drove** — the user drove the car. Can have a rating (0–5 stars, half-step increments). Always linked to a real, VIN-identifiable `Car`.
+- **spotted** — the user saw the car. No rating. Can either strongly link to a real `Car` (if the user IDs it, e.g. by VIN) or go **loose** — just the Model, no `Car` record, for the common "saw a cool car, didn't catch the VIN" case. Loose experiences carry an optional year/color guess instead of a Car's real data.
+
+The loose path exists to keep `Car` meaningful as "a real, identified vehicle" rather than accumulating duplicate Car records every time someone logs a casual spot.
 
 Experiences have optional notes and can collect emoji reactions from other users.
 
@@ -47,13 +56,15 @@ A user "having driven a car" is determined entirely by their drove experiences �
 
 ### Car
 
-A specific physical car instance: `{year, manufacturer, model, trim?, nickname?, color?, transmission?, vin?}`. Cars are tied to a specific instance, not just a make/model. The same model can have many Car records (e.g. two different 2012 Civics).
+A specific physical car instance: `{year, manufacturer, model, trim?, drivetrain?, nickname?, color?, transmission?, vin?}`. Cars are tied to a specific instance, not just a make/model. The same model can have many Car records (e.g. two different 2012 Civics).
 
 Cars have an `ownershipHistory` (a list of who owned the car when) and `currentOwners` (anyone whose ownership has no end date).
 
 ### Manufacturer / Model
 
 Manufacturers (Honda, Tesla, etc.) have a `models` array listing valid models. New cars must match an existing manufacturer + model — the API rejects unknown combinations.
+
+Each Model also registers its valid `colors`, `trims` (with year-range availability), `drivetrains` (a flat option list — drivetrain doesn't vary by trim or year the way trim availability does), and `years` (production-year ranges for the model itself, independent of trim). A Car picks its trim/drivetrain from its Model's registered options; if a Model has none registered, the field is free-form. `years` is stricter: once a Model has any year ranges registered, every Car for that Model must fall within one of them — there is no free-form fallback like trim/drivetrain have.
 
 Every `{manufacturer, model}` pair has its own model page that aggregates all instances on the platform, community ratings, and wishlist counts.
 

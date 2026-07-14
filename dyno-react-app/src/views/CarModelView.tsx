@@ -5,6 +5,7 @@ import { Car, Experience, Reaction } from "../types";
 import CarThumbnail from "../components/CarThumbnail";
 import StarIcon from "../components/StarIcon";
 import ReactionBar from "../components/ReactionBar";
+import ExperienceVehicleLabel from "../components/ExperienceVehicleLabel";
 import { API } from "../lib/api";
 
 interface ModelPageData {
@@ -228,9 +229,7 @@ export default function CarModelView({
                     <span className={`experience-badge experience-badge--${exp.type}`}>
                       {exp.type === "spotted" ? "👀 Spotted" : "🏎️ Drove"}
                     </span>
-                    <span className="experience-car">
-                      {exp.car.year} {exp.car.manufacturer} {exp.car.model}
-                    </span>
+                    <ExperienceVehicleLabel experience={exp} />
                   </div>
                   {exp.notes && (
                     <p className="experience-notes">{exp.notes}</p>

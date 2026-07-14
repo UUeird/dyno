@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Manufacturer, Human, TrimEntry, YearRange } from "../types";
+import { Manufacturer, Human, TrimEntry, YearRange, ModelYearRange } from "../types";
 import { API } from "../lib/api";
 
 // Admin-only page for managing the manufacturer + model registry. Gated by the
@@ -25,6 +25,12 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
 
   // Which (mfrId, modelId) is currently being trim-edited
   const [openTrims, setOpenTrims] = React.useState<{ mfrId: string; modelId: string } | null>(null);
+
+  // Which (mfrId, modelId) is currently being drivetrain-edited
+  const [openDrivetrains, setOpenDrivetrains] = React.useState<{ mfrId: string; modelId: string } | null>(null);
+
+  // Which (mfrId, modelId) is currently being production-year-edited
+  const [openYears, setOpenYears] = React.useState<{ mfrId: string; modelId: string } | null>(null);
 
   // Redirect non-admins. Wait until currentUser has loaded before deciding.
   React.useEffect(() => {
@@ -142,6 +148,10 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
                   {m.models.map((model) => {
                     const isOpen = openTrims?.mfrId === m._id && openTrims?.modelId === model._id;
                     const trims = model.trims || [];
+                    const isDrivetrainsOpen = openDrivetrains?.mfrId === m._id && openDrivetrains?.modelId === model._id;
+                    const drivetrains = model.drivetrains || [];
+                    const isYearsOpen = openYears?.mfrId === m._id && openYears?.modelId === model._id;
+                    const years = model.years || [];
                     return (
                       <li key={model._id} className="admin-model-row">
                         <div className="admin-model-row-header">
@@ -154,6 +164,24 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
                             onClick={() => setOpenTrims(isOpen ? null : { mfrId: m._id, modelId: model._id })}
                           >
                             {isOpen ? "Close" : "Edit trims"}
+                          </button>
+                          <span className="section-count">
+                            {drivetrains.length} drivetrain{drivetrains.length === 1 ? "" : "s"}
+                          </span>
+                          <button
+                            className="btn-text"
+                            onClick={() => setOpenDrivetrains(isDrivetrainsOpen ? null : { mfrId: m._id, modelId: model._id })}
+                          >
+                            {isDrivetrainsOpen ? "Close" : "Edit drivetrains"}
+                          </button>
+                          <span className="section-count">
+                            {years.length} year range{years.length === 1 ? "" : "s"}
+                          </span>
+                          <button
+                            className="btn-text"
+                            onClick={() => setOpenYears(isYearsOpen ? null : { mfrId: m._id, modelId: model._id })}
+                          >
+                            {isYearsOpen ? "Close" : "Edit years"}
                           </button>
                           <button
                             className="admin-model-remove"
@@ -169,6 +197,24 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
                             mfrId={m._id}
                             modelId={model._id}
                             initialTrims={trims}
+                            onSaved={refresh}
+                            onError={setError}
+                          />
+                        )}
+                        {isDrivetrainsOpen && (
+                          <DrivetrainEditor
+                            mfrId={m._id}
+                            modelId={model._id}
+                            initialDrivetrains={drivetrains}
+                            onSaved={refresh}
+                            onError={setError}
+                          />
+                        )}
+                        {isYearsOpen && (
+                          <ModelYearEditor
+                            mfrId={m._id}
+                            modelId={model._id}
+                            initialYears={years}
                             onSaved={refresh}
                             onError={setError}
                           />
@@ -338,6 +384,168 @@ function TrimEditor({
         <button className="btn-text" onClick={addTrim}>+ Add trim</button>
         <button className="btn-primary" onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save trims"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Drivetrain editor ────────────────────────────────────────────────────────
+
+// Flat option list — no year windows, unlike trims (drivetrain doesn't vary by
+// trim or year the way trim availability does).
+function DrivetrainEditor({
+  mfrId,
+  modelId,
+  initialDrivetrains,
+  onSaved,
+  onError,
+}: {
+  mfrId: string;
+  modelId: string;
+  initialDrivetrains: string[];
+  onSaved: () => void;
+  onError: (msg: string) => void;
+}) {
+  const [drivetrains, setDrivetrains] = React.useState<string[]>(
+    initialDrivetrains.length > 0 ? initialDrivetrains : [""]
+  );
+  const [saving, setSaving] = React.useState(false);
+
+  const updateDrivetrain = (idx: number, value: string) =>
+    setDrivetrains((prev) => prev.map((d, i) => (i === idx ? value : d)));
+  const addDrivetrain = () => setDrivetrains((prev) => [...prev, ""]);
+  const removeDrivetrain = (idx: number) => setDrivetrains((prev) => prev.filter((_, i) => i !== idx));
+
+  const save = async () => {
+    onError("");
+    const payload = { drivetrains: drivetrains.map((d) => d.trim()).filter(Boolean) };
+    setSaving(true);
+    try {
+      await axios.put(`${API}/manufacturers/${mfrId}/drivetrains/${modelId}`, payload);
+      onSaved();
+    } catch (e: any) {
+      onError(e.response?.data?.error || "Failed to save drivetrains");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="admin-trim-editor">
+      {drivetrains.map((d, i) => (
+        <div key={i} className="admin-trim-name-row">
+          <input
+            className="admin-trim-name-input"
+            placeholder="Drivetrain (e.g. FWD, RWD, AWD)"
+            value={d}
+            onChange={(e) => updateDrivetrain(i, e.target.value)}
+          />
+          <button className="btn-text btn-danger" onClick={() => removeDrivetrain(i)} title="Remove drivetrain">
+            Remove
+          </button>
+        </div>
+      ))}
+      <div className="admin-trim-actions">
+        <button className="btn-text" onClick={addDrivetrain}>+ Add drivetrain</button>
+        <button className="btn-primary" onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save drivetrains"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Model year editor ────────────────────────────────────────────────────────
+
+// Production-year ranges for the model itself — separate from a trim's own
+// availability windows. Same {from, to} row shape as trims' year ranges, minus
+// the name/features (those are trim-specific).
+type EditableModelYearRange = { from: string; to: string };
+
+function modelYearFromApi(y: ModelYearRange): EditableModelYearRange {
+  return { from: y.from == null ? "" : String(y.from), to: y.to == null ? "" : String(y.to) };
+}
+
+function ModelYearEditor({
+  mfrId,
+  modelId,
+  initialYears,
+  onSaved,
+  onError,
+}: {
+  mfrId: string;
+  modelId: string;
+  initialYears: ModelYearRange[];
+  onSaved: () => void;
+  onError: (msg: string) => void;
+}) {
+  const [years, setYears] = React.useState<EditableModelYearRange[]>(() =>
+    initialYears.length > 0 ? initialYears.map(modelYearFromApi) : [{ from: "", to: "" }]
+  );
+  const [saving, setSaving] = React.useState(false);
+
+  const updateYear = (idx: number, patch: Partial<EditableModelYearRange>) =>
+    setYears((prev) => prev.map((y, i) => (i === idx ? { ...y, ...patch } : y)));
+  const addYear = () => setYears((prev) => [...prev, { from: "", to: "" }]);
+  const removeYear = (idx: number) => setYears((prev) => prev.filter((_, i) => i !== idx));
+
+  const save = async () => {
+    onError("");
+    const payload = {
+      years: years
+        .filter((y) => y.from.trim() !== "" || y.to.trim() !== "")
+        .map((y) => ({
+          from: y.from.trim() === "" ? null : Number(y.from),
+          to: y.to.trim() === "" ? null : Number(y.to),
+        })),
+    };
+    setSaving(true);
+    try {
+      await axios.put(`${API}/manufacturers/${mfrId}/years/${modelId}`, payload);
+      onSaved();
+    } catch (e: any) {
+      onError(e.response?.data?.error || "Failed to save years");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="admin-trim-editor">
+      <div className="admin-trim-years">
+        {years.map((year, i) => (
+          <div key={i} className="admin-trim-year-row">
+            <input
+              type="number"
+              className="admin-year-input"
+              placeholder="From"
+              value={year.from}
+              onChange={(e) => updateYear(i, { from: e.target.value })}
+            />
+            <span>–</span>
+            <input
+              type="number"
+              className="admin-year-input"
+              placeholder="To (blank = ongoing)"
+              value={year.to}
+              onChange={(e) => updateYear(i, { to: e.target.value })}
+            />
+            <button
+              className="admin-model-remove"
+              onClick={() => removeYear(i)}
+              aria-label="Remove year range"
+              title="Remove year range"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        <button className="btn-text" onClick={addYear}>+ Year range</button>
+      </div>
+      <div className="admin-trim-actions">
+        <button className="btn-primary" onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save years"}
         </button>
       </div>
     </div>

@@ -116,6 +116,15 @@ const trimEntrySchema = new mongoose.Schema({
   years: { type: [yearRangeSchema], default: [] },
 }, { _id: false });
 
+// Model-level production-year ranges — separate from trim availability windows
+// (a trim's years describe when *that trim* was offered; a model's years
+// describe when the model itself existed, independent of trim). Multiple
+// ranges support a discontinued-then-relaunched nameplate under one Model doc.
+const modelYearRangeSchema = new mongoose.Schema({
+  from: Number,
+  to: Number,
+}, { _id: false });
+
 const manufacturerSchema = new mongoose.Schema({
   name: { type: String, unique: true },
 });
@@ -126,6 +135,10 @@ const modelSchema = new mongoose.Schema({
   name: { type: String, required: true },
   colors: { type: [colorEntrySchema], default: [] },
   trims: { type: [trimEntrySchema], default: [] },
+  // Drivetrain doesn't vary by trim or year the way trim availability does, so
+  // it's a flat option list at the model level (same tier as `colors`).
+  drivetrains: { type: [String], default: [] },
+  years: { type: [modelYearRangeSchema], default: [] },
 });
 modelSchema.index({ manufacturer: 1, name: 1 }, { unique: true });
 const Model = mongoose.model("Model", modelSchema);
@@ -157,6 +170,7 @@ const carSchema = new mongoose.Schema({
   transmission: String,
   colorInfo: { type: carColorSchema, default: null },
   trim: String,
+  drivetrain: String,
   vin: String,
   thumbnailPhoto: { type: mongoose.Schema.Types.ObjectId, ref: "Photo", default: null },
 });
@@ -173,16 +187,31 @@ const ownershipSchema = new mongoose.Schema({
 const Ownership = mongoose.model("Ownership", ownershipSchema);
 
 const experienceSchema = new mongoose.Schema({
-  car: { type: mongoose.Schema.Types.ObjectId, ref: "Car", required: true },
+  // Exactly one of `car` / `vehicleModel` is set — enforced in the route
+  // handlers, not here, so the two creation paths can each return a clear
+  // 400 rather than relying on a generic schema-validation error.
+  //
+  // `car`: a VIN-identified experience, strongly linked to one canonical Car.
+  // `vehicleModel` + loose fields: a "spotted it, didn't ID the exact car"
+  // experience — still tied to a real Model so ratings/wishlist-matching/
+  // model-page aggregation keep working, but doesn't mint a new Car doc.
+  car: { type: mongoose.Schema.Types.ObjectId, ref: "Car", default: null },
+  vehicleModel: { type: mongoose.Schema.Types.ObjectId, ref: "Model", default: null },
+  yearGuess: { type: Number, default: null },
+  colorGuess: { type: String, default: null },
   type: { type: String, enum: ["spotted", "drove"], required: true },
   date: { type: Date, default: Date.now },
   notes: String,
   rating: { type: Number, min: 0, max: 5, default: null },
-  loggedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Human", default: null },
+  loggedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Human", required: true },
   location: {
     display: { type: String, default: null },
     lat: { type: Number, default: null },
     lng: { type: Number, default: null },
+  },
+  route: {
+    type: [{ lat: Number, lng: Number, _id: false }],
+    default: undefined,
   },
   weather: {
     tempC: { type: Number, default: null },
@@ -318,6 +347,30 @@ function validateTrim(modelDoc, year, trim) {
   if (!trim) return `Trim is required for ${modelDoc.name}`;
   const match = trimsForYear.find((t) => t.name === trim);
   if (!match) return `"${trim}" is not a valid trim for ${modelDoc.name} in ${year}`;
+  return null;
+}
+
+// Validates a drivetrain string against a model's registered drivetrains.
+// Same free-form fallback as validateTrim: a model with no drivetrains
+// defined imposes no constraint.
+function validateDrivetrain(modelDoc, drivetrain) {
+  const drivetrains = Array.isArray(modelDoc?.drivetrains) ? modelDoc.drivetrains : [];
+  if (drivetrains.length === 0) return null;
+  if (!drivetrain) return `Drivetrain is required for ${modelDoc.name}`;
+  if (!drivetrains.includes(drivetrain)) return `"${drivetrain}" is not a valid drivetrain for ${modelDoc.name}`;
+  return null;
+}
+
+// Validates a car's year against a model's registered production-year ranges.
+// Unlike validateTrim/validateDrivetrain, this has no free-form fallback: once
+// a model has any year ranges registered, every car for that model must fall
+// within one of them. A model with no ranges registered imposes no constraint.
+function validateYear(modelDoc, year) {
+  const years = Array.isArray(modelDoc?.years) ? modelDoc.years : [];
+  if (years.length === 0) return null;
+  if (year == null) return `Year is required for ${modelDoc.name}`;
+  const inRange = years.some((y) => yearMatchesWishlist(Number(year), y.from, y.to));
+  if (!inRange) return `${year} is not a valid production year for ${modelDoc.name}`;
   return null;
 }
 
@@ -612,6 +665,20 @@ function flattenCarModel(car) {
   return car;
 }
 
+// Same idea as flattenCarModel, but for a loose Experience's `vehicleModel`
+// (no Car doc in between). Replaces the populated Model doc in place with
+// plain `manufacturer`/`model` name strings, keeping loose and VIN-linked
+// experiences shaped consistently for the frontend.
+function flattenExperienceVehicleModel(exp) {
+  const modelDoc = exp.vehicleModel;
+  if (modelDoc && typeof modelDoc === "object") {
+    exp.vehicleModelId = String(modelDoc._id);
+    exp.vehicleManufacturer = modelDoc.manufacturer?.name ?? null;
+    exp.vehicleModel = modelDoc.name;
+  }
+  return exp;
+}
+
 async function attachOwnership(carDoc) {
   const car = carDoc.toObject ? carDoc.toObject() : { ...carDoc };
   flattenCarModel(car);
@@ -684,8 +751,9 @@ async function attachOwnershipToMany(carDocs) {
 // viewer is the experience's author.
 const EXPERIENCE_PUBLIC_FIELDS = [
   "_id", "type", "date", "notes", "rating", "loggedBy", "car", "reactions",
+  "vehicleModel", "vehicleModelId", "vehicleManufacturer", "yearGuess", "colorGuess",
 ];
-const EXPERIENCE_AUTHOR_ONLY_FIELDS = ["location", "weather"];
+const EXPERIENCE_AUTHOR_ONLY_FIELDS = ["location", "route", "weather"];
 
 function serializeExperience(exp, { viewerId } = {}) {
   const src = exp && exp.toObject ? exp.toObject() : (exp || {});
@@ -942,6 +1010,60 @@ app.put("/api/manufacturers/:id/trims/:modelId", requireAdmin, async (req, res) 
   }
 });
 
+// Admin-only: replace the full drivetrain list for a model. The request body
+// is the canonical new list of strings; existing drivetrains are overwritten.
+app.put("/api/manufacturers/:id/drivetrains/:modelId", requireAdmin, async (req, res) => {
+  try {
+    const { id, modelId } = req.params;
+    const modelDoc = await Model.findOne({ _id: modelId, manufacturer: id });
+    if (!modelDoc) return res.status(404).json({ error: "Model not found" });
+
+    const incoming = Array.isArray(req.body.drivetrains) ? req.body.drivetrains : [];
+    const normalized = [...new Set(incoming.map((d) => String(d || "").trim()).filter(Boolean))];
+
+    modelDoc.drivetrains = normalized;
+    await modelDoc.save();
+    res.json(modelDoc);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin-only: replace the full production-year range list for a model. The
+// request body is the canonical new list; existing ranges are overwritten.
+// Each range is `{ from, to }` — both may be null (open-ended on that side).
+app.put("/api/manufacturers/:id/years/:modelId", requireAdmin, async (req, res) => {
+  try {
+    const { id, modelId } = req.params;
+    const modelDoc = await Model.findOne({ _id: modelId, manufacturer: id });
+    if (!modelDoc) return res.status(404).json({ error: "Model not found" });
+
+    const incoming = Array.isArray(req.body.years) ? req.body.years : [];
+    const normalized = [];
+    for (const y of incoming) {
+      const from = y?.from == null || y?.from === "" ? null : Number(y.from);
+      const to = y?.to == null || y?.to === "" ? null : Number(y.to);
+      if (from == null && to == null) continue; // skip empty rows silently
+      if (from != null && (!Number.isFinite(from) || from < 1900 || from > 2100)) {
+        return res.status(400).json({ error: "Invalid 'from' year" });
+      }
+      if (to != null && (!Number.isFinite(to) || to < 1900 || to > 2100)) {
+        return res.status(400).json({ error: "Invalid 'to' year" });
+      }
+      if (from != null && to != null && from > to) {
+        return res.status(400).json({ error: "'from' must be ≤ 'to'" });
+      }
+      normalized.push({ from, to });
+    }
+
+    modelDoc.years = normalized;
+    await modelDoc.save();
+    res.json(modelDoc);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // ── Cars ──────────────────────────────────────────────────────────────────────
 
 // Populate spec shared by every Car read path: resolves `car.model` to a Model
@@ -960,7 +1082,7 @@ app.get("/api/cars", async (req, res) => {
 
 app.post("/api/cars", requireAuth, async (req, res) => {
   try {
-    const { model, year, nickname, transmission, colorInfo, trim, vin } = req.body;
+    const { model, year, nickname, transmission, colorInfo, trim, drivetrain, vin } = req.body;
     if (!model || !year) {
       return res.status(400).json({ error: "model and year are required" });
     }
@@ -976,13 +1098,19 @@ app.post("/api/cars", requireAuth, async (req, res) => {
     const trimError = validateTrim(modelDoc, year, trim);
     if (trimError) return res.status(400).json({ error: trimError });
 
+    const drivetrainError = validateDrivetrain(modelDoc, drivetrain);
+    if (drivetrainError) return res.status(400).json({ error: drivetrainError });
+
+    const yearError = validateYear(modelDoc, year);
+    if (yearError) return res.status(400).json({ error: yearError });
+
     const normalizedColor = colorInfo && colorInfo.name
       ? { name: String(colorInfo.name).trim(), hex: colorInfo.hex || undefined, isCustom: !!colorInfo.isCustom }
       : null;
 
     try {
       const car = await new Car({
-        model, year, nickname, transmission, trim,
+        model, year, nickname, transmission, trim, drivetrain,
         vin: vinValue,
         colorInfo: normalizedColor,
       }).save();
@@ -999,7 +1127,7 @@ app.post("/api/cars", requireAuth, async (req, res) => {
 
 app.put("/api/cars/:id", requireAuth, async (req, res) => {
   try {
-    const { model, year, trim } = req.body;
+    const { model, year, trim, drivetrain } = req.body;
     const car = await Car.findById(req.params.id);
     if (!car) return res.status(404).json({ error: "Car not found" });
 
@@ -1007,9 +1135,10 @@ app.put("/api/cars/:id", requireAuth, async (req, res) => {
     const effectiveModelId = model || car.model;
     const effectiveYear = year != null ? year : car.year;
     const effectiveTrim = trim !== undefined ? trim : car.trim;
+    const effectiveDrivetrain = drivetrain !== undefined ? drivetrain : car.drivetrain;
 
     let modelDoc = null;
-    if (model || trim !== undefined || year !== undefined) {
+    if (model || trim !== undefined || year !== undefined || drivetrain !== undefined) {
       modelDoc = await Model.findById(effectiveModelId);
       if (!modelDoc) return res.status(400).json({ error: "invalid model" });
     }
@@ -1017,6 +1146,12 @@ app.put("/api/cars/:id", requireAuth, async (req, res) => {
     if (modelDoc) {
       const trimError = validateTrim(modelDoc, effectiveYear, effectiveTrim);
       if (trimError) return res.status(400).json({ error: trimError });
+
+      const drivetrainError = validateDrivetrain(modelDoc, effectiveDrivetrain);
+      if (drivetrainError) return res.status(400).json({ error: drivetrainError });
+
+      const yearError = validateYear(modelDoc, effectiveYear);
+      if (yearError) return res.status(400).json({ error: yearError });
     }
 
     const { colorInfo, ...updateFields } = req.body;
@@ -1243,6 +1378,7 @@ app.get("/api/experiences", async (req, res) => {
     }
     const experiences = await Experience.find(filter)
       .populate({ path: "car", populate: CAR_MODEL_POPULATE })
+      .populate({ path: "vehicleModel", populate: "manufacturer" })
       .populate("loggedBy", "name email avatarUrl")
       .sort({ date: -1 });
     const expIds = experiences.map((e) => e._id);
@@ -1255,12 +1391,13 @@ app.get("/api/experiences", async (req, res) => {
       if (!reactionsByExp[key]) reactionsByExp[key] = [];
       reactionsByExp[key].push(r);
     }
-    const enrichedCars = await attachOwnershipToMany(experiences.map((e) => e.car));
+    const enrichedCars = await attachOwnershipToMany(experiences.map((e) => e.car).filter(Boolean));
     const carById = {};
     for (const c of enrichedCars) carById[String(c._id)] = c;
     const result = experiences.map((exp) => {
       const expObj = exp.toObject();
-      expObj.car = carById[String(exp.car._id)];
+      expObj.car = exp.car ? carById[String(exp.car._id)] : null;
+      flattenExperienceVehicleModel(expObj);
       expObj.reactions = reactionsByExp[String(exp._id)] || [];
       return serializeExperience(expObj, { viewerId: requesterId });
     });
@@ -1272,12 +1409,35 @@ app.get("/api/experiences", async (req, res) => {
 
 app.post("/api/experiences", requireAuth, async (req, res) => {
   try {
-    const { car, type, notes, rating, location } = req.body;
-    if (!car || !type) return res.status(400).json({ error: "car and type are required" });
+    const { car, vehicleModel, yearGuess, colorGuess, type, notes, rating, location, route } = req.body;
+    if (!type) return res.status(400).json({ error: "type is required" });
+    // "drove" always needs a real, VIN-identifiable Car — you were in the actual
+    // vehicle. "spotted" can go loose (just a Model) for the fleeting/from-a-distance
+    // case that's most of what drives duplicate Car creation.
+    if (type === "drove" && !car) {
+      return res.status(400).json({ error: "car is required for a drove experience" });
+    }
+    if (!car && !vehicleModel) {
+      return res.status(400).json({ error: "either car or vehicleModel is required" });
+    }
+    if (car && vehicleModel) {
+      return res.status(400).json({ error: "car and vehicleModel are mutually exclusive" });
+    }
+    if (vehicleModel) {
+      const modelDoc = await Model.findById(vehicleModel);
+      if (!modelDoc) return res.status(400).json({ error: "invalid vehicleModel" });
+    }
     const loggedBy = req.currentHuman._id;
     const loc = location?.display ? { display: location.display, lat: location.lat ?? null, lng: location.lng ?? null } : undefined;
-    const weather = await fetchWeatherSnapshot(loc?.lat, loc?.lng, undefined);
-    const experience = new Experience({ car, type, notes, rating: rating ?? null, loggedBy, location: loc, weather });
+    const weatherOrigin = loc ?? route?.[0];
+    const weather = await fetchWeatherSnapshot(weatherOrigin?.lat, weatherOrigin?.lng, undefined);
+    const experience = new Experience({
+      car: car || null,
+      vehicleModel: car ? null : vehicleModel,
+      yearGuess: car ? null : (yearGuess ?? null),
+      colorGuess: car ? null : (colorGuess ?? null),
+      type, notes, rating: rating ?? null, loggedBy, location: loc, route, weather,
+    });
     await experience.save();
     await experience.populate("loggedBy", "name email avatarUrl");
 
@@ -1404,6 +1564,7 @@ app.get("/api/users/:id/profile", async (req, res) => {
 
     const experienceDocs = await Experience.find({ loggedBy: humanId })
       .populate({ path: "car", populate: CAR_MODEL_POPULATE })
+      .populate({ path: "vehicleModel", populate: "manufacturer" })
       .populate("loggedBy", "name email avatarUrl")
       .sort({ date: -1 });
     const expIds = experienceDocs.map((e) => e._id);
@@ -1416,12 +1577,13 @@ app.get("/api/users/:id/profile", async (req, res) => {
       if (!reactionsByExp[key]) reactionsByExp[key] = [];
       reactionsByExp[key].push(r);
     }
-    const enrichedExpCars = await attachOwnershipToMany(experienceDocs.map((e) => e.car));
+    const enrichedExpCars = await attachOwnershipToMany(experienceDocs.map((e) => e.car).filter(Boolean));
     const expCarById = {};
     for (const c of enrichedExpCars) expCarById[String(c._id)] = c;
     const experiences = experienceDocs.map((exp) => {
       const expObj = exp.toObject();
-      expObj.car = expCarById[String(exp.car._id)];
+      expObj.car = exp.car ? expCarById[String(exp.car._id)] : null;
+      flattenExperienceVehicleModel(expObj);
       expObj.reactions = reactionsByExp[String(exp._id)] || [];
       return serializeExperience(expObj, { viewerId: requesterId });
     });

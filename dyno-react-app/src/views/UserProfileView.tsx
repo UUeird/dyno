@@ -1,12 +1,12 @@
 import React from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Human, Experience, Car, BadgeInfo } from "../types";
 import CarThumbnail from "../components/CarThumbnail";
 import FollowButton from "../components/FollowButton";
 import BadgeShelf from "../components/BadgeShelf";
 import ProfileHeader from "../components/ProfileHeader";
-import { modelPath } from "../lib/modelSlug";
+import ExperienceVehicleLabel from "../components/ExperienceVehicleLabel";
 import { API } from "../lib/api";
 
 interface ProfileData {
@@ -110,15 +110,7 @@ export default function UserProfileView({
               <span className={`experience-badge experience-badge--${exp.type}`}>
                 {exp.type === "spotted" ? "👀 Spotted" : "🏎️ Drove"}
               </span>
-              <span className="experience-car">
-                {exp.car.year}{" "}
-                <Link
-                  to={modelPath(exp.car.manufacturer, exp.car.model)}
-                  className="model-name-link"
-                >
-                  {exp.car.manufacturer} {exp.car.model}
-                </Link>
-              </span>
+              <ExperienceVehicleLabel experience={exp} />
               <span className="experience-date">
                 {new Date(exp.date).toLocaleDateString()}
               </span>

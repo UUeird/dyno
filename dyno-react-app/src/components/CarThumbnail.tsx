@@ -37,7 +37,7 @@ function PlaceholderSVG({ bodyHex }: { bodyHex?: string }) {
   );
 }
 
-export default function CarThumbnail({ car }: { car?: Car }) {
+export default function CarThumbnail({ car }: { car?: Car | null }) {
   const photo = car?.thumbnail;
   const [imgFailed, setImgFailed] = React.useState(false);
 

@@ -43,6 +43,7 @@ export type Car = {
   color?: string;
   colorInfo?: CarColor | null;
   trim?: string;
+  drivetrain?: string;
   vin?: string;
   thumbnailPhoto?: string | null;
   currentOwners: Human[];
@@ -60,7 +61,15 @@ export type Reaction = {
 
 export type Experience = {
   _id: string;
-  car: Car;
+  // Exactly one of `car` / `vehicleModel` is set. `car` is a VIN-identified,
+  // strongly-linked vehicle. `vehicleModel` is the loose "spotted it, didn't
+  // ID the exact car" case — "drove" experiences always have `car`.
+  car?: Car | null;
+  vehicleModel?: string;
+  vehicleModelId?: string;
+  vehicleManufacturer?: string;
+  yearGuess?: number | null;
+  colorGuess?: string | null;
   type: "spotted" | "drove";
   date: string;
   notes?: string;
@@ -68,6 +77,7 @@ export type Experience = {
   loggedBy?: Human;
   reactions: Reaction[];
   location?: { display: string; lat: number | null; lng: number | null } | null;
+  route?: { lat: number; lng: number }[];
   weather?: { tempC: number | null; conditions: string | null; windKph: number | null; precipitationMm: number | null } | null;
 };
 
@@ -127,6 +137,7 @@ export type ColorEntry = { name: string; hex: string };
 
 export type YearRange = { from: number | null; to: number | null; features: string[] };
 export type TrimEntry = { name: string; years: YearRange[] };
+export type ModelYearRange = { from: number | null; to: number | null };
 
 export type CarModel = {
   _id: string;
@@ -134,6 +145,8 @@ export type CarModel = {
   name: string;
   colors?: ColorEntry[];
   trims?: TrimEntry[];
+  drivetrains?: string[];
+  years?: ModelYearRange[];
 };
 
 export type Manufacturer = {

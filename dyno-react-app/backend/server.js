@@ -71,7 +71,6 @@ mongoose
   .connect(MONGODB_URI)
   .then(async () => {
     console.log("Connected to MongoDB");
-    await migrateLegacyOwners();
     await migrateManufacturerModelsToModelCollection();
     await seedBadgeSeries();
     await seedManufacturers();
@@ -160,8 +159,6 @@ const carSchema = new mongoose.Schema({
   trim: String,
   vin: String,
   thumbnailPhoto: { type: mongoose.Schema.Types.ObjectId, ref: "Photo", default: null },
-  // legacy field — kept so Mongoose can read/unset it during migration
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: "Human", default: null },
 });
 // VIN is required for new cars; existing VIN-less rows are grandfathered (sparse index).
 carSchema.index({ vin: 1 }, { unique: true, sparse: true });
@@ -325,20 +322,6 @@ function validateTrim(modelDoc, year, trim) {
 }
 
 // ── Migration ─────────────────────────────────────────────────────────────────
-
-async function migrateLegacyOwners() {
-  const carsWithLegacyOwner = await Car.find({ owner: { $ne: null } });
-  for (const car of carsWithLegacyOwner) {
-    const existing = await Ownership.findOne({ car: car._id, owner: car.owner });
-    if (!existing) {
-      await Ownership.create({ car: car._id, owner: car.owner, from: null, to: null });
-    }
-    await Car.updateOne({ _id: car._id }, { $unset: { owner: "" } });
-  }
-  if (carsWithLegacyOwner.length > 0) {
-    console.log(`Migrated ${carsWithLegacyOwner.length} legacy owner(s) to Ownership records`);
-  }
-}
 
 // One-time backfill: promotes the embedded `Manufacturer.models/colors/trims`
 // registry into standalone `Model` documents, then repoints `Car.model` and
@@ -1036,7 +1019,7 @@ app.put("/api/cars/:id", requireAuth, async (req, res) => {
       if (trimError) return res.status(400).json({ error: trimError });
     }
 
-    const { owner: _owner, colorInfo, ...updateFields } = req.body;
+    const { colorInfo, ...updateFields } = req.body;
     // Normalize colorInfo if supplied
     if (colorInfo !== undefined) {
       updateFields.colorInfo = colorInfo && colorInfo.name
@@ -1793,7 +1776,7 @@ if (DB_NAME === "carsDB_test") {
   app.post("/api/test/seed", async (req, res) => {
     try {
       const db = mongoose.connection.db;
-      for (const col of ["humans", "cars", "experiences", "reactions", "userbadges", "follows", "manufacturers", "models", "wishlistitems"]) {
+      for (const col of ["humans", "cars", "ownerships", "experiences", "reactions", "userbadges", "follows", "manufacturers", "models", "wishlistitems"]) {
         await db.collection(col).drop().catch(() => {});
       }
 
@@ -1851,16 +1834,22 @@ if (DB_NAME === "carsDB_test") {
       ]);
 
       await Car.insertMany([
-        { _id: toId("cccccccccccccccccccccccc"), model: civicId, year: 2012, nickname: "Rhonda the Honda", transmission: "Manual", ownershipHistory: [{ owner: toId("aaaaaaaaaaaaaaaaaaaaaaaa"), from: null, to: null }], photos: [] },
-        { _id: toId("dddddddddddddddddddddddd"), model: impalaId, year: 2015, transmission: "Automatic", ownershipHistory: [], photos: [] },
-        { _id: toId("eeeeeeeeeeeeeeeeeeeeeeee"), model: model3Id, year: 2023, transmission: "Electric", ownershipHistory: [], photos: [] },
-        { _id: toId("ff0000000000000000000001"), model: supraId, year: 1994, nickname: "The Soup", transmission: "Manual", ownershipHistory: [{ owner: toId("bbbbbbbbbbbbbbbbbbbbbbbb"), from: null, to: null }], photos: [] },
-        { _id: toId("ff0000000000000000000002"), model: mustangId, year: 2019, transmission: "Manual", ownershipHistory: [], photos: [] },
-        { _id: toId("ff0000000000000000000003"), model: p911Id, year: 2021, trim: "Carrera S", transmission: "Automatic", ownershipHistory: [], photos: [] },
-        { _id: toId("ff0000000000000000000004"), model: wrxId, year: 2017, transmission: "Manual", ownershipHistory: [{ owner: toId("aaaaaaaaaaaaaaaaaaaaaaaa"), from: "2017-06-01", to: "2021-03-15" }], photos: [] },
-        { _id: toId("ff0000000000000000000005"), model: camaroId, year: 2020, trim: "SS", transmission: "Manual", ownershipHistory: [], photos: [] },
-        { _id: toId("ff0000000000000000000006"), model: landCruiserId, year: 2005, transmission: "Automatic", ownershipHistory: [], photos: [] },
-        { _id: toId("ff0000000000000000000007"), model: modelSId, year: 2022, trim: "Plaid", transmission: "Electric", ownershipHistory: [], photos: [] },
+        { _id: toId("cccccccccccccccccccccccc"), model: civicId, year: 2012, nickname: "Rhonda the Honda", transmission: "Manual", photos: [] },
+        { _id: toId("dddddddddddddddddddddddd"), model: impalaId, year: 2015, transmission: "Automatic", photos: [] },
+        { _id: toId("eeeeeeeeeeeeeeeeeeeeeeee"), model: model3Id, year: 2023, transmission: "Electric", photos: [] },
+        { _id: toId("ff0000000000000000000001"), model: supraId, year: 1994, nickname: "The Soup", transmission: "Manual", photos: [] },
+        { _id: toId("ff0000000000000000000002"), model: mustangId, year: 2019, transmission: "Manual", photos: [] },
+        { _id: toId("ff0000000000000000000003"), model: p911Id, year: 2021, trim: "Carrera S", transmission: "Automatic", photos: [] },
+        { _id: toId("ff0000000000000000000004"), model: wrxId, year: 2017, transmission: "Manual", photos: [] },
+        { _id: toId("ff0000000000000000000005"), model: camaroId, year: 2020, trim: "SS", transmission: "Manual", photos: [] },
+        { _id: toId("ff0000000000000000000006"), model: landCruiserId, year: 2005, transmission: "Automatic", photos: [] },
+        { _id: toId("ff0000000000000000000007"), model: modelSId, year: 2022, trim: "Plaid", transmission: "Electric", photos: [] },
+      ]);
+
+      await Ownership.insertMany([
+        { car: toId("cccccccccccccccccccccccc"), owner: toId("aaaaaaaaaaaaaaaaaaaaaaaa"), from: null, to: null },
+        { car: toId("ff0000000000000000000001"), owner: toId("bbbbbbbbbbbbbbbbbbbbbbbb"), from: null, to: null },
+        { car: toId("ff0000000000000000000004"), owner: toId("aaaaaaaaaaaaaaaaaaaaaaaa"), from: "2017-06-01", to: "2021-03-15" },
       ]);
 
       // Drop-then-insertMany doesn't re-create schema indexes — rebuild explicitly

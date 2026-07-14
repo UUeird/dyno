@@ -116,6 +116,15 @@ const trimEntrySchema = new mongoose.Schema({
   years: { type: [yearRangeSchema], default: [] },
 }, { _id: false });
 
+// Model-level production-year ranges — separate from trim availability windows
+// (a trim's years describe when *that trim* was offered; a model's years
+// describe when the model itself existed, independent of trim). Multiple
+// ranges support a discontinued-then-relaunched nameplate under one Model doc.
+const modelYearRangeSchema = new mongoose.Schema({
+  from: Number,
+  to: Number,
+}, { _id: false });
+
 const manufacturerSchema = new mongoose.Schema({
   name: { type: String, unique: true },
 });
@@ -129,6 +138,7 @@ const modelSchema = new mongoose.Schema({
   // Drivetrain doesn't vary by trim or year the way trim availability does, so
   // it's a flat option list at the model level (same tier as `colors`).
   drivetrains: { type: [String], default: [] },
+  years: { type: [modelYearRangeSchema], default: [] },
 });
 modelSchema.index({ manufacturer: 1, name: 1 }, { unique: true });
 const Model = mongoose.model("Model", modelSchema);
@@ -337,6 +347,19 @@ function validateDrivetrain(modelDoc, drivetrain) {
   if (drivetrains.length === 0) return null;
   if (!drivetrain) return `Drivetrain is required for ${modelDoc.name}`;
   if (!drivetrains.includes(drivetrain)) return `"${drivetrain}" is not a valid drivetrain for ${modelDoc.name}`;
+  return null;
+}
+
+// Validates a car's year against a model's registered production-year ranges.
+// Unlike validateTrim/validateDrivetrain, this has no free-form fallback: once
+// a model has any year ranges registered, every car for that model must fall
+// within one of them. A model with no ranges registered imposes no constraint.
+function validateYear(modelDoc, year) {
+  const years = Array.isArray(modelDoc?.years) ? modelDoc.years : [];
+  if (years.length === 0) return null;
+  if (year == null) return `Year is required for ${modelDoc.name}`;
+  const inRange = years.some((y) => yearMatchesWishlist(Number(year), y.from, y.to));
+  if (!inRange) return `${year} is not a valid production year for ${modelDoc.name}`;
   return null;
 }
 
@@ -980,6 +1003,41 @@ app.put("/api/manufacturers/:id/drivetrains/:modelId", requireAdmin, async (req,
   }
 });
 
+// Admin-only: replace the full production-year range list for a model. The
+// request body is the canonical new list; existing ranges are overwritten.
+// Each range is `{ from, to }` — both may be null (open-ended on that side).
+app.put("/api/manufacturers/:id/years/:modelId", requireAdmin, async (req, res) => {
+  try {
+    const { id, modelId } = req.params;
+    const modelDoc = await Model.findOne({ _id: modelId, manufacturer: id });
+    if (!modelDoc) return res.status(404).json({ error: "Model not found" });
+
+    const incoming = Array.isArray(req.body.years) ? req.body.years : [];
+    const normalized = [];
+    for (const y of incoming) {
+      const from = y?.from == null || y?.from === "" ? null : Number(y.from);
+      const to = y?.to == null || y?.to === "" ? null : Number(y.to);
+      if (from == null && to == null) continue; // skip empty rows silently
+      if (from != null && (!Number.isFinite(from) || from < 1900 || from > 2100)) {
+        return res.status(400).json({ error: "Invalid 'from' year" });
+      }
+      if (to != null && (!Number.isFinite(to) || to < 1900 || to > 2100)) {
+        return res.status(400).json({ error: "Invalid 'to' year" });
+      }
+      if (from != null && to != null && from > to) {
+        return res.status(400).json({ error: "'from' must be ≤ 'to'" });
+      }
+      normalized.push({ from, to });
+    }
+
+    modelDoc.years = normalized;
+    await modelDoc.save();
+    res.json(modelDoc);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // ── Cars ──────────────────────────────────────────────────────────────────────
 
 // Populate spec shared by every Car read path: resolves `car.model` to a Model
@@ -1016,6 +1074,9 @@ app.post("/api/cars", requireAuth, async (req, res) => {
 
     const drivetrainError = validateDrivetrain(modelDoc, drivetrain);
     if (drivetrainError) return res.status(400).json({ error: drivetrainError });
+
+    const yearError = validateYear(modelDoc, year);
+    if (yearError) return res.status(400).json({ error: yearError });
 
     const normalizedColor = colorInfo && colorInfo.name
       ? { name: String(colorInfo.name).trim(), hex: colorInfo.hex || undefined, isCustom: !!colorInfo.isCustom }
@@ -1062,6 +1123,9 @@ app.put("/api/cars/:id", requireAuth, async (req, res) => {
 
       const drivetrainError = validateDrivetrain(modelDoc, effectiveDrivetrain);
       if (drivetrainError) return res.status(400).json({ error: drivetrainError });
+
+      const yearError = validateYear(modelDoc, effectiveYear);
+      if (yearError) return res.status(400).json({ error: yearError });
     }
 
     const { colorInfo, ...updateFields } = req.body;

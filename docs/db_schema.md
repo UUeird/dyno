@@ -22,6 +22,7 @@ erDiagram
         array colors "name, hex, isCustom"
         array trims "name, years[] (from, to, features[])"
         array drivetrains "flat string list, e.g. FWD/RWD/AWD"
+        array years "model-level production-year ranges (from, to)"
     }
     Car {
         objectId model FK
@@ -110,3 +111,4 @@ erDiagram
 - `Experience.loggedBy` is required — every experience must be logged by an authenticated Human (enforced by `requireAuth` on the creating route), so the `Human ||--o{ Experience` edge is a true one-or-many, not optional.
 - `Experience.location` and `Experience.route` are mutually exclusive by `type`: `spotted` populates `location` (single point), `drove` populates `route` (path as an array of points). Backend accepts `route` in `POST /api/experiences`; no frontend map/path-drawing UI exists yet.
 - `Model.drivetrains` is a flat string list (unlike `trims`, drivetrain doesn't vary by year) — same free-form-fallback validation pattern as trims: a model with no drivetrains registered imposes no constraint on `Car.drivetrain`.
+- `Model.years` is distinct from `trims[].years`: the former is the model's own production-year range(s), the latter is when a specific trim was offered within the model's lifetime. `Model.years` validation is stricter than trim/drivetrain — once any range is registered, every `Car.year` for that model must fall within one, with no free-form fallback.

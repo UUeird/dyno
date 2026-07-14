@@ -129,6 +129,7 @@ export type ColorEntry = { name: string; hex: string };
 
 export type YearRange = { from: number | null; to: number | null; features: string[] };
 export type TrimEntry = { name: string; years: YearRange[] };
+export type ModelYearRange = { from: number | null; to: number | null };
 
 export type CarModel = {
   _id: string;
@@ -137,6 +138,7 @@ export type CarModel = {
   colors?: ColorEntry[];
   trims?: TrimEntry[];
   drivetrains?: string[];
+  years?: ModelYearRange[];
 };
 
 export type Manufacturer = {

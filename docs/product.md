@@ -62,7 +62,7 @@ Cars have an `ownershipHistory` (a list of who owned the car when) and `currentO
 
 Manufacturers (Honda, Tesla, etc.) have a `models` array listing valid models. New cars must match an existing manufacturer + model — the API rejects unknown combinations.
 
-Each Model also registers its valid `colors`, `trims` (with year-range availability), and `drivetrains` (a flat option list — drivetrain doesn't vary by trim or year the way trim availability does). A Car picks its trim/drivetrain from its Model's registered options; if a Model has none registered, the field is free-form.
+Each Model also registers its valid `colors`, `trims` (with year-range availability), `drivetrains` (a flat option list — drivetrain doesn't vary by trim or year the way trim availability does), and `years` (production-year ranges for the model itself, independent of trim). A Car picks its trim/drivetrain from its Model's registered options; if a Model has none registered, the field is free-form. `years` is stricter: once a Model has any year ranges registered, every Car for that Model must fall within one of them — there is no free-form fallback like trim/drivetrain have.
 
 Every `{manufacturer, model}` pair has its own model page that aggregates all instances on the platform, community ratings, and wishlist counts.
 

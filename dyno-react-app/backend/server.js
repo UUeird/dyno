@@ -72,12 +72,17 @@ mongoose
   .then(async () => {
     console.log("Connected to MongoDB");
     await migrateLegacyOwners();
+    await migrateManufacturerModelsToModelCollection();
     await seedBadgeSeries();
     await seedManufacturers();
-    await migrateLegacyColors();
     // Ensure schema-declared indexes (e.g. Car.vin unique, Human.clerkId unique) are actually built
     await Car.syncIndexes();
     await Human.syncIndexes();
+    // Signals that startup migrations/seeding have finished — app.listen() below
+    // fires as soon as the module loads, independent of this promise chain, so
+    // callers that need the DB fully settled (e.g. the E2E test harness) should
+    // wait for this line rather than "Server running".
+    console.log("Startup migrations complete");
   })
   .catch((err) => console.error("Error connecting to MongoDB:", err));
 
@@ -114,13 +119,17 @@ const trimEntrySchema = new mongoose.Schema({
 
 const manufacturerSchema = new mongoose.Schema({
   name: { type: String, unique: true },
-  models: [String],
-  // keyed by model name, or "*" for the generic fallback palette
-  colors: { type: Map, of: [colorEntrySchema], default: {} },
-  // keyed by model name; no "*" fallback — trims are always model-specific
-  trims: { type: Map, of: [trimEntrySchema], default: {} },
 });
 const Manufacturer = mongoose.model("Manufacturer", manufacturerSchema);
+
+const modelSchema = new mongoose.Schema({
+  manufacturer: { type: mongoose.Schema.Types.ObjectId, ref: "Manufacturer", required: true },
+  name: { type: String, required: true },
+  colors: { type: [colorEntrySchema], default: [] },
+  trims: { type: [trimEntrySchema], default: [] },
+});
+modelSchema.index({ manufacturer: 1, name: 1 }, { unique: true });
+const Model = mongoose.model("Model", modelSchema);
 
 const photoSchema = new mongoose.Schema({
   car: { type: mongoose.Schema.Types.ObjectId, ref: "Car", required: true },
@@ -143,8 +152,7 @@ const carColorSchema = new mongoose.Schema({
 }, { _id: false });
 
 const carSchema = new mongoose.Schema({
-  manufacturer: String,
-  model: String,
+  model: { type: mongoose.Schema.Types.ObjectId, ref: "Model", required: true },
   year: Number,
   nickname: String,
   transmission: String,
@@ -278,12 +286,11 @@ const UserBadge = mongoose.model("UserBadge", userBadgeSchema);
 
 const wishlistSchema = new mongoose.Schema({
   human: { type: mongoose.Schema.Types.ObjectId, ref: "Human", required: true },
-  manufacturer: { type: String, required: true },
-  model: { type: String, required: true },
+  model: { type: mongoose.Schema.Types.ObjectId, ref: "Model", required: true },
   yearFrom: { type: Number, default: null },
   yearTo: { type: Number, default: null },
 }, { timestamps: true });
-wishlistSchema.index({ human: 1, manufacturer: 1, model: 1 }, { unique: true });
+wishlistSchema.index({ human: 1, model: 1 }, { unique: true });
 const WishlistItem = mongoose.model("WishlistItem", wishlistSchema);
 
 // True if a car-year falls within a wishlist item's year range.
@@ -295,35 +302,25 @@ function yearMatchesWishlist(carYear, yearFrom, yearTo) {
   return true;
 }
 
-// Look up the list of trims defined for a (manufacturer, model) pair. Returns
-// `[]` if no manufacturer match or no trims set up for that model.
-function trimsForModel(mfr, model) {
-  if (!mfr?.trims) return [];
-  // Mongoose Maps expose .get(); plain objects use bracket access. Support both
-  // so this works whether the caller passes a hydrated doc or .lean() result.
-  const raw = typeof mfr.trims.get === "function" ? mfr.trims.get(model) : mfr.trims[model];
-  return Array.isArray(raw) ? raw : [];
-}
-
-// Validates a trim string against the manufacturer's registered trims for a
-// model and year. Returns null on success, an error message on failure.
+// Validates a trim string against a model's registered trims for a given year.
+// Returns null on success, an error message on failure.
 //
 // Rules:
 // - Model has no trims defined at all → free-form (any string OK, blank OK).
 // - Model has trims, but none cover the requested year → fall back to free-form.
 //   This avoids trapping users on years admins haven't seeded yet.
 // - Model has trims that cover the requested year → trim must be one of them.
-function validateTrim(mfr, model, year, trim) {
-  const trims = trimsForModel(mfr, model);
+function validateTrim(modelDoc, year, trim) {
+  const trims = Array.isArray(modelDoc?.trims) ? modelDoc.trims : [];
   if (trims.length === 0) return null;
   const trimsForYear =
     year == null
       ? trims
       : trims.filter((t) => t.years.some((y) => yearMatchesWishlist(Number(year), y.from, y.to)));
   if (trimsForYear.length === 0) return null; // nothing to validate against
-  if (!trim) return `Trim is required for ${mfr.name} ${model}`;
+  if (!trim) return `Trim is required for ${modelDoc.name}`;
   const match = trimsForYear.find((t) => t.name === trim);
-  if (!match) return `"${trim}" is not a valid trim for ${mfr.name} ${model} in ${year}`;
+  if (!match) return `"${trim}" is not a valid trim for ${modelDoc.name} in ${year}`;
   return null;
 }
 
@@ -343,37 +340,66 @@ async function migrateLegacyOwners() {
   }
 }
 
-// Backfill legacy plain-string `color` into the new structured `colorInfo` field.
-// We look up the manufacturer's canonical color list for the car's model — if the
-// color name matches, it's canonical (we copy the hex too); otherwise we mark it
-// custom. The legacy `color` field is unset once moved so we have one source of
-// truth going forward.
-async function migrateLegacyColors() {
-  // The legacy `color` field is no longer on the Mongoose schema, so we go
-  // directly through the raw collection to read it. Once the migration has run
-  // on a deployment, this query returns 0 docs and is a fast no-op.
-  const cars = await mongoose.connection.db.collection("cars").find({
-    color: { $exists: true, $ne: null, $ne: "" },
-    $or: [{ colorInfo: null }, { colorInfo: { $exists: false } }],
-  }).toArray();
-  if (cars.length === 0) return;
+// One-time backfill: promotes the embedded `Manufacturer.models/colors/trims`
+// registry into standalone `Model` documents, then repoints `Car.model` and
+// `WishlistItem.model` from free-text strings to `Model` ObjectId refs.
+// Reads legacy fields via the raw collection since they're no longer on the
+// Mongoose schemas. Once run on a deployment, every query here returns 0 docs
+// and this is a fast no-op.
+async function migrateManufacturerModelsToModelCollection() {
+  const db = mongoose.connection.db;
+  const legacyMfrs = await db.collection("manufacturers")
+    .find({ models: { $exists: true } })
+    .toArray();
+  if (legacyMfrs.length === 0) return;
 
-  // Pre-load all manufacturers once so we don't refetch per car
-  const manufacturers = await Manufacturer.find().lean();
-  const mfrByName = new Map(manufacturers.map((m) => [m.name, m]));
+  let modelsCreated = 0;
+  for (const mfr of legacyMfrs) {
+    const colors = mfr.colors instanceof Map ? Object.fromEntries(mfr.colors) : (mfr.colors || {});
+    const trims = mfr.trims instanceof Map ? Object.fromEntries(mfr.trims) : (mfr.trims || {});
+    const modelNameToId = new Map();
+    for (const name of mfr.models || []) {
+      const existing = await Model.findOne({ manufacturer: mfr._id, name });
+      const modelDoc = existing || await Model.create({
+        manufacturer: mfr._id,
+        name,
+        colors: colors[name] || [],
+        trims: trims[name] || [],
+      });
+      if (!existing) modelsCreated++;
+      modelNameToId.set(name, modelDoc._id);
+    }
 
-  for (const car of cars) {
-    const mfr = mfrByName.get(car.manufacturer);
-    const canonical = mfr?.colors
-      ? (mfr.colors instanceof Map ? mfr.colors.get(car.model) || mfr.colors.get("*") : mfr.colors[car.model] || mfr.colors["*"])
-      : null;
-    const match = Array.isArray(canonical) ? canonical.find((c) => c.name === car.color) : null;
-    const colorInfo = match
-      ? { name: match.name, hex: match.hex, isCustom: false }
-      : { name: car.color, isCustom: true };
-    await Car.updateOne({ _id: car._id }, { $set: { colorInfo }, $unset: { color: "" } });
+    const legacyCars = await db.collection("cars")
+      .find({ manufacturer: mfr.name, model: { $type: "string" } })
+      .toArray();
+    for (const car of legacyCars) {
+      const modelId = modelNameToId.get(car.model);
+      if (!modelId) continue; // model name not in registry — leave for manual cleanup
+      await db.collection("cars").updateOne(
+        { _id: car._id },
+        { $set: { model: modelId }, $unset: { manufacturer: "" } }
+      );
+    }
+
+    const legacyWishlistItems = await db.collection("wishlistitems")
+      .find({ manufacturer: mfr.name, model: { $type: "string" } })
+      .toArray();
+    for (const item of legacyWishlistItems) {
+      const modelId = modelNameToId.get(item.model);
+      if (!modelId) continue;
+      await db.collection("wishlistitems").updateOne(
+        { _id: item._id },
+        { $set: { model: modelId }, $unset: { manufacturer: "" } }
+      );
+    }
+
+    await db.collection("manufacturers").updateOne(
+      { _id: mfr._id },
+      { $unset: { models: "", colors: "", trims: "" } }
+    );
   }
-  console.log(`Backfilled colorInfo on ${cars.length} car(s)`);
+  console.log(`Migrated ${legacyMfrs.length} manufacturer(s) to the Model collection (${modelsCreated} model(s) created)`);
 }
 
 // Starter list of common manufacturers + a handful of models each. Idempotent —
@@ -404,10 +430,14 @@ async function seedManufacturers() {
   ];
   let inserted = 0;
   for (const s of starters) {
-    const existing = await Manufacturer.findOne({ name: s.name });
-    if (!existing) {
-      await Manufacturer.create({ name: s.name, models: s.models, colors: {}, trims: {} });
+    let mfr = await Manufacturer.findOne({ name: s.name });
+    if (!mfr) {
+      mfr = await Manufacturer.create({ name: s.name });
       inserted++;
+    }
+    for (const modelName of s.models) {
+      const existing = await Model.findOne({ manufacturer: mfr._id, name: modelName });
+      if (!existing) await Model.create({ manufacturer: mfr._id, name: modelName });
     }
   }
   if (inserted > 0) console.log(`Seeded ${inserted} new manufacturer(s)`);
@@ -508,18 +538,20 @@ const BADGE_COUNTERS = {
   "drive-count":    (humanId) => Experience.countDocuments({ loggedBy: humanId, type: "drove" }),
   "spot-count":     (humanId) => Experience.countDocuments({ loggedBy: humanId, type: "spotted" }),
   "brand-explorer": async (humanId) => {
-    const exps = await Experience.find({ loggedBy: humanId, type: "drove" }).populate("car", "manufacturer");
-    return new Set(exps.map((e) => e.car?.manufacturer).filter(Boolean)).size;
+    const exps = await Experience.find({ loggedBy: humanId, type: "drove" })
+      .populate({ path: "car", select: "model", populate: { path: "model", select: "manufacturer", populate: { path: "manufacturer", select: "name" } } });
+    return new Set(exps.map((e) => e.car?.model?.manufacturer?.name).filter(Boolean)).size;
   },
   "stick-shift": async (humanId) => {
     const exps = await Experience.find({ loggedBy: humanId, type: "drove" }).populate("car", "transmission");
     return exps.filter((e) => e.car?.transmission === "Manual").length;
   },
   "ev-pioneer": async (humanId) => {
-    const exps = await Experience.find({ loggedBy: humanId, type: "drove" }).populate("car", "manufacturer transmission");
+    const exps = await Experience.find({ loggedBy: humanId, type: "drove" })
+      .populate({ path: "car", select: "model transmission", populate: { path: "model", select: "manufacturer", populate: { path: "manufacturer", select: "name" } } });
     return exps.filter((e) => {
       const t = e.car?.transmission;
-      const m = e.car?.manufacturer;
+      const m = e.car?.model?.manufacturer?.name;
       return t === "Electric" || EV_MANUFACTURERS.has(m);
     }).length;
   },
@@ -582,8 +614,24 @@ async function evaluateBadges(humanId) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Flattens a populated `car.model` (a Model doc, itself populated with its
+// `manufacturer` ref) into plain display fields, so API responses keep the
+// familiar `manufacturer`/`model` name strings and callers don't need to know
+// about the underlying ref chain. `modelId` is included for write paths (e.g.
+// pre-filling an edit form's model select).
+function flattenCarModel(car) {
+  const modelDoc = car.model;
+  if (modelDoc && typeof modelDoc === "object") {
+    car.modelId = String(modelDoc._id);
+    car.manufacturer = modelDoc.manufacturer?.name ?? null;
+    car.model = modelDoc.name;
+  }
+  return car;
+}
+
 async function attachOwnership(carDoc) {
   const car = carDoc.toObject ? carDoc.toObject() : { ...carDoc };
+  flattenCarModel(car);
   const ownerships = await Ownership.find({ car: car._id })
     .populate("owner", "name email")
     .sort({ from: 1 });
@@ -604,7 +652,7 @@ async function attachOwnership(carDoc) {
 
 async function attachOwnershipToMany(carDocs) {
   if (carDocs.length === 0) return [];
-  const cars = carDocs.map((c) => (c.toObject ? c.toObject() : { ...c }));
+  const cars = carDocs.map((c) => flattenCarModel(c.toObject ? c.toObject() : { ...c }));
   const carIds = cars.map((c) => c._id);
 
   const [ownerships, photos] = await Promise.all([
@@ -794,9 +842,26 @@ app.post("/api/humans", requireAuth, async (req, res) => {
 
 // ── Manufacturers ─────────────────────────────────────────────────────────────
 
+// Attaches each manufacturer's Model docs as `.models`, sorted by name — mirrors
+// the shape of the old embedded `models` array but with full Model documents.
+async function attachModels(mfrs) {
+  const isArray = Array.isArray(mfrs);
+  const list = isArray ? mfrs : [mfrs];
+  const models = await Model.find({ manufacturer: { $in: list.map((m) => m._id) } }).sort({ name: 1 }).lean();
+  const byMfr = new Map();
+  for (const m of models) {
+    const k = String(m.manufacturer);
+    if (!byMfr.has(k)) byMfr.set(k, []);
+    byMfr.get(k).push(m);
+  }
+  const attached = list.map((m) => ({ ...(m.toObject ? m.toObject() : m), models: byMfr.get(String(m._id)) || [] }));
+  return isArray ? attached : attached[0];
+}
+
 app.get("/api/manufacturers", async (req, res) => {
   try {
-    res.json(await Manufacturer.find().sort({ name: 1 }));
+    const mfrs = await Manufacturer.find().sort({ name: 1 }).lean();
+    res.json(await attachModels(mfrs));
   } catch {
     res.status(500).send("Error fetching manufacturers");
   }
@@ -807,11 +872,14 @@ app.post("/api/manufacturers", requireAdmin, async (req, res) => {
   try {
     const name = (req.body.name || "").trim();
     if (!name) return res.status(400).json({ error: "name is required" });
-    const models = Array.isArray(req.body.models) ? req.body.models.map((m) => String(m).trim()).filter(Boolean) : [];
+    const modelNames = Array.isArray(req.body.models) ? req.body.models.map((m) => String(m).trim()).filter(Boolean) : [];
     const existing = await Manufacturer.findOne({ name });
     if (existing) return res.status(409).json({ error: "Manufacturer already exists" });
-    const mfr = await Manufacturer.create({ name, models, colors: {}, trims: {} });
-    res.status(201).json(mfr);
+    const mfr = await Manufacturer.create({ name });
+    for (const modelName of modelNames) {
+      await Model.create({ manufacturer: mfr._id, name: modelName });
+    }
+    res.status(201).json(await attachModels(mfr));
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -820,53 +888,44 @@ app.post("/api/manufacturers", requireAdmin, async (req, res) => {
 // Admin-only: add a new model to an existing manufacturer (no-op if already present).
 app.patch("/api/manufacturers/:id/models", requireAdmin, async (req, res) => {
   try {
-    const model = (req.body.model || "").trim();
-    if (!model) return res.status(400).json({ error: "model is required" });
+    const name = (req.body.model || "").trim();
+    if (!name) return res.status(400).json({ error: "model is required" });
     const mfr = await Manufacturer.findById(req.params.id);
     if (!mfr) return res.status(404).json({ error: "Manufacturer not found" });
-    if (!mfr.models.includes(model)) {
-      mfr.models.push(model);
-      mfr.models.sort();
-      await mfr.save();
-    }
-    res.json(mfr);
+    const existing = await Model.findOne({ manufacturer: mfr._id, name });
+    if (!existing) await Model.create({ manufacturer: mfr._id, name });
+    res.json(await attachModels(mfr));
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
 // Admin-only: remove a model from a manufacturer (only if no Cars use it).
-app.delete("/api/manufacturers/:id/models/:model", requireAdmin, async (req, res) => {
+app.delete("/api/manufacturers/:id/models/:modelId", requireAdmin, async (req, res) => {
   try {
-    const { id, model } = req.params;
+    const { id, modelId } = req.params;
     const mfr = await Manufacturer.findById(id);
     if (!mfr) return res.status(404).json({ error: "Manufacturer not found" });
-    const inUse = await Car.findOne({ manufacturer: mfr.name, model });
+    const modelDoc = await Model.findOne({ _id: modelId, manufacturer: id });
+    if (!modelDoc) return res.status(404).json({ error: "Model not found" });
+    const inUse = await Car.findOne({ model: modelId });
     if (inUse) return res.status(409).json({ error: "Model is in use by one or more cars" });
-    mfr.models = mfr.models.filter((m) => m !== model);
-    // Clean up any trim entries for this model — otherwise we'd orphan them.
-    if (mfr.trims && mfr.trims.has(model)) {
-      mfr.trims.delete(model);
-    }
-    await mfr.save();
-    res.json(mfr);
+    await Model.deleteOne({ _id: modelId });
+    res.json(await attachModels(mfr));
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// Admin-only: replace the full trim list for a (manufacturer, model). The request
-// body is the canonical new list; existing entries for that model are overwritten.
-// Each trim is `{ name, years: [{from, to}] }`. Both `from` and `to` may be null
-// (open-ended on that side). The trim list for other models is left untouched.
-app.put("/api/manufacturers/:id/trims/:model", requireAdmin, async (req, res) => {
+// Admin-only: replace the full trim list for a model. The request body is the
+// canonical new list; existing trims are overwritten. Each trim is
+// `{ name, years: [{from, to}] }`. Both `from` and `to` may be null (open-ended
+// on that side).
+app.put("/api/manufacturers/:id/trims/:modelId", requireAdmin, async (req, res) => {
   try {
-    const { id, model } = req.params;
-    const mfr = await Manufacturer.findById(id);
-    if (!mfr) return res.status(404).json({ error: "Manufacturer not found" });
-    if (!mfr.models.includes(model)) {
-      return res.status(400).json({ error: `Model "${model}" not in manufacturer's model list` });
-    }
+    const { id, modelId } = req.params;
+    const modelDoc = await Model.findOne({ _id: modelId, manufacturer: id });
+    if (!modelDoc) return res.status(404).json({ error: "Model not found" });
 
     const incoming = Array.isArray(req.body.trims) ? req.body.trims : [];
     const normalized = [];
@@ -892,10 +951,9 @@ app.put("/api/manufacturers/:id/trims/:model", requireAdmin, async (req, res) =>
       normalized.push({ name, years });
     }
 
-    if (!mfr.trims) mfr.trims = new Map();
-    mfr.trims.set(model, normalized);
-    await mfr.save();
-    res.json(mfr);
+    modelDoc.trims = normalized;
+    await modelDoc.save();
+    res.json(modelDoc);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -903,9 +961,14 @@ app.put("/api/manufacturers/:id/trims/:model", requireAdmin, async (req, res) =>
 
 // ── Cars ──────────────────────────────────────────────────────────────────────
 
+// Populate spec shared by every Car read path: resolves `car.model` to a Model
+// doc, and that Model's `manufacturer` to a Manufacturer doc, so `flattenCarModel`
+// can reduce it back to plain `manufacturer`/`model` name strings for the response.
+const CAR_MODEL_POPULATE = { path: "model", populate: { path: "manufacturer" } };
+
 app.get("/api/cars", async (req, res) => {
   try {
-    const cars = await Car.find();
+    const cars = await Car.find().populate(CAR_MODEL_POPULATE);
     res.json(await attachOwnershipToMany(cars));
   } catch {
     res.status(500).send("Error fetching cars");
@@ -914,9 +977,9 @@ app.get("/api/cars", async (req, res) => {
 
 app.post("/api/cars", requireAuth, async (req, res) => {
   try {
-    const { manufacturer, model, year, nickname, transmission, colorInfo, trim, vin } = req.body;
-    if (!manufacturer || !model || !year) {
-      return res.status(400).json({ error: "manufacturer, model, and year are required" });
+    const { model, year, nickname, transmission, colorInfo, trim, vin } = req.body;
+    if (!model || !year) {
+      return res.status(400).json({ error: "model and year are required" });
     }
     // VIN is optional. If provided, the sparse unique index still keeps duplicates out.
     // Pass undefined (not empty string) so Mongo doesn't store a "" value that would
@@ -924,12 +987,10 @@ app.post("/api/cars", requireAuth, async (req, res) => {
     const trimmedVin = typeof vin === "string" ? vin.trim() : "";
     const vinValue = trimmedVin || undefined;
 
-    const mfr = await Manufacturer.findOne({ name: manufacturer });
-    if (!mfr) return res.status(400).json({ error: "invalid manufacturer" });
-    if (!mfr.models.includes(model))
-      return res.status(400).json({ error: `invalid model for manufacturer ${manufacturer}` });
+    const modelDoc = await Model.findById(model);
+    if (!modelDoc) return res.status(400).json({ error: "invalid model" });
 
-    const trimError = validateTrim(mfr, model, year, trim);
+    const trimError = validateTrim(modelDoc, year, trim);
     if (trimError) return res.status(400).json({ error: trimError });
 
     const normalizedColor = colorInfo && colorInfo.name
@@ -938,10 +999,11 @@ app.post("/api/cars", requireAuth, async (req, res) => {
 
     try {
       const car = await new Car({
-        manufacturer, model, year, nickname, transmission, trim,
+        model, year, nickname, transmission, trim,
         vin: vinValue,
         colorInfo: normalizedColor,
       }).save();
+      await car.populate(CAR_MODEL_POPULATE);
       res.status(201).json(await attachOwnership(car));
     } catch (err) {
       if (err.code === 11000) return res.status(409).json({ error: "A car with this VIN already exists" });
@@ -954,31 +1016,24 @@ app.post("/api/cars", requireAuth, async (req, res) => {
 
 app.put("/api/cars/:id", requireAuth, async (req, res) => {
   try {
-    const { manufacturer, model, year, trim } = req.body;
+    const { model, year, trim } = req.body;
     const car = await Car.findById(req.params.id);
     if (!car) return res.status(404).json({ error: "Car not found" });
 
-    // Compute effective values once for use in both manufacturer/model and trim validation.
-    const effectiveMfrName = manufacturer || car.manufacturer;
-    const effectiveModel = model || car.model;
+    // Compute effective values once for use in both model and trim validation.
+    const effectiveModelId = model || car.model;
     const effectiveYear = year != null ? year : car.year;
     const effectiveTrim = trim !== undefined ? trim : car.trim;
 
-    if (manufacturer || model) {
-      const mfr = await Manufacturer.findOne({ name: effectiveMfrName });
-      if (!mfr) return res.status(400).json({ error: "invalid manufacturer" });
-      if (!mfr.models.includes(effectiveModel))
-        return res.status(400).json({ error: `invalid model for manufacturer ${effectiveMfrName}` });
+    let modelDoc = null;
+    if (model || trim !== undefined || year !== undefined) {
+      modelDoc = await Model.findById(effectiveModelId);
+      if (!modelDoc) return res.status(400).json({ error: "invalid model" });
     }
 
-    // Validate trim against the effective (mfr, model, year). Re-fetch in case
-    // the body didn't include manufacturer.
-    if (trim !== undefined || year !== undefined || model !== undefined || manufacturer !== undefined) {
-      const mfrDoc = await Manufacturer.findOne({ name: effectiveMfrName });
-      if (mfrDoc) {
-        const trimError = validateTrim(mfrDoc, effectiveModel, effectiveYear, effectiveTrim);
-        if (trimError) return res.status(400).json({ error: trimError });
-      }
+    if (modelDoc) {
+      const trimError = validateTrim(modelDoc, effectiveYear, effectiveTrim);
+      if (trimError) return res.status(400).json({ error: trimError });
     }
 
     const { owner: _owner, colorInfo, ...updateFields } = req.body;
@@ -988,7 +1043,8 @@ app.put("/api/cars/:id", requireAuth, async (req, res) => {
         ? { name: String(colorInfo.name).trim(), hex: colorInfo.hex || undefined, isCustom: !!colorInfo.isCustom }
         : null;
     }
-    const updated = await Car.findByIdAndUpdate(req.params.id, updateFields, { new: true, runValidators: true });
+    const updated = await Car.findByIdAndUpdate(req.params.id, updateFields, { new: true, runValidators: true })
+      .populate(CAR_MODEL_POPULATE);
     if (!updated) return res.status(404).json({ error: "Car not found" });
     res.json(await attachOwnership(updated));
   } catch (err) {
@@ -1079,7 +1135,7 @@ app.patch("/api/cars/:id/thumbnail", requireAuth, async (req, res) => {
       req.params.id,
       { thumbnailPhoto: photoId || null },
       { new: true }
-    );
+    ).populate(CAR_MODEL_POPULATE);
     if (!updated) return res.status(404).json({ error: "Car not found" });
     res.json(await attachOwnership(updated));
   } catch {
@@ -1202,7 +1258,7 @@ app.get("/api/experiences", async (req, res) => {
       filter = { loggedBy: { $in: [followerId, ...followeeIds] } };
     }
     const experiences = await Experience.find(filter)
-      .populate("car")
+      .populate({ path: "car", populate: CAR_MODEL_POPULATE })
       .populate("loggedBy", "name email avatarUrl")
       .sort({ date: -1 });
     const expIds = experiences.map((e) => e._id);
@@ -1245,11 +1301,7 @@ app.post("/api/experiences", requireAuth, async (req, res) => {
     if (type === "drove") {
       const carDoc = await Car.findById(car).lean();
       if (carDoc) {
-        const items = await WishlistItem.find({
-          human: loggedBy,
-          manufacturer: carDoc.manufacturer,
-          model: carDoc.model,
-        });
+        const items = await WishlistItem.find({ human: loggedBy, model: carDoc.model });
         for (const item of items) {
           if (yearMatchesWishlist(carDoc.year, item.yearFrom, item.yearTo)) {
             await WishlistItem.deleteOne({ _id: item._id });
@@ -1365,7 +1417,7 @@ app.get("/api/users/:id/profile", async (req, res) => {
     const requesterId = requester ? String(requester._id) : null;
 
     const experienceDocs = await Experience.find({ loggedBy: humanId })
-      .populate("car")
+      .populate({ path: "car", populate: CAR_MODEL_POPULATE })
       .populate("loggedBy", "name email avatarUrl")
       .sort({ date: -1 });
     const expIds = experienceDocs.map((e) => e._id);
@@ -1388,7 +1440,8 @@ app.get("/api/users/:id/profile", async (req, res) => {
       return serializeExperience(expObj, { viewerId: requesterId });
     });
 
-    const ownerships = await Ownership.find({ owner: humanId, to: null }).populate("car");
+    const ownerships = await Ownership.find({ owner: humanId, to: null })
+      .populate({ path: "car", populate: CAR_MODEL_POPULATE });
     const ownedCars = await attachOwnershipToMany(ownerships.map((o) => o.car));
 
     const followingDocs = await Follow.find({ follower: humanId })
@@ -1511,22 +1564,23 @@ app.get("/api/search", async (req, res) => {
 
     const rx = new RegExp(escapeRegex(q), "i");
 
-    // Models: derived from Car collection, deduped to unique {manufacturer, model} pairs
-    const matchingCars = await Car.find(
-      { $or: [{ manufacturer: rx }, { model: rx }] },
-      { manufacturer: 1, model: 1 }
-    )
-      .limit(200)
-      .lean();
+    // Models: match against the Model registry (by model name or manufacturer name),
+    // limited to models that actually have at least one Car logged.
+    const matchingModels = await Model.find({ name: rx }).populate("manufacturer").limit(50).lean();
+    const matchingMfrs = await Manufacturer.find({ name: rx }).lean();
+    const mfrModelDocs = matchingMfrs.length
+      ? await Model.find({ manufacturer: { $in: matchingMfrs.map((m) => m._id) } }).populate("manufacturer").limit(50).lean()
+      : [];
+    const candidates = [...matchingModels, ...mfrModelDocs];
     const seen = new Set();
     const models = [];
-    for (const c of matchingCars) {
-      const key = `${c.manufacturer}|${c.model}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        models.push({ manufacturer: c.manufacturer, model: c.model });
-        if (models.length >= 10) break;
-      }
+    for (const m of candidates) {
+      if (seen.has(String(m._id))) continue;
+      const hasCar = await Car.exists({ model: m._id });
+      if (!hasCar) continue;
+      seen.add(String(m._id));
+      models.push({ manufacturer: m.manufacturer?.name, model: m.name });
+      if (models.length >= 10) break;
     }
 
     // Users: match against name
@@ -1542,7 +1596,8 @@ app.get("/api/search", async (req, res) => {
 
 app.post("/api/wishlist", requireAuth, async (req, res) => {
   try {
-    const { manufacturer, model, yearFrom, yearTo } = req.body;
+    const { model, yearFrom, yearTo } = req.body;
+    if (!model) return res.status(400).json({ error: "model is required" });
     const human = req.currentHuman._id;
     const yf = yearFrom ?? null;
     const yt = yearTo ?? null;
@@ -1551,16 +1606,15 @@ app.post("/api/wishlist", requireAuth, async (req, res) => {
     const userDroveCars = await Experience.find({ loggedBy: human, type: "drove" }).populate("car").lean();
     const matched = userDroveCars.find((e) => {
       const c = e.car;
-      return c && c.manufacturer === manufacturer && c.model === model &&
-        yearMatchesWishlist(c.year, yf, yt);
+      return c && String(c.model) === String(model) && yearMatchesWishlist(c.year, yf, yt);
     });
     if (matched) {
       return res.status(409).json({ error: "Already driven a car matching this wishlist entry." });
     }
 
     const item = await WishlistItem.findOneAndUpdate(
-      { human, manufacturer, model },
-      { human, manufacturer, model, yearFrom: yf, yearTo: yt },
+      { human, model },
+      { human, model, yearFrom: yf, yearTo: yt },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     res.status(201).json(item);
@@ -1571,8 +1625,8 @@ app.post("/api/wishlist", requireAuth, async (req, res) => {
 
 app.delete("/api/wishlist", requireAuth, async (req, res) => {
   try {
-    const { manufacturer, model } = req.body;
-    await WishlistItem.deleteOne({ human: req.currentHuman._id, manufacturer, model });
+    const { model } = req.body;
+    await WishlistItem.deleteOne({ human: req.currentHuman._id, model });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1581,12 +1635,15 @@ app.delete("/api/wishlist", requireAuth, async (req, res) => {
 
 app.get("/api/users/:id/wishlist", async (req, res) => {
   try {
-    const items = await WishlistItem.find({ human: req.params.id }).sort({ createdAt: -1 }).lean();
+    const items = await WishlistItem.find({ human: req.params.id })
+      .populate({ path: "model", populate: { path: "manufacturer" } })
+      .sort({ createdAt: -1 })
+      .lean();
 
     // For each item, find a representative car (preferring one inside the year range)
     // and pick its thumbnail to surface to the gallery.
     const enriched = await Promise.all(items.map(async (item) => {
-      const cars = await Car.find({ manufacturer: item.manufacturer, model: item.model }).lean();
+      const cars = await Car.find({ model: item.model._id }).lean();
       const inRange = cars.filter((c) => yearMatchesWishlist(c.year, item.yearFrom, item.yearTo));
       const candidates = inRange.length > 0 ? inRange : cars;
 
@@ -1603,7 +1660,14 @@ app.get("/api/users/:id/wishlist", async (req, res) => {
           break;
         }
       }
-      return { ...item, thumbnailUrl, representativeYear };
+      return {
+        ...item,
+        manufacturer: item.model.manufacturer?.name,
+        model: item.model.name,
+        modelId: String(item.model._id),
+        thumbnailUrl,
+        representativeYear,
+      };
     }));
 
     res.json(enriched);
@@ -1624,22 +1688,26 @@ app.get("/api/models/:mfr/:model", async (req, res) => {
     const mfrRegex = slugToRegex(req.params.mfr);
     const modelRegex = slugToRegex(req.params.model);
 
-    const carDocs = await Car.find({ manufacturer: mfrRegex, model: modelRegex });
+    const mfrDoc = await Manufacturer.findOne({ name: mfrRegex });
+    const modelDoc = mfrDoc && await Model.findOne({ manufacturer: mfrDoc._id, name: modelRegex });
+    if (!modelDoc) return res.status(404).json({ error: "Model not found" });
+
+    const carDocs = await Car.find({ model: modelDoc._id }).populate(CAR_MODEL_POPULATE);
     const cars = await attachOwnershipToMany(carDocs);
 
     if (cars.length === 0) {
       return res.status(404).json({ error: "Model not found" });
     }
 
-    // Canonicalize names from the first match (Mongo gave us actual stored case).
-    const manufacturer = cars[0].manufacturer;
-    const model = cars[0].model;
+    const manufacturer = mfrDoc.name;
+    const model = modelDoc.name;
+    const modelId = String(modelDoc._id);
 
     const carIds = cars.map((c) => c._id);
 
     // All experiences for any instance of this model, newest first
     const experienceDocs = await Experience.find({ car: { $in: carIds } })
-      .populate("car")
+      .populate({ path: "car", populate: CAR_MODEL_POPULATE })
       .populate("loggedBy", "name email avatarUrl")
       .sort({ date: -1 })
       .lean();
@@ -1657,6 +1725,7 @@ app.get("/api/models/:mfr/:model", async (req, res) => {
     }
     for (const e of experienceDocs) {
       e.reactions = reactionsByExp.get(String(e._id)) ?? [];
+      if (e.car) flattenCarModel(e.car);
     }
 
     const requester = await getCurrentHuman(req);
@@ -1670,12 +1739,12 @@ app.get("/api/models/:mfr/:model", async (req, res) => {
       : null;
 
     // Wishlist: count + per-user state
-    const wishlistCount = await WishlistItem.countDocuments({ manufacturer, model });
+    const wishlistCount = await WishlistItem.countDocuments({ model: modelDoc._id });
     const userId = req.query.userId;
     let wishlistItem = null;
     let drivenYears = [];
     if (userId) {
-      wishlistItem = await WishlistItem.findOne({ human: userId, manufacturer, model }).lean();
+      wishlistItem = await WishlistItem.findOne({ human: userId, model: modelDoc._id }).lean();
       // Years the user has driven for this model (for computing "driven" status against ranges)
       const userDrove = experiences.filter(
         (e) => e.type === "drove" && e.loggedBy && String(e.loggedBy._id) === String(userId)
@@ -1686,6 +1755,7 @@ app.get("/api/models/:mfr/:model", async (req, res) => {
     res.json({
       manufacturer,
       model,
+      modelId,
       cars,
       experiences,
       rating: {
@@ -1723,7 +1793,7 @@ if (DB_NAME === "carsDB_test") {
   app.post("/api/test/seed", async (req, res) => {
     try {
       const db = mongoose.connection.db;
-      for (const col of ["humans", "cars", "experiences", "reactions", "userbadges", "follows", "manufacturers", "wishlistitems"]) {
+      for (const col of ["humans", "cars", "experiences", "reactions", "userbadges", "follows", "manufacturers", "models", "wishlistitems"]) {
         await db.collection(col).drop().catch(() => {});
       }
 
@@ -1735,30 +1805,67 @@ if (DB_NAME === "carsDB_test") {
       ]);
 
       await Manufacturer.insertMany([
-        { _id: toId("111111111111111111111111"), name: "Honda", models: ["Civic", "Accord", "CR-V"], colors: { "*": [{ name: "White", hex: "#ffffff" }, { name: "Black", hex: "#000000" }] }, trims: {} },
-        { _id: toId("222222222222222222222222"), name: "Chevrolet", models: ["Impala", "Camaro", "Silverado"], colors: {}, trims: {} },
-        { _id: toId("333333333333333333333333"), name: "Tesla", models: ["Model 3", "Model S", "Model Y"], colors: {}, trims: {} },
-        { _id: toId("444444444444444444444444"), name: "Toyota", models: ["Supra", "Tacoma", "Corolla", "Land Cruiser"], colors: {}, trims: {} },
-        { _id: toId("555555555555555555555555"), name: "Ford", models: ["Mustang", "F-150", "Bronco"], colors: {}, trims: {} },
-        { _id: toId("666666666666666666666666"), name: "Porsche", models: ["911", "Cayenne", "Boxster"], colors: {}, trims: {} },
-        { _id: toId("777777777777777777777777"), name: "Subaru", models: ["WRX", "Outback", "BRZ"], colors: {}, trims: {} },
+        { _id: toId("111111111111111111111111"), name: "Honda" },
+        { _id: toId("222222222222222222222222"), name: "Chevrolet" },
+        { _id: toId("333333333333333333333333"), name: "Tesla" },
+        { _id: toId("444444444444444444444444"), name: "Toyota" },
+        { _id: toId("555555555555555555555555"), name: "Ford" },
+        { _id: toId("666666666666666666666666"), name: "Porsche" },
+        { _id: toId("777777777777777777777777"), name: "Subaru" },
+      ]);
+
+      const civicId = toId("100000000000000000000001");
+      const impalaId = toId("100000000000000000000002");
+      const model3Id = toId("100000000000000000000003");
+      const supraId = toId("100000000000000000000004");
+      const mustangId = toId("100000000000000000000005");
+      const p911Id = toId("100000000000000000000006");
+      const wrxId = toId("100000000000000000000007");
+      const camaroId = toId("100000000000000000000008");
+      const landCruiserId = toId("100000000000000000000009");
+      const modelSId = toId("10000000000000000000000a");
+
+      await Model.insertMany([
+        { _id: civicId, manufacturer: toId("111111111111111111111111"), name: "Civic", colors: [{ name: "White", hex: "#ffffff" }, { name: "Black", hex: "#000000" }] },
+        { _id: toId("100000000000000000000101"), manufacturer: toId("111111111111111111111111"), name: "Accord" },
+        { _id: toId("100000000000000000000102"), manufacturer: toId("111111111111111111111111"), name: "CR-V" },
+        { _id: impalaId, manufacturer: toId("222222222222222222222222"), name: "Impala" },
+        { _id: camaroId, manufacturer: toId("222222222222222222222222"), name: "Camaro" },
+        { _id: toId("100000000000000000000201"), manufacturer: toId("222222222222222222222222"), name: "Silverado" },
+        { _id: model3Id, manufacturer: toId("333333333333333333333333"), name: "Model 3" },
+        { _id: modelSId, manufacturer: toId("333333333333333333333333"), name: "Model S" },
+        { _id: toId("100000000000000000000301"), manufacturer: toId("333333333333333333333333"), name: "Model Y" },
+        { _id: supraId, manufacturer: toId("444444444444444444444444"), name: "Supra" },
+        { _id: toId("100000000000000000000401"), manufacturer: toId("444444444444444444444444"), name: "Tacoma" },
+        { _id: toId("100000000000000000000402"), manufacturer: toId("444444444444444444444444"), name: "Corolla" },
+        { _id: landCruiserId, manufacturer: toId("444444444444444444444444"), name: "Land Cruiser" },
+        { _id: mustangId, manufacturer: toId("555555555555555555555555"), name: "Mustang" },
+        { _id: toId("100000000000000000000501"), manufacturer: toId("555555555555555555555555"), name: "F-150" },
+        { _id: toId("100000000000000000000502"), manufacturer: toId("555555555555555555555555"), name: "Bronco" },
+        { _id: p911Id, manufacturer: toId("666666666666666666666666"), name: "911" },
+        { _id: toId("100000000000000000000601"), manufacturer: toId("666666666666666666666666"), name: "Cayenne" },
+        { _id: toId("100000000000000000000602"), manufacturer: toId("666666666666666666666666"), name: "Boxster" },
+        { _id: wrxId, manufacturer: toId("777777777777777777777777"), name: "WRX" },
+        { _id: toId("100000000000000000000701"), manufacturer: toId("777777777777777777777777"), name: "Outback" },
+        { _id: toId("100000000000000000000702"), manufacturer: toId("777777777777777777777777"), name: "BRZ" },
       ]);
 
       await Car.insertMany([
-        { _id: toId("cccccccccccccccccccccccc"), manufacturer: "Honda", model: "Civic", year: 2012, nickname: "Rhonda the Honda", transmission: "Manual", ownershipHistory: [{ owner: toId("aaaaaaaaaaaaaaaaaaaaaaaa"), from: null, to: null }], photos: [] },
-        { _id: toId("dddddddddddddddddddddddd"), manufacturer: "Chevrolet", model: "Impala", year: 2015, transmission: "Automatic", ownershipHistory: [], photos: [] },
-        { _id: toId("eeeeeeeeeeeeeeeeeeeeeeee"), manufacturer: "Tesla", model: "Model 3", year: 2023, transmission: "Electric", ownershipHistory: [], photos: [] },
-        { _id: toId("ff0000000000000000000001"), manufacturer: "Toyota", model: "Supra", year: 1994, nickname: "The Soup", transmission: "Manual", ownershipHistory: [{ owner: toId("bbbbbbbbbbbbbbbbbbbbbbbb"), from: null, to: null }], photos: [] },
-        { _id: toId("ff0000000000000000000002"), manufacturer: "Ford", model: "Mustang", year: 2019, transmission: "Manual", ownershipHistory: [], photos: [] },
-        { _id: toId("ff0000000000000000000003"), manufacturer: "Porsche", model: "911", year: 2021, trim: "Carrera S", transmission: "Automatic", ownershipHistory: [], photos: [] },
-        { _id: toId("ff0000000000000000000004"), manufacturer: "Subaru", model: "WRX", year: 2017, transmission: "Manual", ownershipHistory: [{ owner: toId("aaaaaaaaaaaaaaaaaaaaaaaa"), from: "2017-06-01", to: "2021-03-15" }], photos: [] },
-        { _id: toId("ff0000000000000000000005"), manufacturer: "Chevrolet", model: "Camaro", year: 2020, trim: "SS", transmission: "Manual", ownershipHistory: [], photos: [] },
-        { _id: toId("ff0000000000000000000006"), manufacturer: "Toyota", model: "Land Cruiser", year: 2005, transmission: "Automatic", ownershipHistory: [], photos: [] },
-        { _id: toId("ff0000000000000000000007"), manufacturer: "Tesla", model: "Model S", year: 2022, trim: "Plaid", transmission: "Electric", ownershipHistory: [], photos: [] },
+        { _id: toId("cccccccccccccccccccccccc"), model: civicId, year: 2012, nickname: "Rhonda the Honda", transmission: "Manual", ownershipHistory: [{ owner: toId("aaaaaaaaaaaaaaaaaaaaaaaa"), from: null, to: null }], photos: [] },
+        { _id: toId("dddddddddddddddddddddddd"), model: impalaId, year: 2015, transmission: "Automatic", ownershipHistory: [], photos: [] },
+        { _id: toId("eeeeeeeeeeeeeeeeeeeeeeee"), model: model3Id, year: 2023, transmission: "Electric", ownershipHistory: [], photos: [] },
+        { _id: toId("ff0000000000000000000001"), model: supraId, year: 1994, nickname: "The Soup", transmission: "Manual", ownershipHistory: [{ owner: toId("bbbbbbbbbbbbbbbbbbbbbbbb"), from: null, to: null }], photos: [] },
+        { _id: toId("ff0000000000000000000002"), model: mustangId, year: 2019, transmission: "Manual", ownershipHistory: [], photos: [] },
+        { _id: toId("ff0000000000000000000003"), model: p911Id, year: 2021, trim: "Carrera S", transmission: "Automatic", ownershipHistory: [], photos: [] },
+        { _id: toId("ff0000000000000000000004"), model: wrxId, year: 2017, transmission: "Manual", ownershipHistory: [{ owner: toId("aaaaaaaaaaaaaaaaaaaaaaaa"), from: "2017-06-01", to: "2021-03-15" }], photos: [] },
+        { _id: toId("ff0000000000000000000005"), model: camaroId, year: 2020, trim: "SS", transmission: "Manual", ownershipHistory: [], photos: [] },
+        { _id: toId("ff0000000000000000000006"), model: landCruiserId, year: 2005, transmission: "Automatic", ownershipHistory: [], photos: [] },
+        { _id: toId("ff0000000000000000000007"), model: modelSId, year: 2022, trim: "Plaid", transmission: "Electric", ownershipHistory: [], photos: [] },
       ]);
 
       // Drop-then-insertMany doesn't re-create schema indexes — rebuild explicitly
       await Car.syncIndexes();
+      await Model.syncIndexes();
 
       res.json({ ok: true });
     } catch (err) {

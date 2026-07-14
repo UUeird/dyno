@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import axios from "axios";
 import { asSam } from "./auth";
+import { FIXTURES } from "./seed";
 
 const API = "http://localhost:5000/api";
 
@@ -16,8 +17,7 @@ test.describe("Car VIN handling", () => {
 
   test("POST /api/cars accepts missing VIN", async () => {
     const { data } = await axios.post(`${API}/cars`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       year: 2020,
     });
     expect(data._id).toBeTruthy();
@@ -27,8 +27,7 @@ test.describe("Car VIN handling", () => {
 
   test("POST /api/cars accepts blank VIN (treated as no VIN)", async () => {
     const { data } = await axios.post(`${API}/cars`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       year: 2020,
       vin: "   ",
     });
@@ -39,8 +38,7 @@ test.describe("Car VIN handling", () => {
 
   test("POST /api/cars succeeds with VIN", async () => {
     const { data } = await axios.post(`${API}/cars`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       year: 2020,
       vin: "TESTVIN0000000001",
     });
@@ -50,8 +48,7 @@ test.describe("Car VIN handling", () => {
 
   test("POST /api/cars rejects duplicate VIN with 409", async () => {
     const { data } = await axios.post(`${API}/cars`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       year: 2021,
       vin: "TESTVIN0000000002",
     });
@@ -59,8 +56,7 @@ test.describe("Car VIN handling", () => {
 
     try {
       await axios.post(`${API}/cars`, {
-        manufacturer: "Honda",
-        model: "Accord",
+        model: FIXTURES.models.accord,
         year: 2019,
         vin: "TESTVIN0000000002",
       });
@@ -73,13 +69,11 @@ test.describe("Car VIN handling", () => {
   test("multiple cars with no VIN do not conflict", async () => {
     // Sparse unique index means absence is allowed for as many records as we want
     const { data: a } = await axios.post(`${API}/cars`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       year: 2018,
     });
     const { data: b } = await axios.post(`${API}/cars`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       year: 2019,
     });
     expect(a._id).not.toBe(b._id);

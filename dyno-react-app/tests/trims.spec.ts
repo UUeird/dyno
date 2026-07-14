@@ -16,15 +16,8 @@ const API = "http://localhost:5000/api";
 test.describe("Trim validation", () => {
   test.beforeAll(() => asSam());
 
-  let hondaId: string;
+  const hondaId = FIXTURES.manufacturers.honda;
   const createdVins: string[] = [];
-
-  test.beforeAll(async () => {
-    // Find Honda (seeded by /api/test/seed) and learn its id for trim-set calls below
-    const { data: mfrs } = await axios.get(`${API}/manufacturers`);
-    const honda = mfrs.find((m: any) => m.name === "Honda");
-    hondaId = honda._id;
-  });
 
   test.afterAll(async () => {
     for (const vin of createdVins) {
@@ -34,14 +27,13 @@ test.describe("Trim validation", () => {
       if (match) await axios.delete(`${API}/cars/${match._id}`).catch(() => {});
     }
     // Reset Honda Civic trims to empty so other specs aren't affected
-    await axios.put(`${API}/manufacturers/${hondaId}/trims/Civic`, { trims: [] }).catch(() => {});
+    await axios.put(`${API}/manufacturers/${hondaId}/trims/${FIXTURES.models.civic}`, { trims: [] }).catch(() => {});
   });
 
   test("trim is free-form when model has no trims defined", async () => {
     // Civic starts with no trims defined — should accept any trim string
     const { data } = await axios.post(`${API}/cars`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       year: 2015,
       vin: "TRIMTEST000000001",
       trim: "Something Custom",
@@ -58,8 +50,8 @@ test.describe("Trim validation", () => {
       { name: "Type R", years: [{ from: 2017, to: null }] },
     ];
     try {
-      const { data } = await axios.put(`${API}/manufacturers/${hondaId}/trims/Civic`, { trims });
-      expect(data.trims.Civic).toHaveLength(2);
+      const { data } = await axios.put(`${API}/manufacturers/${hondaId}/trims/${FIXTURES.models.civic}`, { trims });
+      expect(data.trims).toHaveLength(2);
     } catch (err: any) {
       // If admin isn't configured in test env, skip the rest of trim tests
       if (err.response?.status === 403) test.skip();
@@ -70,8 +62,7 @@ test.describe("Trim validation", () => {
   test("POST /api/cars rejects unknown trim when model has trims defined", async () => {
     try {
       await axios.post(`${API}/cars`, {
-        manufacturer: "Honda",
-        model: "Civic",
+        model: FIXTURES.models.civic,
         year: 2014,
         vin: "TRIMTEST000000002",
         trim: "Nonexistent",
@@ -88,8 +79,7 @@ test.describe("Trim validation", () => {
     // and EX (2012-2015 only) is not in that set → 400.
     try {
       await axios.post(`${API}/cars`, {
-        manufacturer: "Honda",
-        model: "Civic",
+        model: FIXTURES.models.civic,
         year: 2020,
         vin: "TRIMTEST000000003",
         trim: "EX",
@@ -104,8 +94,7 @@ test.describe("Trim validation", () => {
   test("POST /api/cars accepts any trim for a year no trims cover (free-form fallback)", async () => {
     // Pick a year before EX existed and before Type R: 2010. Falls back to free-form.
     const { data } = await axios.post(`${API}/cars`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       year: 2010,
       vin: "TRIMTEST000000006",
       trim: "Anything Goes",
@@ -116,8 +105,7 @@ test.describe("Trim validation", () => {
 
   test("POST /api/cars accepts trim within range", async () => {
     const { data } = await axios.post(`${API}/cars`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       year: 2014,
       vin: "TRIMTEST000000004",
       trim: "EX",
@@ -128,8 +116,7 @@ test.describe("Trim validation", () => {
 
   test("open-ended 'to' covers the present", async () => {
     const { data } = await axios.post(`${API}/cars`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       year: 2024,
       vin: "TRIMTEST000000005",
       trim: "Type R",

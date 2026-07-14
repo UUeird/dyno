@@ -11,10 +11,10 @@ test.describe("Want to drive wishlist", () => {
 
   test.afterEach(async () => {
     await axios.delete(`${API}/wishlist`, {
-      data: { manufacturer: "Honda", model: "Civic" },
+      data: { model: FIXTURES.models.civic },
     }).catch(() => {});
     await axios.delete(`${API}/wishlist`, {
-      data: { manufacturer: "Chevrolet", model: "Impala" },
+      data: { model: FIXTURES.models.impala },
     }).catch(() => {});
     // Wipe sam's drove experiences for Civic so tests stay independent
     const { data: exps } = await axios.get(`${API}/experiences`);
@@ -27,18 +27,16 @@ test.describe("Want to drive wishlist", () => {
 
   test("POST /api/wishlist adds an item with no year range", async () => {
     const { data } = await axios.post(`${API}/wishlist`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
     });
-    expect(data.manufacturer).toBe("Honda");
+    expect(data.model).toBe(FIXTURES.models.civic);
     expect(data.yearFrom).toBeNull();
     expect(data.yearTo).toBeNull();
   });
 
   test("POST /api/wishlist accepts year range", async () => {
     const { data } = await axios.post(`${API}/wishlist`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       yearFrom: 2012,
       yearTo: 2015,
     });
@@ -55,8 +53,7 @@ test.describe("Want to drive wishlist", () => {
 
     try {
       await axios.post(`${API}/wishlist`, {
-        manufacturer: "Honda",
-        model: "Civic",
+        model: FIXTURES.models.civic,
       });
       throw new Error("should have 409'd");
     } catch (err: any) {
@@ -64,8 +61,7 @@ test.describe("Want to drive wishlist", () => {
     }
 
     const { data } = await axios.post(`${API}/wishlist`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       yearFrom: 2020,
       yearTo: 2024,
     });
@@ -76,8 +72,7 @@ test.describe("Want to drive wishlist", () => {
 
   test("drove experience auto-removes matching wishlist items", async () => {
     await axios.post(`${API}/wishlist`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       yearFrom: 2010,
       yearTo: 2015,
     });
@@ -95,8 +90,7 @@ test.describe("Want to drive wishlist", () => {
 
   test("drove experience does NOT remove wishlist with non-matching range", async () => {
     await axios.post(`${API}/wishlist`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       yearFrom: 2020,
       yearTo: 2024,
     });
@@ -155,8 +149,7 @@ test.describe("Want to drive wishlist", () => {
 
   test("profile page shows year range on wishlist item", async ({ page }) => {
     await axios.post(`${API}/wishlist`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       yearFrom: 2012,
       yearTo: 2015,
     });
@@ -174,8 +167,7 @@ test.describe("Want to drive wishlist", () => {
     });
 
     await axios.post(`${API}/wishlist`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
       yearFrom: 2010,
       yearTo: 2015,
     });
@@ -190,8 +182,7 @@ test.describe("Want to drive wishlist", () => {
 
   test("wishlist tile shows placeholder when no car has a photo", async () => {
     await axios.post(`${API}/wishlist`, {
-      manufacturer: "Honda",
-      model: "Civic",
+      model: FIXTURES.models.civic,
     });
 
     const { data } = await axios.get(`${API}/users/${FIXTURES.users.sam}/wishlist`);

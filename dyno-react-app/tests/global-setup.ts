@@ -22,14 +22,26 @@ export default async function globalSetup() {
     stdio: "pipe",
   });
 
-  // Wait until the server is ready
+  // Wait until the server is listening AND its startup migrations/seeding have
+  // finished. "Server running" alone isn't enough — app.listen() fires as soon
+  // as the module loads, independent of the async mongoose-connect chain that
+  // runs migrations, so seeding via the API immediately after "Server running"
+  // can race the backend's own startup seeding (duplicate-key errors on unique
+  // indexes like Model's manufacturer+name).
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error("Backend didn't start in time")), 10000);
-    backendProc.stdout?.on("data", (chunk: Buffer) => {
-      if (chunk.toString().includes("Server running")) {
+    let listening = false;
+    let migrationsComplete = false;
+    const maybeResolve = () => {
+      if (listening && migrationsComplete) {
         clearTimeout(timeout);
         resolve();
       }
+    };
+    backendProc.stdout?.on("data", (chunk: Buffer) => {
+      const text = chunk.toString();
+      if (text.includes("Server running")) { listening = true; maybeResolve(); }
+      if (text.includes("Startup migrations complete")) { migrationsComplete = true; maybeResolve(); }
     });
     backendProc.stderr?.on("data", (chunk: Buffer) => {
       console.error("[backend]", chunk.toString());

@@ -10,6 +10,7 @@ import { API } from "../lib/api";
 interface ModelPageData {
   manufacturer: string;
   model: string;
+  modelId: string;
   cars: Car[];
   experiences: Experience[];
   rating: {
@@ -66,8 +67,7 @@ export default function CarModelView({
 
   const removeFromWishlist = async () => {
     if (!data || !currentUserId) return;
-    const { manufacturer, model } = data;
-    await axios.delete(`${API}/wishlist`, { data: { manufacturer, model } });
+    await axios.delete(`${API}/wishlist`, { data: { model: data.modelId } });
     setData((prev) =>
       prev
         ? {
@@ -93,8 +93,7 @@ export default function CarModelView({
     if (yf != null && yt != null && yf > yt) return setWishlistError("'From' must be ≤ 'to'");
     try {
       const { data: item } = await axios.post(`${API}/wishlist`, {
-        manufacturer: data.manufacturer,
-        model: data.model,
+        model: data.modelId,
         yearFrom: yf,
         yearTo: yt,
       });

@@ -1,6 +1,6 @@
 import React from "react";
 import axios from "axios";
-import { Car, CarColor, ColorEntry, TrimEntry, Manufacturer, Human, Ownership } from "../types";
+import { Car, CarColor, ColorEntry, TrimEntry, CarModel, Manufacturer, Human, Ownership } from "../types";
 import CarThumbnail from "../components/CarThumbnail";
 import PhotoManager from "../components/PhotoManager";
 import ColorPicker from "../components/ColorPicker";
@@ -234,17 +234,19 @@ function CarDetail({ car, manufacturers }: { car: Car; manufacturers: Manufactur
   const currentOwnerships = car.ownershipHistory.filter((o) => !o.to);
   const pastOwnerships = car.ownershipHistory.filter((o) => o.to);
 
+  const carModel = findModel(manufacturers, car.manufacturer, car.model);
+
   // Prefer the new structured colorInfo; fall back to the legacy plain-string color
   // for older records. If colorInfo has no hex but matches a canonical entry, use that hex.
   const colorName = car.colorInfo?.name || car.color || null;
   let colorHex: string | undefined = car.colorInfo?.hex;
   if (colorName && !colorHex) {
-    const match = getColors(manufacturers, car.manufacturer, car.model).find((c) => c.name === colorName);
+    const match = getColors(carModel).find((c) => c.name === colorName);
     if (match) colorHex = match.hex;
   }
 
   const features = car.trim
-    ? getFeatures(manufacturers, car.manufacturer, car.model, car.trim, String(car.year))
+    ? getFeatures(carModel, car.trim, String(car.year))
     : [];
 
   return (
@@ -330,17 +332,23 @@ function CarDetail({ car, manufacturers }: { car: Car; manufacturers: Manufactur
   );
 }
 
-function getColors(manufacturers: Manufacturer[], manufacturer: string, model: string): ColorEntry[] {
+// Cars only carry the model's display name, not its id, so we resolve back to
+// the CarModel by (manufacturer name, model name) for lookups against the
+// registry (colors/trims). Edit forms use the id directly instead — see
+// editForm.model in CarsView.
+function findModel(manufacturers: Manufacturer[], manufacturer: string, model: string): CarModel | undefined {
   const mfr = manufacturers.find((m) => m.name === manufacturer);
-  if (!mfr?.colors) return [];
-  return mfr.colors[model] ?? mfr.colors["*"] ?? [];
+  return mfr?.models.find((m) => m.name === model);
 }
 
-function getFeatures(manufacturers: Manufacturer[], manufacturer: string, model: string, trim: string, year: string): string[] {
+function getColors(model: CarModel | undefined): ColorEntry[] {
+  return model?.colors ?? [];
+}
+
+function getFeatures(model: CarModel | undefined, trim: string, year: string): string[] {
   if (!trim || !year || isNaN(Number(year))) return [];
   const y = Number(year);
-  const mfr = manufacturers.find((m) => m.name === manufacturer);
-  const trims: TrimEntry[] = mfr?.trims?.[model] ?? [];
+  const trims: TrimEntry[] = model?.trims ?? [];
   const trimEntry = trims.find((t) => t.name === trim);
   if (!trimEntry) return [];
   const span = trimEntry.years.find(
@@ -349,9 +357,8 @@ function getFeatures(manufacturers: Manufacturer[], manufacturer: string, model:
   return span?.features ?? [];
 }
 
-function getTrims(manufacturers: Manufacturer[], manufacturer: string, model: string, year: string): TrimEntry[] {
-  const mfr = manufacturers.find((m) => m.name === manufacturer);
-  const all: TrimEntry[] = mfr?.trims?.[model] ?? [];
+function getTrims(model: CarModel | undefined, year: string): TrimEntry[] {
+  const all: TrimEntry[] = model?.trims ?? [];
   if (!year || isNaN(Number(year))) return all;
   const y = Number(year);
   return all.filter((t) =>
@@ -392,7 +399,7 @@ function CarList({
   editForm: typeof emptyCar;
   editError: string;
   openMenuId: string | null;
-  editAvailableModels: string[];
+  editAvailableModels: CarModel[];
   onEditChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   onEditSubmit: (e: React.FormEvent) => void;
   onStartEdit: (car: Car) => void;
@@ -405,8 +412,9 @@ function CarList({
   onCarUpdated: (car: Car) => void;
   emptyMessage: string;
 }) {
-  const { options: editColors } = getColorOptions(manufacturers, editForm.manufacturer, editForm.model);
-  const editTrims = getTrims(manufacturers, editForm.manufacturer, editForm.model, editForm.year);
+  const editSelectedModel = editAvailableModels.find((m) => m._id === editForm.model);
+  const { options: editColors } = getColorOptions(editSelectedModel);
+  const editTrims = getTrims(editSelectedModel, editForm.year);
 
   if (cars.length === 0) return <p className="empty-state">{emptyMessage}</p>;
 
@@ -424,8 +432,8 @@ function CarList({
               </select>
               <select name="model" value={editForm.model} onChange={onEditChange} required disabled={!editForm.manufacturer}>
                 <option value="" disabled hidden>Model</option>
-                {editAvailableModels.map((modelName) => (
-                  <option key={modelName} value={modelName}>{modelName}</option>
+                {editAvailableModels.map((m) => (
+                  <option key={m._id} value={m._id}>{m.name}</option>
                 ))}
               </select>
               <input name="year" type="number" value={editForm.year} onChange={onEditChange} required />
@@ -491,7 +499,7 @@ function CarList({
                   if (!name) return null;
                   let hex = car.colorInfo?.hex;
                   if (!hex) {
-                    const ce = getColors(manufacturers, car.manufacturer, car.model).find((c) => c.name === name);
+                    const ce = getColors(findModel(manufacturers, car.manufacturer, car.model)).find((c) => c.name === name);
                     hex = ce?.hex;
                   }
                   return hex ? <span className="car-color-dot" style={{ background: hex }} title={name} /> : null;
@@ -563,8 +571,9 @@ export default function CarsView({
     e.preventDefault();
     setEditError("");
     try {
+      const { manufacturer: _manufacturer, ...rest } = editForm;
       const { data } = await axios.put(`${API}/cars/${editingId}`, {
-        ...editForm,
+        ...rest,
         year: Number(editForm.year),
       });
       setCars((prev) => prev.map((c) => (c._id === editingId ? data : c)));
@@ -597,7 +606,7 @@ export default function CarsView({
         : null;
     setEditForm({
       manufacturer: car.manufacturer,
-      model: car.model,
+      model: car.modelId || "",
       year: String(car.year),
       nickname: car.nickname || "",
       transmission: car.transmission || "",

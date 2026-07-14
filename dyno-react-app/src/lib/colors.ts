@@ -1,4 +1,4 @@
-import { ColorEntry, Manufacturer } from "../types";
+import { ColorEntry, CarModel } from "../types";
 
 // Universal fallback palette used when a manufacturer hasn't seeded canonical colors
 // for a model. Hexes are approximate and just give the UI a swatch to render.
@@ -17,20 +17,13 @@ export const BASIC_COLORS: ColorEntry[] = [
   { name: "Purple", hex: "#5f3dc4" },
 ];
 
-// Returns the color picker options for a (manufacturer, model). Prefers the
-// canonical list from the manufacturer registry; falls back to BASIC_COLORS when
-// no canonical list exists for this model (or for the manufacturer at all).
+// Returns the color picker options for a model. Prefers the model's own
+// canonical color list; falls back to BASIC_COLORS when it has none.
 export function getColorOptions(
-  manufacturers: Manufacturer[],
-  manufacturer: string,
-  model: string,
+  model: CarModel | null | undefined,
 ): { options: ColorEntry[]; isCanonical: boolean } {
-  const mfr = manufacturers.find((m) => m.name === manufacturer);
-  if (mfr?.colors) {
-    const list = mfr.colors[model] ?? mfr.colors["*"];
-    if (list && list.length > 0) {
-      return { options: list, isCanonical: true };
-    }
+  if (model?.colors && model.colors.length > 0) {
+    return { options: model.colors, isCanonical: true };
   }
   return { options: BASIC_COLORS, isCanonical: false };
 }

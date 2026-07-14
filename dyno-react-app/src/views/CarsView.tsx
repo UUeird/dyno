@@ -15,6 +15,7 @@ const emptyCar = {
   transmission: "",
   colorInfo: null as CarColor | null,
   trim: "",
+  drivetrain: "",
   vin: "",
 };
 
@@ -415,6 +416,7 @@ function CarList({
   const editSelectedModel = editAvailableModels.find((m) => m._id === editForm.model);
   const { options: editColors } = getColorOptions(editSelectedModel);
   const editTrims = getTrims(editSelectedModel, editForm.year);
+  const editDrivetrains = editSelectedModel?.drivetrains ?? [];
 
   if (cars.length === 0) return <p className="empty-state">{emptyMessage}</p>;
 
@@ -464,6 +466,14 @@ function CarList({
                 </select>
               ) : (
                 <input name="trim" placeholder="Trim (optional)" value={editForm.trim} onChange={onEditChange} />
+              )}
+              {editDrivetrains.length > 0 && (
+                <select name="drivetrain" value={editForm.drivetrain} onChange={onEditChange} required>
+                  <option value="" disabled>Drivetrain</option>
+                  {editDrivetrains.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
               )}
               <input name="vin" placeholder="VIN (optional)" value={editForm.vin} onChange={onEditChange} maxLength={17} />
               <OwnershipManager car={car} humans={humans} onUpdated={onCarUpdated} />
@@ -557,9 +567,9 @@ export default function CarsView({
     const { name, value } = e.target;
     setEditError("");
     if (name === "manufacturer") {
-      setEditForm({ ...editForm, manufacturer: value, model: "", colorInfo: null, trim: "" });
+      setEditForm({ ...editForm, manufacturer: value, model: "", colorInfo: null, trim: "", drivetrain: "" });
     } else if (name === "model") {
-      setEditForm({ ...editForm, model: value, colorInfo: null, trim: "" });
+      setEditForm({ ...editForm, model: value, colorInfo: null, trim: "", drivetrain: "" });
     } else if (name === "year") {
       setEditForm((prev) => ({ ...prev, year: value, trim: "" }));
     } else {
@@ -612,6 +622,7 @@ export default function CarsView({
       transmission: car.transmission || "",
       colorInfo,
       trim: car.trim || "",
+      drivetrain: car.drivetrain || "",
       vin: car.vin || "",
     });
   };

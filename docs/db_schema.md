@@ -21,6 +21,7 @@ erDiagram
         string name
         array colors "name, hex, isCustom"
         array trims "name, years[] (from, to, features[])"
+        array drivetrains "flat string list, e.g. FWD/RWD/AWD"
     }
     Car {
         objectId model FK
@@ -29,6 +30,7 @@ erDiagram
         string transmission
         object colorInfo "name, hex, isCustom"
         string trim
+        string drivetrain
         string vin
         objectId thumbnailPhoto FK
     }
@@ -52,7 +54,8 @@ erDiagram
         string notes
         number rating
         objectId loggedBy FK
-        object location "display, lat, lng"
+        object location "display, lat, lng - spotted only"
+        array route "lat, lng points - drove only"
         object weather "tempC, conditions, windKph, precipitationMm"
     }
     Follow {
@@ -104,3 +107,6 @@ erDiagram
 - API responses still expose `manufacturer`/`model` as display-name strings (populated from the `Model` ref and flattened server-side) — most read paths, including the `/cars/:manufacturer/:model` URL slugs, are name-based and unaffected by the ref underneath.
 - Manufacturer selection in car/wishlist forms is dropdown-based, populated from the `Manufacturer`/`Model` registry — there's no free-text manufacturer entry outside the admin "add manufacturer" form, which is the correct place to name a new one.
 - `Car.owner` is a legacy field mid-migration to `Ownership` (see `migrateLegacyOwners()` in server.js) — unrelated to the Model work above, still in progress.
+- `Experience.loggedBy` is required — every experience must be logged by an authenticated Human (enforced by `requireAuth` on the creating route), so the `Human ||--o{ Experience` edge is a true one-or-many, not optional.
+- `Experience.location` and `Experience.route` are mutually exclusive by `type`: `spotted` populates `location` (single point), `drove` populates `route` (path as an array of points). Backend accepts `route` in `POST /api/experiences`; no frontend map/path-drawing UI exists yet.
+- `Model.drivetrains` is a flat string list (unlike `trims`, drivetrain doesn't vary by year) — same free-form-fallback validation pattern as trims: a model with no drivetrains registered imposes no constraint on `Car.drivetrain`.

@@ -126,6 +126,9 @@ const modelSchema = new mongoose.Schema({
   name: { type: String, required: true },
   colors: { type: [colorEntrySchema], default: [] },
   trims: { type: [trimEntrySchema], default: [] },
+  // Drivetrain doesn't vary by trim or year the way trim availability does, so
+  // it's a flat option list at the model level (same tier as `colors`).
+  drivetrains: { type: [String], default: [] },
 });
 modelSchema.index({ manufacturer: 1, name: 1 }, { unique: true });
 const Model = mongoose.model("Model", modelSchema);
@@ -157,6 +160,7 @@ const carSchema = new mongoose.Schema({
   transmission: String,
   colorInfo: { type: carColorSchema, default: null },
   trim: String,
+  drivetrain: String,
   vin: String,
   thumbnailPhoto: { type: mongoose.Schema.Types.ObjectId, ref: "Photo", default: null },
 });
@@ -178,11 +182,15 @@ const experienceSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
   notes: String,
   rating: { type: Number, min: 0, max: 5, default: null },
-  loggedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Human", default: null },
+  loggedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Human", required: true },
   location: {
     display: { type: String, default: null },
     lat: { type: Number, default: null },
     lng: { type: Number, default: null },
+  },
+  route: {
+    type: [{ lat: Number, lng: Number, _id: false }],
+    default: undefined,
   },
   weather: {
     tempC: { type: Number, default: null },
@@ -318,6 +326,17 @@ function validateTrim(modelDoc, year, trim) {
   if (!trim) return `Trim is required for ${modelDoc.name}`;
   const match = trimsForYear.find((t) => t.name === trim);
   if (!match) return `"${trim}" is not a valid trim for ${modelDoc.name} in ${year}`;
+  return null;
+}
+
+// Validates a drivetrain string against a model's registered drivetrains.
+// Same free-form fallback as validateTrim: a model with no drivetrains
+// defined imposes no constraint.
+function validateDrivetrain(modelDoc, drivetrain) {
+  const drivetrains = Array.isArray(modelDoc?.drivetrains) ? modelDoc.drivetrains : [];
+  if (drivetrains.length === 0) return null;
+  if (!drivetrain) return `Drivetrain is required for ${modelDoc.name}`;
+  if (!drivetrains.includes(drivetrain)) return `"${drivetrain}" is not a valid drivetrain for ${modelDoc.name}`;
   return null;
 }
 
@@ -685,7 +704,7 @@ async function attachOwnershipToMany(carDocs) {
 const EXPERIENCE_PUBLIC_FIELDS = [
   "_id", "type", "date", "notes", "rating", "loggedBy", "car", "reactions",
 ];
-const EXPERIENCE_AUTHOR_ONLY_FIELDS = ["location", "weather"];
+const EXPERIENCE_AUTHOR_ONLY_FIELDS = ["location", "route", "weather"];
 
 function serializeExperience(exp, { viewerId } = {}) {
   const src = exp && exp.toObject ? exp.toObject() : (exp || {});
@@ -942,6 +961,25 @@ app.put("/api/manufacturers/:id/trims/:modelId", requireAdmin, async (req, res) 
   }
 });
 
+// Admin-only: replace the full drivetrain list for a model. The request body
+// is the canonical new list of strings; existing drivetrains are overwritten.
+app.put("/api/manufacturers/:id/drivetrains/:modelId", requireAdmin, async (req, res) => {
+  try {
+    const { id, modelId } = req.params;
+    const modelDoc = await Model.findOne({ _id: modelId, manufacturer: id });
+    if (!modelDoc) return res.status(404).json({ error: "Model not found" });
+
+    const incoming = Array.isArray(req.body.drivetrains) ? req.body.drivetrains : [];
+    const normalized = [...new Set(incoming.map((d) => String(d || "").trim()).filter(Boolean))];
+
+    modelDoc.drivetrains = normalized;
+    await modelDoc.save();
+    res.json(modelDoc);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // ── Cars ──────────────────────────────────────────────────────────────────────
 
 // Populate spec shared by every Car read path: resolves `car.model` to a Model
@@ -960,7 +998,7 @@ app.get("/api/cars", async (req, res) => {
 
 app.post("/api/cars", requireAuth, async (req, res) => {
   try {
-    const { model, year, nickname, transmission, colorInfo, trim, vin } = req.body;
+    const { model, year, nickname, transmission, colorInfo, trim, drivetrain, vin } = req.body;
     if (!model || !year) {
       return res.status(400).json({ error: "model and year are required" });
     }
@@ -976,13 +1014,16 @@ app.post("/api/cars", requireAuth, async (req, res) => {
     const trimError = validateTrim(modelDoc, year, trim);
     if (trimError) return res.status(400).json({ error: trimError });
 
+    const drivetrainError = validateDrivetrain(modelDoc, drivetrain);
+    if (drivetrainError) return res.status(400).json({ error: drivetrainError });
+
     const normalizedColor = colorInfo && colorInfo.name
       ? { name: String(colorInfo.name).trim(), hex: colorInfo.hex || undefined, isCustom: !!colorInfo.isCustom }
       : null;
 
     try {
       const car = await new Car({
-        model, year, nickname, transmission, trim,
+        model, year, nickname, transmission, trim, drivetrain,
         vin: vinValue,
         colorInfo: normalizedColor,
       }).save();
@@ -999,7 +1040,7 @@ app.post("/api/cars", requireAuth, async (req, res) => {
 
 app.put("/api/cars/:id", requireAuth, async (req, res) => {
   try {
-    const { model, year, trim } = req.body;
+    const { model, year, trim, drivetrain } = req.body;
     const car = await Car.findById(req.params.id);
     if (!car) return res.status(404).json({ error: "Car not found" });
 
@@ -1007,9 +1048,10 @@ app.put("/api/cars/:id", requireAuth, async (req, res) => {
     const effectiveModelId = model || car.model;
     const effectiveYear = year != null ? year : car.year;
     const effectiveTrim = trim !== undefined ? trim : car.trim;
+    const effectiveDrivetrain = drivetrain !== undefined ? drivetrain : car.drivetrain;
 
     let modelDoc = null;
-    if (model || trim !== undefined || year !== undefined) {
+    if (model || trim !== undefined || year !== undefined || drivetrain !== undefined) {
       modelDoc = await Model.findById(effectiveModelId);
       if (!modelDoc) return res.status(400).json({ error: "invalid model" });
     }
@@ -1017,6 +1059,9 @@ app.put("/api/cars/:id", requireAuth, async (req, res) => {
     if (modelDoc) {
       const trimError = validateTrim(modelDoc, effectiveYear, effectiveTrim);
       if (trimError) return res.status(400).json({ error: trimError });
+
+      const drivetrainError = validateDrivetrain(modelDoc, effectiveDrivetrain);
+      if (drivetrainError) return res.status(400).json({ error: drivetrainError });
     }
 
     const { colorInfo, ...updateFields } = req.body;
@@ -1271,12 +1316,13 @@ app.get("/api/experiences", async (req, res) => {
 
 app.post("/api/experiences", requireAuth, async (req, res) => {
   try {
-    const { car, type, notes, rating, location } = req.body;
+    const { car, type, notes, rating, location, route } = req.body;
     if (!car || !type) return res.status(400).json({ error: "car and type are required" });
     const loggedBy = req.currentHuman._id;
     const loc = location?.display ? { display: location.display, lat: location.lat ?? null, lng: location.lng ?? null } : undefined;
-    const weather = await fetchWeatherSnapshot(loc?.lat, loc?.lng, undefined);
-    const experience = new Experience({ car, type, notes, rating: rating ?? null, loggedBy, location: loc, weather });
+    const weatherOrigin = loc ?? route?.[0];
+    const weather = await fetchWeatherSnapshot(weatherOrigin?.lat, weatherOrigin?.lng, undefined);
+    const experience = new Experience({ car, type, notes, rating: rating ?? null, loggedBy, location: loc, route, weather });
     await experience.save();
     await experience.populate("loggedBy", "name email avatarUrl");
 

@@ -43,6 +43,7 @@ export type Car = {
   color?: string;
   colorInfo?: CarColor | null;
   trim?: string;
+  drivetrain?: string;
   vin?: string;
   thumbnailPhoto?: string | null;
   currentOwners: Human[];
@@ -68,6 +69,7 @@ export type Experience = {
   loggedBy?: Human;
   reactions: Reaction[];
   location?: { display: string; lat: number | null; lng: number | null } | null;
+  route?: { lat: number; lng: number }[];
   weather?: { tempC: number | null; conditions: string | null; windKph: number | null; precipitationMm: number | null } | null;
 };
 
@@ -134,6 +136,7 @@ export type CarModel = {
   name: string;
   colors?: ColorEntry[];
   trims?: TrimEntry[];
+  drivetrains?: string[];
 };
 
 export type Manufacturer = {

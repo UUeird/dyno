@@ -34,6 +34,7 @@ const emptyCar = {
   // colorInfo is a CarColor | null. We keep it null until the user picks one.
   colorInfo: null as import("./types").CarColor | null,
   trim: "",
+  drivetrain: "",
   vin: "",
   owner: "",
 };
@@ -72,6 +73,7 @@ function NewExperienceModal({
   const selectedModel = availableModels.find((m) => m._id === form.model);
   const { options: availableColors } = getColorOptions(selectedModel);
   const allTrims = selectedModel?.trims ?? [];
+  const availableDrivetrains = selectedModel?.drivetrains ?? [];
   const availableTrims = (() => {
     if (!form.year || isNaN(Number(form.year))) return allTrims;
     const y = Number(form.year);
@@ -85,9 +87,9 @@ function NewExperienceModal({
     const { name, value } = e.target;
     setFormError("");
     if (name === "manufacturer") {
-      setForm({ ...form, manufacturer: value, model: "", colorInfo: null, trim: "" });
+      setForm({ ...form, manufacturer: value, model: "", colorInfo: null, trim: "", drivetrain: "" });
     } else if (name === "model") {
-      setForm({ ...form, model: value, colorInfo: null, trim: "" });
+      setForm({ ...form, model: value, colorInfo: null, trim: "", drivetrain: "" });
     } else if (name === "year") {
       setForm({ ...form, year: value, trim: "" });
     } else {
@@ -308,6 +310,14 @@ function NewExperienceModal({
                   <option value="" disabled>Trim</option>
                   {availableTrims.map((t) => (
                     <option key={t.name} value={t.name}>{t.name}</option>
+                  ))}
+                </select>
+              )}
+              {availableDrivetrains.length > 0 && (
+                <select name="drivetrain" value={form.drivetrain} onChange={handleChange} required>
+                  <option value="" disabled>Drivetrain</option>
+                  {availableDrivetrains.map((d) => (
+                    <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
               )}

@@ -26,6 +26,9 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
   // Which (mfrId, modelId) is currently being trim-edited
   const [openTrims, setOpenTrims] = React.useState<{ mfrId: string; modelId: string } | null>(null);
 
+  // Which (mfrId, modelId) is currently being drivetrain-edited
+  const [openDrivetrains, setOpenDrivetrains] = React.useState<{ mfrId: string; modelId: string } | null>(null);
+
   // Redirect non-admins. Wait until currentUser has loaded before deciding.
   React.useEffect(() => {
     if (currentUser === null) return; // still loading
@@ -142,6 +145,8 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
                   {m.models.map((model) => {
                     const isOpen = openTrims?.mfrId === m._id && openTrims?.modelId === model._id;
                     const trims = model.trims || [];
+                    const isDrivetrainsOpen = openDrivetrains?.mfrId === m._id && openDrivetrains?.modelId === model._id;
+                    const drivetrains = model.drivetrains || [];
                     return (
                       <li key={model._id} className="admin-model-row">
                         <div className="admin-model-row-header">
@@ -154,6 +159,15 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
                             onClick={() => setOpenTrims(isOpen ? null : { mfrId: m._id, modelId: model._id })}
                           >
                             {isOpen ? "Close" : "Edit trims"}
+                          </button>
+                          <span className="section-count">
+                            {drivetrains.length} drivetrain{drivetrains.length === 1 ? "" : "s"}
+                          </span>
+                          <button
+                            className="btn-text"
+                            onClick={() => setOpenDrivetrains(isDrivetrainsOpen ? null : { mfrId: m._id, modelId: model._id })}
+                          >
+                            {isDrivetrainsOpen ? "Close" : "Edit drivetrains"}
                           </button>
                           <button
                             className="admin-model-remove"
@@ -169,6 +183,15 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
                             mfrId={m._id}
                             modelId={model._id}
                             initialTrims={trims}
+                            onSaved={refresh}
+                            onError={setError}
+                          />
+                        )}
+                        {isDrivetrainsOpen && (
+                          <DrivetrainEditor
+                            mfrId={m._id}
+                            modelId={model._id}
+                            initialDrivetrains={drivetrains}
                             onSaved={refresh}
                             onError={setError}
                           />
@@ -338,6 +361,72 @@ function TrimEditor({
         <button className="btn-text" onClick={addTrim}>+ Add trim</button>
         <button className="btn-primary" onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save trims"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Drivetrain editor ────────────────────────────────────────────────────────
+
+// Flat option list — no year windows, unlike trims (drivetrain doesn't vary by
+// trim or year the way trim availability does).
+function DrivetrainEditor({
+  mfrId,
+  modelId,
+  initialDrivetrains,
+  onSaved,
+  onError,
+}: {
+  mfrId: string;
+  modelId: string;
+  initialDrivetrains: string[];
+  onSaved: () => void;
+  onError: (msg: string) => void;
+}) {
+  const [drivetrains, setDrivetrains] = React.useState<string[]>(
+    initialDrivetrains.length > 0 ? initialDrivetrains : [""]
+  );
+  const [saving, setSaving] = React.useState(false);
+
+  const updateDrivetrain = (idx: number, value: string) =>
+    setDrivetrains((prev) => prev.map((d, i) => (i === idx ? value : d)));
+  const addDrivetrain = () => setDrivetrains((prev) => [...prev, ""]);
+  const removeDrivetrain = (idx: number) => setDrivetrains((prev) => prev.filter((_, i) => i !== idx));
+
+  const save = async () => {
+    onError("");
+    const payload = { drivetrains: drivetrains.map((d) => d.trim()).filter(Boolean) };
+    setSaving(true);
+    try {
+      await axios.put(`${API}/manufacturers/${mfrId}/drivetrains/${modelId}`, payload);
+      onSaved();
+    } catch (e: any) {
+      onError(e.response?.data?.error || "Failed to save drivetrains");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="admin-trim-editor">
+      {drivetrains.map((d, i) => (
+        <div key={i} className="admin-trim-name-row">
+          <input
+            className="admin-trim-name-input"
+            placeholder="Drivetrain (e.g. FWD, RWD, AWD)"
+            value={d}
+            onChange={(e) => updateDrivetrain(i, e.target.value)}
+          />
+          <button className="btn-text btn-danger" onClick={() => removeDrivetrain(i)} title="Remove drivetrain">
+            Remove
+          </button>
+        </div>
+      ))}
+      <div className="admin-trim-actions">
+        <button className="btn-text" onClick={addDrivetrain}>+ Add drivetrain</button>
+        <button className="btn-primary" onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save drivetrains"}
         </button>
       </div>
     </div>

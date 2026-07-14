@@ -52,7 +52,7 @@ Legacy. Humans are now provisioned automatically on first authenticated request 
 ## Manufacturers
 
 ### `GET /api/manufacturers`
-Returns all manufacturers, sorted by name. Includes `models`, `colors` (keyed by model or `"*"` for fallback), and `trims` (keyed by model).
+Returns all manufacturers, sorted by name. Includes `models`, `colors` (keyed by model or `"*"` for fallback), `trims` (keyed by model), and `drivetrains` (keyed by model).
 
 **Response**: `Manufacturer[]`
 
@@ -89,6 +89,14 @@ Replace the full trim list for one model. Other models' trims are untouched.
 - `400` if the model isn't in the manufacturer's `models` list
 - `400` on invalid year values
 
+### `PUT /api/manufacturers/:id/drivetrains/:model` 🔒 admin
+Replace the full drivetrain list for one model. Other models' drivetrains are untouched.
+
+**Body**: `{ drivetrains: string[] }` (e.g. `["FWD", "RWD", "AWD"]`)
+
+**Errors**:
+- `400` if the model isn't in the manufacturer's `models` list
+
 ---
 
 ## Cars
@@ -97,21 +105,25 @@ Replace the full trim list for one model. Other models' trims are untouched.
 Returns all cars with ownership info attached (`currentOwners`, `ownershipHistory`, `photos`, `thumbnail`).
 
 ### `POST /api/cars` 🔒
-**Body**: `{manufacturer, model, year, vin?, nickname?, transmission?, colorInfo?, trim?}`
+**Body**: `{manufacturer, model, year, vin?, nickname?, transmission?, colorInfo?, trim?, drivetrain?}`
 - `vin` is optional. When provided, it must be unique (sparse unique index) — the server returns 409 on a duplicate. Multiple cars with no VIN coexist.
 - `colorInfo` is `{name, hex?, isCustom?}`. Optional. Set `isCustom: true` when the color isn't a canonical manufacturer color (e.g. aftermarket wrap). The legacy plain-string `color` field is read on responses for backward compatibility but new writes should use `colorInfo`.
 - `trim` validation rules:
   - Model has no trims registered at all → free-form, any string accepted (including empty)
   - Model has trims registered but none cover the chosen year → free-form fallback (any string accepted)
   - Model has trims that cover the chosen year → trim is required and must be one of them
+- `drivetrain` validation rules (no year dimension — drivetrain doesn't vary by trim/year the way trim availability does):
+  - Model has no drivetrains registered at all → free-form, any string accepted (including empty)
+  - Model has drivetrains registered → drivetrain is required and must be one of them
 
 **Errors**:
 - `400` if missing required fields (manufacturer/model/year), or if manufacturer/model not in the Manufacturer registry
 - `400` if the trim isn't valid for the (model, year) combination
+- `400` if the drivetrain isn't valid for the model
 - `409` if a car with this VIN already exists
 
 ### `PUT /api/cars/:id` 🔒
-Update a car. If `manufacturer` or `model` is changed, the new combination is validated against the Manufacturer registry. If `trim`, `year`, `model`, or `manufacturer` change, the trim is re-validated against the effective values using the same rules as `POST /api/cars`.
+Update a car. If `manufacturer` or `model` is changed, the new combination is validated against the Manufacturer registry. If `trim`, `year`, `model`, or `manufacturer` change, the trim is re-validated against the effective values using the same rules as `POST /api/cars`. Same re-validation applies to `drivetrain` when it, `model`, or `manufacturer` change.
 
 ### `DELETE /api/cars/:id` 🔒
 Cascades: also deletes the car's `Ownership` and `Photo` records.

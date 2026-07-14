@@ -5,6 +5,7 @@ A social car-tracking app — see [README.md](README.md) for the user-facing des
 For deeper reference:
 - **[docs/product.md](docs/product.md)** — concepts and flows
 - **[docs/architecture.md](docs/architecture.md)** — stack, data flow, organization
+- **[docs/db_schema.md](docs/db_schema.md)** — ER diagram of the MongoDB schemas
 - **[docs/api.md](docs/api.md)** — full endpoint reference
 - **[docs/qase.md](docs/qase.md)** — Qase API quirks and sync-design principles (portable to other projects)
 - **[plan.json](plan.json)** — what's queued up next, as a kanban board, managed via

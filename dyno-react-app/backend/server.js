@@ -1130,7 +1130,8 @@ app.patch("/api/cars/:id/thumbnail", requireAuth, async (req, res) => {
 
 app.get("/api/ownerships", async (req, res) => {
   try {
-    const filter = req.query.car ? { car: req.query.car } : {};
+    const car = asQueryString(req.query.car);
+    const filter = car ? { car } : {};
     res.json(await Ownership.find(filter).populate("owner", "name email").sort({ from: 1 }));
   } catch {
     res.status(500).send("Error fetching ownerships");
@@ -1351,8 +1352,10 @@ app.delete("/api/experiences/:id/reactions", requireAuth, async (req, res) => {
 app.get("/api/follows", async (req, res) => {
   try {
     const filter = {};
-    if (req.query.follower) filter.follower = req.query.follower;
-    if (req.query.followee) filter.followee = req.query.followee;
+    const follower = asQueryString(req.query.follower);
+    const followee = asQueryString(req.query.followee);
+    if (follower) filter.follower = follower;
+    if (followee) filter.followee = followee;
     const follows = await Follow.find(filter)
       .populate("follower", "name email avatarUrl")
       .populate("followee", "name email avatarUrl");
@@ -1378,7 +1381,7 @@ app.post("/api/follows", requireAuth, async (req, res) => {
 
 app.delete("/api/follows", requireAuth, async (req, res) => {
   try {
-    const { followee } = req.body;
+    const followee = asQueryString(req.body.followee);
     if (!followee) return res.status(400).json({ error: "followee is required" });
     const deleted = await Follow.findOneAndDelete({ follower: req.currentHuman._id, followee });
     if (!deleted) return res.status(404).json({ error: "Follow not found" });
@@ -1538,6 +1541,17 @@ app.get("/api/users/:id/badges/all", async (req, res) => {
 function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+// Mongoose only casts a query filter's value against the schema type when
+// building a document (save/create) — not when the value sits in a filter
+// passed to find/findOne/updateOne/deleteOne. That means passing a raw
+// req.body/req.query value straight into a filter lets a client smuggle a
+// Mongo operator object (e.g. `{ "$ne": null }`) in place of the expected
+// id string, widening the match to documents it should never touch. Use
+// this at every such site to reject anything that isn't a plain string.
+function asQueryString(value) {
+  return typeof value === "string" ? value : undefined;
+}
 // ── Search ────────────────────────────────────────────────────────────────────
 
 app.get("/api/search", async (req, res) => {
@@ -1579,7 +1593,8 @@ app.get("/api/search", async (req, res) => {
 
 app.post("/api/wishlist", requireAuth, async (req, res) => {
   try {
-    const { model, yearFrom, yearTo } = req.body;
+    const model = asQueryString(req.body.model);
+    const { yearFrom, yearTo } = req.body;
     if (!model) return res.status(400).json({ error: "model is required" });
     const human = req.currentHuman._id;
     const yf = yearFrom ?? null;
@@ -1608,7 +1623,8 @@ app.post("/api/wishlist", requireAuth, async (req, res) => {
 
 app.delete("/api/wishlist", requireAuth, async (req, res) => {
   try {
-    const { model } = req.body;
+    const model = asQueryString(req.body.model);
+    if (!model) return res.status(400).json({ error: "model is required" });
     await WishlistItem.deleteOne({ human: req.currentHuman._id, model });
     res.json({ ok: true });
   } catch (err) {
@@ -1723,7 +1739,7 @@ app.get("/api/models/:mfr/:model", async (req, res) => {
 
     // Wishlist: count + per-user state
     const wishlistCount = await WishlistItem.countDocuments({ model: modelDoc._id });
-    const userId = req.query.userId;
+    const userId = asQueryString(req.query.userId);
     let wishlistItem = null;
     let drivenYears = [];
     if (userId) {

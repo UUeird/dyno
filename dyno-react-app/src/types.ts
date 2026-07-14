@@ -36,6 +36,7 @@ export type Car = {
   year: number;
   manufacturer: string;
   model: string;
+  modelId?: string;
   nickname?: string;
   transmission?: string;
   // Legacy plain string. Use colorInfo for new code; fall back to color if unset.
@@ -114,6 +115,7 @@ export type WishlistItem = {
   human: string;
   manufacturer: string;
   model: string;
+  modelId: string;
   yearFrom?: number | null;
   yearTo?: number | null;
   createdAt: string;
@@ -126,12 +128,16 @@ export type ColorEntry = { name: string; hex: string };
 export type YearRange = { from: number | null; to: number | null; features: string[] };
 export type TrimEntry = { name: string; years: YearRange[] };
 
+export type CarModel = {
+  _id: string;
+  manufacturer: string;
+  name: string;
+  colors?: ColorEntry[];
+  trims?: TrimEntry[];
+};
+
 export type Manufacturer = {
   _id: string;
   name: string;
-  models: string[];
-  // keyed by model name or "*" for the generic fallback
-  colors?: Record<string, ColorEntry[]>;
-  // keyed by model name; no "*" fallback — trims are always model-specific
-  trims?: Record<string, TrimEntry[]>;
+  models: CarModel[];
 };

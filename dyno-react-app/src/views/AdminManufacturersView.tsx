@@ -23,8 +23,8 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
   const [expandedMfrs, setExpandedMfrs] = React.useState<Record<string, boolean>>({});
   const toggleMfr = (id: string) => setExpandedMfrs((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  // Which (mfrId, model) is currently being trim-edited
-  const [openTrims, setOpenTrims] = React.useState<{ mfrId: string; model: string } | null>(null);
+  // Which (mfrId, modelId) is currently being trim-edited
+  const [openTrims, setOpenTrims] = React.useState<{ mfrId: string; modelId: string } | null>(null);
 
   // Redirect non-admins. Wait until currentUser has loaded before deciding.
   React.useEffect(() => {
@@ -75,11 +75,11 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
     }
   };
 
-  const removeModel = async (mfrId: string, model: string) => {
-    if (!window.confirm(`Remove "${model}"? This is blocked if any car uses it.`)) return;
+  const removeModel = async (mfrId: string, modelId: string, modelName: string) => {
+    if (!window.confirm(`Remove "${modelName}"? This is blocked if any car uses it.`)) return;
     setError("");
     try {
-      await axios.delete(`${API}/manufacturers/${mfrId}/models/${encodeURIComponent(model)}`);
+      await axios.delete(`${API}/manufacturers/${mfrId}/models/${modelId}`);
       await refresh();
     } catch (e: any) {
       setError(e.response?.data?.error || "Failed to remove model");
@@ -140,26 +140,26 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
                 <>
                 <ul className="admin-model-rows">
                   {m.models.map((model) => {
-                    const isOpen = openTrims?.mfrId === m._id && openTrims?.model === model;
-                    const trims = m.trims?.[model] || [];
+                    const isOpen = openTrims?.mfrId === m._id && openTrims?.modelId === model._id;
+                    const trims = model.trims || [];
                     return (
-                      <li key={model} className="admin-model-row">
+                      <li key={model._id} className="admin-model-row">
                         <div className="admin-model-row-header">
-                          <span className="admin-model-row-name">{model}</span>
+                          <span className="admin-model-row-name">{model.name}</span>
                           <span className="section-count">
                             {trims.length} trim{trims.length === 1 ? "" : "s"}
                           </span>
                           <button
                             className="btn-text"
-                            onClick={() => setOpenTrims(isOpen ? null : { mfrId: m._id, model })}
+                            onClick={() => setOpenTrims(isOpen ? null : { mfrId: m._id, modelId: model._id })}
                           >
                             {isOpen ? "Close" : "Edit trims"}
                           </button>
                           <button
                             className="admin-model-remove"
-                            onClick={() => removeModel(m._id, model)}
-                            aria-label={`Remove ${model}`}
-                            title={`Remove ${model}`}
+                            onClick={() => removeModel(m._id, model._id, model.name)}
+                            aria-label={`Remove ${model.name}`}
+                            title={`Remove ${model.name}`}
                           >
                             ×
                           </button>
@@ -167,7 +167,7 @@ export default function AdminManufacturersView({ currentUser }: { currentUser: H
                         {isOpen && (
                           <TrimEditor
                             mfrId={m._id}
-                            model={model}
+                            modelId={model._id}
                             initialTrims={trims}
                             onSaved={refresh}
                             onError={setError}
@@ -220,13 +220,13 @@ function trimFromApi(t: TrimEntry): EditableTrim {
 
 function TrimEditor({
   mfrId,
-  model,
+  modelId,
   initialTrims,
   onSaved,
   onError,
 }: {
   mfrId: string;
-  model: string;
+  modelId: string;
   initialTrims: TrimEntry[];
   onSaved: () => void;
   onError: (msg: string) => void;
@@ -273,7 +273,7 @@ function TrimEditor({
     };
     setSaving(true);
     try {
-      await axios.put(`${API}/manufacturers/${mfrId}/trims/${encodeURIComponent(model)}`, payload);
+      await axios.put(`${API}/manufacturers/${mfrId}/trims/${modelId}`, payload);
       onSaved();
     } catch (e: any) {
       onError(e.response?.data?.error || "Failed to save trims");

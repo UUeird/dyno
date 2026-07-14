@@ -69,8 +69,9 @@ function NewExperienceModal({
 
   const selectedManufacturer = manufacturers.find((m) => m.name === form.manufacturer);
   const availableModels = selectedManufacturer?.models || [];
-  const { options: availableColors } = getColorOptions(manufacturers, form.manufacturer, form.model);
-  const allTrims = selectedManufacturer?.trims?.[form.model] ?? [];
+  const selectedModel = availableModels.find((m) => m._id === form.model);
+  const { options: availableColors } = getColorOptions(selectedModel);
+  const allTrims = selectedModel?.trims ?? [];
   const availableTrims = (() => {
     if (!form.year || isNaN(Number(form.year))) return allTrims;
     const y = Number(form.year);
@@ -98,8 +99,9 @@ function NewExperienceModal({
     e.preventDefault();
     setFormError("");
     try {
+      const { manufacturer: _manufacturer, ...rest } = form;
       const { data } = await axios.post(`${API}/cars`, {
-        ...form,
+        ...rest,
         year: Number(form.year),
         owner: form.owner || null,
       });
@@ -262,8 +264,8 @@ function NewExperienceModal({
                 <option value="" disabled hidden>
                   {form.manufacturer ? "Model" : "Select manufacturer first"}
                 </option>
-                {availableModels.map((modelName) => (
-                  <option key={modelName} value={modelName}>{modelName}</option>
+                {availableModels.map((m) => (
+                  <option key={m._id} value={m._id}>{m.name}</option>
                 ))}
               </select>
               <input name="year" placeholder="Year" type="number" value={form.year} onChange={handleChange} required />

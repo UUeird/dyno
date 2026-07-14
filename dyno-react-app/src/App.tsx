@@ -99,12 +99,16 @@ function NewExperienceModal({
     e.preventDefault();
     setFormError("");
     try {
-      const { manufacturer: _manufacturer, ...rest } = form;
+      const { manufacturer: _manufacturer, owner, ...rest } = form;
       const { data } = await axios.post(`${API}/cars`, {
         ...rest,
         year: Number(form.year),
-        owner: form.owner || null,
       });
+      if (owner) {
+        const { data: ownership } = await axios.post(`${API}/ownerships`, { car: data._id, owner });
+        data.currentOwners = [ownership.owner];
+        data.ownershipHistory = [ownership];
+      }
       onCarCreated(data);
       setSelectedCar(data);
       setStep("experience-type");

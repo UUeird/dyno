@@ -8,7 +8,7 @@
     "axios": "^1.18.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^7.18.1",
+    "react-router-dom": "^7.18.2",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -42,7 +42,7 @@
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.3.4",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.0",
     "typescript": "^5.9.3",
     "vite": "^6.0.0"
   }

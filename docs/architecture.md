@@ -2,8 +2,8 @@
 
 ## Stack
 
-- **Frontend**: React 18 + TypeScript, react-router-dom v6, Axios, CRA (`react-scripts ^5.0.1`)
-- **Backend**: Node.js + Express 4, Mongoose 8, Multer (file uploads)
+- **Frontend**: React 18 + TypeScript, react-router-dom v7, Axios, Vite 6
+- **Backend**: Node.js + Express 5, Mongoose 8, Multer + Cloudinary (photo uploads)
 - **Auth**: Clerk (`@clerk/clerk-react` on frontend, `@clerk/express` on backend) — magic-link email
 - **Database**: MongoDB (no managed service, local instance on port 27017)
 - **E2E**: Playwright, runs against an isolated `carsDB_test` database
@@ -15,7 +15,7 @@ Two long-running processes in dev:
 | Process | Port | Source | Started with |
 |---------|------|--------|-------------|
 | Backend (Express) | 5000 | `dyno-react-app/backend/server.js` | `cd backend && npm run dev` (nodemon) |
-| Frontend (CRA dev server) | 3000 | `dyno-react-app/src/` | `cd dyno-react-app && npm start` |
+| Frontend (Vite dev server) | 3000 | `dyno-react-app/src/` | `cd dyno-react-app && npm start` |
 
 The frontend hits the backend at `http://localhost:5000/api/...` directly (no proxy, CORS enabled server-side).
 

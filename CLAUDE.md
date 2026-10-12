@@ -7,8 +7,8 @@ For deeper reference:
 - **[docs/architecture.md](docs/architecture.md)** — stack, data flow, organization
 - **[docs/db_schema.md](docs/db_schema.md)** — ER diagram of the MongoDB schemas
 - **[docs/api.md](docs/api.md)** — full endpoint reference
-- **[plan.json](plan.json)** — what's queued up next, as a kanban board, managed via
-  the hosted tada board (`https://app.tada-ai.app`, project `dyno`). View/edit it with
+- **The tada board** — what's queued up next, as a kanban board, hosted at
+  `https://app.tada-ai.app` (project `dyno`). View/edit it with
   the tada MCP server, wired in `.mcp.json`. That file is gitignored (it references the
   per-machine `${TADA_HOME}` path), so set it up on a fresh clone: `cp .mcp.json.example
   .mcp.json`, set `--owner-email` to your tada account email, then export `TADA_HOME`
@@ -93,9 +93,7 @@ Fixture IDs are stable across runs — see [tests/seed.ts](dyno-react-app/tests/
 
 **Manufacturer registry.** On backend startup, `seedManufacturers()` idempotently inserts a starter list of ~20 brands. Admins (users whose email is in `ADMIN_EMAILS`) can add more manufacturers and models via `/admin/manufacturers`. New cars must reference an existing manufacturer+model combination, so this is how the registry grows.
 
-**API base URL** comes from `import.meta.env.REACT_APP_API_URL` (falls back to `http://localhost:5000` in dev). Import `API` (root + `/api`) or `API_ORIGIN` (root only, for `/uploads/...` paths) from [src/lib/api.ts](dyno-react-app/src/lib/api.ts) — never hardcode URLs. Env var names keep the `REACT_APP_` prefix post-Vite-migration via `envPrefix` in [vite.config.ts](dyno-react-app/vite.config.ts), so no dashboard changes were needed.
-
-Vite has no equivalent of CRA's `CI=true`-treats-warnings-as-errors behavior — a build can no longer fail just because a lint warning fired.
+**API base URL** comes from `import.meta.env.REACT_APP_API_URL` (falls back to `http://localhost:5000` in dev). Import `API` (root + `/api`) or `API_ORIGIN` (root only, for `/uploads/...` paths) from [src/lib/api.ts](dyno-react-app/src/lib/api.ts) — never hardcode URLs. Env var names use a `REACT_APP_` prefix (not Vite's default `VITE_`), set via `envPrefix` in [vite.config.ts](dyno-react-app/vite.config.ts).
 
 **Model URL slugs** are lowercase, hyphenated (`/cars/honda/civic`, `/cars/mercedes-benz/s-class`). Backend converts back via `slugToRegex` for case-insensitive matching. Helpers in [src/lib/modelSlug.ts](dyno-react-app/src/lib/modelSlug.ts).
 

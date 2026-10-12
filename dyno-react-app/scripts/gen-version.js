@@ -6,7 +6,7 @@
 //   us click through to the exact commit
 //
 // Output: writes a single line `REACT_APP_BUILD_VERSION=<value>` to .env.production.local.
-// CRA reads that file automatically during `npm run build` and bakes the value into the
+// Vite reads that file automatically during `npm run build` and bakes the value into the
 // bundle. For local `npm start` we deliberately don't generate this — the UI falls back
 // to showing "dev".
 

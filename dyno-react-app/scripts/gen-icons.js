@@ -72,7 +72,7 @@ async function generate() {
 
   // Favicon: classic 32×32 PNG saved as .ico. Browsers also accept PNG-in-.ico,
   // and sharp can't natively write .ico — but a 32×32 PNG with the .ico extension
-  // works in every modern browser, and CRA's index.html links to favicon.ico so
+  // works in every modern browser, and index.html links to favicon.ico so
   // we keep the filename.
   await sharp(buf).resize(32, 32).png().toFile(path.join(publicDir, "favicon.ico"));
 

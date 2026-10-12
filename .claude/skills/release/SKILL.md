@@ -18,9 +18,6 @@ own. The one real wait is **after** merge: production deploy to Vercel.
   the same commit before pushing.
 - Open the PR if there isn't one, or refresh the body (`gh pr edit`) so it
   describes everything on the branch.
-- Pushing fires the Qase sync pre-push hook automatically (non-blocking — a
-  warning prints if Qase is unreachable, the push still proceeds). No action
-  needed unless it warns about something you should look at.
 
 ### 2. Merge
 

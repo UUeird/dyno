@@ -12,18 +12,12 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "dev": "nodemon server.js",
     "start": "vite",
     "prebuild": "node scripts/gen-version.js && node scripts/gen-icons.js",
     "build": "vite build",
     "preview": "vite preview --port 3000",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "sync-qase": "node scripts/sync-qase.js",
-    "qase-orphans": "node scripts/qase-orphans.js",
-    "qase-drift": "node scripts/qase-drift.js",
-    "install-hooks": "node scripts/install-hooks.js",
-    "postinstall": "node scripts/install-hooks.js --quiet"
+    "test:e2e:ui": "playwright test --ui"
   },
   "browserslist": {
     "production": [

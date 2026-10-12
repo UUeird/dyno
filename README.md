@@ -19,11 +19,12 @@ The star rating UI is a custom-built **clock-fill star icon** that draws a brigh
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18, TypeScript, react-router-dom, Axios |
-| Backend | Node.js, Express 4, Multer (photo uploads) |
+| Frontend | React 18, TypeScript, Vite, react-router-dom, Axios |
+| Backend | Node.js, Express 5, Multer + Cloudinary (photo uploads) |
 | Database | MongoDB (Mongoose 8) |
+| Auth | Clerk (magic-link email) |
 | E2E testing | Playwright (isolated `carsDB_test`, fixture seeding) |
-| Dev tooling | Create React App, Nodemon |
+| Dev tooling | Nodemon |
 
 ## Project structure
 
@@ -32,8 +33,8 @@ dyno/
 └── dyno-react-app/
     ├── src/               # React frontend
     │   ├── components/    # StarIcon, BadgeShelf, ReactionBar, etc.
-    │   ├── views/         # Feed, Profile, Cars, CarModel
-    │   └── lib/           # Small helpers (modelSlug, etc.)
+    │   ├── views/         # Feed, Profile, Cars, CarModel, admin, sign-in
+    │   └── lib/           # Small helpers (api, auth, modelSlug, etc.)
     ├── backend/           # Express API server
     ├── tests/             # Playwright E2E specs + setup
     └── playwright.config.ts
@@ -43,8 +44,9 @@ dyno/
 
 ### Prerequisites
 
-- Node.js (v16+)
+- Node.js (v18+)
 - MongoDB running locally on the default port (`27017`)
+- Clerk keys in `dyno-react-app/.env.local` and Clerk + Cloudinary keys in `dyno-react-app/backend/.env` — see "Env vars" in [CLAUDE.md](CLAUDE.md)
 
 ### Backend
 
@@ -54,14 +56,14 @@ npm install
 npm run dev         # starts the API server on port 5000
 ```
 
-The backend seeds default badge series automatically on startup. There are some optional one-off seed scripts (`seedColors.js`, `seedFeatures.js`, `seedTrims.js`) for populating manufacturer detail data — run them manually if needed.
+The backend seeds default badge series automatically on startup. To fill the local database with dummy users, cars, and activity, run `node seedDev.js` (`node seedDev.js --clear` removes it again). It only touches `carsDB` on localhost and leaves data you created through the app alone.
 
 ### Frontend
 
 ```bash
 cd dyno-react-app
 npm install
-npm start           # starts the React dev server on port 3000
+npm start           # starts the Vite dev server on port 3000
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
@@ -78,13 +80,11 @@ The test harness kills the dev backend, starts an isolated backend against `cars
 
 ## API endpoints
 
-The API surface has grown beyond what's reasonable to maintain in a table — see [`dyno-react-app/backend/server.js`](dyno-react-app/backend/server.js) for the complete list. The main resources:
+See [docs/api.md](docs/api.md) for the full endpoint reference. The main resources:
 
 - `manufacturers`, `cars`, `humans`, `ownerships`, `photos`
 - `experiences` (with notes, ratings, attached reactions)
 - `reactions`, `follows`
-- `users/:id/profile`, `users/:id/badges`
+- `users/:id/profile`, `users/:id/badges`, `users/:id/wishlist`
 - `models/:mfr/:model` — model page aggregate
 - Plus test-only endpoints (`/api/test/seed`, `/api/test/reset-badges`) that are only registered when `MONGO_DB=carsDB_test`
-
-Proper API documentation is on the Tier 3 roadmap.

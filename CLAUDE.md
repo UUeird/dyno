@@ -7,16 +7,17 @@ For deeper reference:
 - **[docs/architecture.md](docs/architecture.md)** — stack, data flow, organization
 - **[docs/db_schema.md](docs/db_schema.md)** — ER diagram of the MongoDB schemas
 - **[docs/api.md](docs/api.md)** — full endpoint reference
-- **[docs/qase.md](docs/qase.md)** — Qase API quirks and sync-design principles (portable to other projects)
 - **[plan.json](plan.json)** — what's queued up next, as a kanban board, managed via
-  the hosted tada board (`https://tada-board.fly.dev`, project `dyno`). View/edit it with
+  the hosted tada board (`https://app.tada-ai.app`, project `dyno`). View/edit it with
   the tada MCP server, wired in `.mcp.json`. That file is gitignored (it references the
   per-machine `${TADA_HOME}` path), so set it up on a fresh clone: `cp .mcp.json.example
-  .mcp.json`, then export `TADA_HOME` (path to your local tada checkout, containing
-  `mcp_server.py`) in your shell profile. The write API key is **not** configured here —
-  the tada server auto-loads `TADA_API_KEY` from a gitignored `.env` in `$TADA_HOME`. Set
-  that once in the tada repo and writes work everywhere. Restart Claude Code after changing
-  the env so the MCP server re-launches.
+  .mcp.json`, set `--owner-email` to your tada account email, then export `TADA_HOME`
+  (path to your local tada checkout, containing `app/mcp/server.ts`, with `npm install`
+  run in `app/`) in your shell profile. The server talks to MongoDB directly and acts as
+  the `--owner-email` user — there is no API key. `--prod` makes it read
+  `PROD_MONGODB_URI` from the gitignored `$TADA_HOME/app/.env.local`; set that once in
+  the tada repo. Restart Claude Code after changing the env or `.mcp.json` so the MCP
+  server re-launches.
 
 ## Repo layout
 
@@ -67,30 +68,6 @@ The test harness (`tests/global-setup.ts`):
 Tests run **serially** (workers: 1) because they share a DB.
 
 Fixture IDs are stable across runs — see [tests/seed.ts](dyno-react-app/tests/seed.ts) for the IDs and what they map to (Sam, Alex, Civic, Impala, Tesla Model 3).
-
-## Syncing tests to Qase
-
-We mirror Playwright tests into Qase as test cases for tracking + manual run reporting. The sync runs automatically on every `git push` (via a pre-push hook installed by `npm install`), and can also be invoked manually:
-
-```bash
-cd dyno-react-app
-npm run sync-qase            # creates/updates cases (code → Qase)
-npm run sync-qase -- --dry-run   # preview without writing
-npm run qase-orphans         # list Qase cases with no matching test (tester inbox)
-npm run qase-drift           # list cases where the tester edited Qase prose (drift inbox)
-```
-
-Mechanics:
-- One Qase suite per `test.describe(...)` block
-- One Qase case per `test(...)` inside a describe
-- Each case's test steps are parsed from the test body: consecutive UI actions collapse into one step whose `expected_result` is the next `expect(...)`. API tests emit one step per axios call. A `Steps hash: <sha>` marker in the description detects when steps have drifted and triggers an update
-- Idempotency: each case's description embeds `External ID: \`<spec>.spec.ts::<test name>\``. The script parses that marker from existing cases on every run
-- **Overriding auto-generated steps**: add `// @qase-step: …` and `// @qase-expect: …` comments at the top of the test body. The script uses those verbatim instead of parsing the code — useful for tests where the auto-parsed steps read mechanically and a QA tester needs better prose
-- **Before editing a test that may have been polished by a tester in Qase**, run `npm run qase-drift`. If it reports the case as TESTER-REFINED or CONFLICT, lift the tester's prose into `// @qase-step:` / `// @qase-expect:` annotations *before* changing the test body — otherwise the next sync will overwrite their work. The drift script is manual on purpose; it's not in the pre-push hook
-- Required env (read from `.env.local`): `QASE_API_TOKEN`, optionally `QASE_PROJECT_CODE` (defaults to `DYNO`)
-- Implementation: [scripts/sync-qase.js](dyno-react-app/scripts/sync-qase.js)
-
-**Pre-push hook**: [scripts/hooks/pre-push](dyno-react-app/scripts/hooks/pre-push) runs the sync before each push. Failures don't block — if Qase is unreachable the push proceeds and a warning prints. The hook is installed by `scripts/install-hooks.js`, which runs as a `postinstall` script — collaborators get it set up automatically when they run `npm install`. They can also re-run with `npm run install-hooks`.
 
 ## Adding a feature — typical pattern
 

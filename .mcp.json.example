@@ -5,11 +5,14 @@
       "args": ["-y", "@playwright/mcp@latest"]
     },
     "tada": {
-      "command": "python3",
+      "command": "${TADA_HOME}/app/node_modules/.bin/tsx",
       "args": [
-        "${TADA_HOME}/mcp_server.py",
-        "--url", "https://tada-board.fly.dev",
-        "--project", "dyno"
+        "--env-file-if-exists=${TADA_HOME}/app/.env.local",
+        "${TADA_HOME}/app/mcp/server.ts",
+        "--project", "dyno",
+        "--owner-email", "you@example.com",
+        "--url", "https://app.tada-ai.app",
+        "--prod"
       ]
     }
   }

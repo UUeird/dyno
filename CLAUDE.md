@@ -95,6 +95,8 @@ Fixture IDs are stable across runs — see [tests/seed.ts](dyno-react-app/tests/
 
 **API base URL** comes from `import.meta.env.REACT_APP_API_URL` (falls back to `http://localhost:5000` in dev). Import `API` (root + `/api`) or `API_ORIGIN` (root only, for `/uploads/...` paths) from [src/lib/api.ts](dyno-react-app/src/lib/api.ts) — never hardcode URLs. Env var names use a `REACT_APP_` prefix (not Vite's default `VITE_`), set via `envPrefix` in [vite.config.ts](dyno-react-app/vite.config.ts).
 
+**Production** is <https://www.dynoapp.co> (frontend, Vercel) and <https://api.dynoapp.co> (backend, Render). Each reports its deployed commit — `/version.json` and `/healthz` respectively. See [docs/deploy.md](docs/deploy.md).
+
 **Model URL slugs** are lowercase, hyphenated (`/cars/honda/civic`, `/cars/mercedes-benz/s-class`). Backend converts back via `slugToRegex` for case-insensitive matching. Helpers in [src/lib/modelSlug.ts](dyno-react-app/src/lib/modelSlug.ts).
 
 ## Style

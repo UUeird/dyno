@@ -72,7 +72,7 @@ Until production is set up, you can deploy with the dev keys (`pk_test_` / `sk_t
 5. **Health Check Path**: `/healthz`
 6. Click **Create Web Service**. First deploy takes 3–5 minutes.
 7. Once it says "Live", grab the URL (e.g. `https://dyno-api.onrender.com`) — that's your backend.
-8. Sanity check: `curl https://dyno-api.onrender.com/healthz` → should return `{"ok":true,"db":"up"}`
+8. Sanity check: `curl https://dyno-api.onrender.com/healthz` → should return `{"ok":true,"db":"up","commit":"<sha>"}`. `commit` is the git SHA Render deployed (from its `RENDER_GIT_COMMIT` env var; `null` when running locally) — compare it to `main` to confirm a deploy landed
 
 **Note on cold starts**: Render's free tier spins down after 15 minutes of inactivity. First request after that takes ~30 seconds. If this matters, the cheapest paid plan ($7/mo) keeps it warm.
 

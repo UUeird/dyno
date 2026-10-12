@@ -10,6 +10,18 @@ This is the step-by-step guide for a clean deploy. We use:
 
 The first deploy will take a focused hour or two, mostly clicking through dashboards. After that, deploys are just `git push`.
 
+## Production
+
+- **App**: <https://www.dynoapp.co> (`dynoapp.co` redirects to it; the Vercel URL `dyno-seven.vercel.app` serves the same build)
+- **API**: <https://api.dynoapp.co>
+
+Both report the commit they're running, which is how a release confirms a deploy landed:
+
+- `curl https://www.dynoapp.co/version.json` → `{"version":"2026.10.12.1617-0d13c9e","commit":"<sha>"}` (written at build time by `scripts/gen-version.js`)
+- `curl https://api.dynoapp.co/healthz` → `{"ok":true,"db":"up","commit":"<sha>"}`
+
+The steps below use placeholder hostnames (`dyno-api.onrender.com`, `dyno-foo.vercel.app`) for a from-scratch setup.
+
 ---
 
 ## 1. MongoDB Atlas (database)

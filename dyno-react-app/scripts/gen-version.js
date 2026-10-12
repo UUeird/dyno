@@ -9,6 +9,9 @@
 // Vite reads that file automatically during `npm run build` and bakes the value into the
 // bundle. For local `npm start` we deliberately don't generate this — the UI falls back
 // to showing "dev".
+//
+// Also writes public/version.json ({ version, commit }), served at /version.json, so a
+// release can confirm which commit production is serving without parsing the bundle.
 
 const fs = require("fs");
 const path = require("path");
@@ -20,20 +23,18 @@ const now = new Date();
 const date = `${now.getUTCFullYear()}.${pad(now.getUTCMonth() + 1)}.${pad(now.getUTCDate())}`;
 const time = `${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}`;
 
-let sha = "nohash";
+let commit = null;
 try {
   // Vercel sets VERCEL_GIT_COMMIT_SHA for builds; locally we ask git directly.
-  const fromEnv = process.env.VERCEL_GIT_COMMIT_SHA;
-  if (fromEnv) {
-    sha = fromEnv.slice(0, 7);
-  } else {
-    sha = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
-  }
+  commit = process.env.VERCEL_GIT_COMMIT_SHA || execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
 } catch {
   // Build environment without git available — keep "nohash" placeholder
 }
+const sha = commit ? commit.slice(0, 7) : "nohash";
 
 const version = `${date}.${time}-${sha}`;
 const envPath = path.resolve(__dirname, "..", ".env.production.local");
 fs.writeFileSync(envPath, `REACT_APP_BUILD_VERSION=${version}\n`);
+const jsonPath = path.resolve(__dirname, "..", "public", "version.json");
+fs.writeFileSync(jsonPath, JSON.stringify({ version, commit }) + "\n");
 console.log(`Generated build version: ${version}`);

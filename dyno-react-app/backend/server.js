@@ -860,7 +860,8 @@ async function requireAdmin(req, res, next) {
 // configs that proxy /api/* don't need to special-case it.
 app.get("/healthz", (req, res) => {
   const dbReady = mongoose.connection.readyState === 1; // 1 = connected
-  res.status(dbReady ? 200 : 503).json({ ok: dbReady, db: dbReady ? "up" : "down" });
+  // RENDER_GIT_COMMIT is set by Render; it's how a release confirms the backend deployed.
+  res.status(dbReady ? 200 : 503).json({ ok: dbReady, db: dbReady ? "up" : "down", commit: process.env.RENDER_GIT_COMMIT || null });
 });
 
 app.get("/api/humans", async (req, res) => {

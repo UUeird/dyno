@@ -50,6 +50,21 @@ gh api repos/{owner}/{repo}/commits/$sha/status --jq '.statuses[] | select(.cont
 Wait until `state` is `success`. If it comes back `failure` or `error`, stop
 and report — don't move the board ticket, the deploy didn't actually ship.
 
+That status only covers the frontend. The backend deploys separately on Render,
+which posts nothing to GitHub, so check it through `/healthz`, which reports the
+commit it's running:
+
+```
+deployed=$(curl -s https://api.dynoapp.co/healthz | jq -r .commit)
+git diff --quiet "$deployed" origin/main -- dyno-react-app/backend && echo "backend current"
+```
+
+The backend is current when nothing under `dyno-react-app/backend` differs
+between the deployed commit and `main` — it won't always *be* `main`'s SHA,
+since a frontend-only merge may not redeploy it. If the release touched the
+backend, poll until this passes (a Render deploy takes a few minutes). If it
+hasn't passed after ~10 minutes, stop and report rather than moving the ticket.
+
 ### 5. Move the board ticket
 
 Only after step 4 confirms the prod deploy succeeded: if the released work

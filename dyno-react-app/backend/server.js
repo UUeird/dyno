@@ -20,10 +20,10 @@ if (FRONTEND_ORIGIN) {
 
 const IS_TEST = (process.env.MONGO_DB || "carsDB") === "carsDB_test";
 
-// Requests reach Express via Cloudflare then Render's load balancer. Trusting both
-// hops makes req.ip the real client; with fewer, clients share a Cloudflare edge
-// IP's rate-limit bucket.
-app.set("trust proxy", 2);
+// On Render, requests pass three proxy hops (Cloudflare + Render's load balancers)
+// before Express. Fewer makes req.ip a proxy address, so rate limits get keyed on
+// proxies instead of clients; more lets clients spoof X-Forwarded-For.
+app.set("trust proxy", 3);
 app.use(
   "/api",
   rateLimit({

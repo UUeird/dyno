@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const { rateLimit } = require("express-rate-limit");
 const multer = require("multer");
 const { clerkMiddleware, getAuth, clerkClient } = require("@clerk/express");
 const cloudinary = require("cloudinary").v2;
@@ -18,6 +19,20 @@ if (FRONTEND_ORIGIN) {
 }
 
 const IS_TEST = (process.env.MONGO_DB || "carsDB") === "carsDB_test";
+
+// Render terminates TLS at a proxy; without this every client shares the proxy's IP
+// and one rate-limit bucket.
+app.set("trust proxy", 1);
+app.use(
+  "/api",
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 500,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    skip: () => IS_TEST,
+  })
+);
 
 // Auth middleware:
 // - In test mode, we bypass Clerk and read `x-test-user-id` directly so tests can

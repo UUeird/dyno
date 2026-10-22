@@ -20,9 +20,10 @@ if (FRONTEND_ORIGIN) {
 
 const IS_TEST = (process.env.MONGO_DB || "carsDB") === "carsDB_test";
 
-// Render terminates TLS at a proxy; without this every client shares the proxy's IP
-// and one rate-limit bucket.
-app.set("trust proxy", 1);
+// Requests reach Express via Cloudflare then Render's load balancer. Trusting both
+// hops makes req.ip the real client; with fewer, clients share a Cloudflare edge
+// IP's rate-limit bucket.
+app.set("trust proxy", 2);
 app.use(
   "/api",
   rateLimit({

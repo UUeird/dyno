@@ -50,6 +50,8 @@ The central unit of activity. An experience is one user's encounter with a vehic
 
 The loose path exists to keep `Car` meaningful as "a real, identified vehicle" rather than accumulating duplicate Car records every time someone logs a casual spot.
 
+If the user later learns the VIN, **Link to a car** (in the experience's ⋯ menu on their profile) upgrades a loose experience: it looks up the VIN, matches an existing `Car` or decodes and creates one (prefilled from the loose guesses if decoding fails), then links the experience to it.
+
 Experiences have optional notes and can collect emoji reactions from other users.
 
 A user "having driven a car" is determined entirely by their drove experiences — there is no separate ownership-implies-driving rule.

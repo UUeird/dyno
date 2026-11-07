@@ -14,6 +14,7 @@ export default function ProfileView({
   experiences,
   setExperiences,
   onNewExperience,
+  onLinkToCar,
   currentUser,
   cars,
   currentUserId,
@@ -22,6 +23,7 @@ export default function ProfileView({
   experiences: Experience[];
   setExperiences: React.Dispatch<React.SetStateAction<Experience[]>>;
   onNewExperience: () => void;
+  onLinkToCar: (exp: Experience) => void;
   currentUser: Human | null;
   cars: Car[];
   currentUserId?: string;
@@ -153,6 +155,11 @@ export default function ProfileView({
                       </button>
                       {openMenuId === exp._id && (
                         <div className="car-menu">
+                          {!exp.car && (
+                            <button onClick={() => { setOpenMenuId(null); onLinkToCar(exp); }}>
+                              Link to a car
+                            </button>
+                          )}
                           <button
                             className="car-menu-delete"
                             onClick={() => handleDelete(exp._id)}

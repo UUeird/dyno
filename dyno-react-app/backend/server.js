@@ -1478,6 +1478,32 @@ app.post("/api/experiences", requireAuth, async (req, res) => {
   }
 });
 
+// Upgrade a loose (Model-only) experience to point at a specific Car, once the
+// user has identified the exact vehicle (e.g. by VIN).
+app.patch("/api/experiences/:id/car", requireAuth, async (req, res) => {
+  try {
+    const { car } = req.body;
+    if (!car) return res.status(400).json({ error: "car is required" });
+    const exp = await Experience.findById(req.params.id);
+    if (!exp) return res.status(404).json({ error: "Experience not found" });
+    if (String(exp.loggedBy) !== String(req.currentHuman._id)) {
+      return res.status(403).json({ error: "Cannot edit someone else's experience" });
+    }
+    if (exp.car) return res.status(400).json({ error: "Experience is already linked to a car" });
+    const carDoc = await Car.findById(car);
+    if (!carDoc) return res.status(400).json({ error: "invalid car" });
+    exp.car = carDoc._id;
+    exp.vehicleModel = null;
+    exp.yearGuess = null;
+    exp.colorGuess = null;
+    await exp.save();
+    const newBadges = await evaluateBadges(req.currentHuman._id);
+    res.json({ experience: serializeExperience(exp, { viewerId: req.currentHuman._id }), newBadges });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.delete("/api/experiences/:id", requireAuth, async (req, res) => {
   try {
     const exp = await Experience.findById(req.params.id);

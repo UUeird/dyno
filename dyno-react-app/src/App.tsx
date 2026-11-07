@@ -50,6 +50,7 @@ function NewExperienceModal({
   onCarCreated,
   onExperienceCreated,
   onClose,
+  linkExperience,
 }: {
   cars: Car[];
   manufacturers: Manufacturer[];
@@ -58,14 +59,18 @@ function NewExperienceModal({
   onCarCreated: (car: Car) => void;
   onExperienceCreated: (newBadges: BadgeInfo[]) => void;
   onClose: () => void;
+  // When set, the modal links this loose experience to a Car (found or created
+  // by VIN) instead of logging a new experience.
+  linkExperience?: Experience | null;
 }) {
-  const [step, setStep] = useState<ExperienceStep>("choose");
+  const [step, setStep] = useState<ExperienceStep>(linkExperience ? "vin" : "choose");
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [form, setForm] = useState(emptyCar);
   const [formError, setFormError] = useState("");
   const [vin, setVin] = useState("");
   const [vinLookingUp, setVinLookingUp] = useState(false);
   const [vinNotice, setVinNotice] = useState("");
+  const [linkError, setLinkError] = useState("");
   const [looseVehicle, setLooseVehicle] = useState(emptyLooseVehicle);
   const [looseError, setLooseError] = useState("");
   const [notes, setNotes] = useState("");
@@ -117,6 +122,25 @@ function NewExperienceModal({
     }
   };
 
+  const proceedWithCar = async (car: Car) => {
+    if (!linkExperience) {
+      setSelectedCar(car);
+      setStep("experience-type");
+      return;
+    }
+    try {
+      const { data } = await axios.patch(`${API}/experiences/${linkExperience._id}/car`, { car: car._id });
+      onExperienceCreated(data.newBadges || []);
+      onClose();
+    } catch (error) {
+      const msg = axios.isAxiosError(error) && typeof error.response?.data?.error === "string"
+        ? error.response.data.error
+        : "Unable to link this experience. Please try again.";
+      setLinkError(msg);
+      setStep("vin");
+    }
+  };
+
   const handleNewCarSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
@@ -132,8 +156,7 @@ function NewExperienceModal({
         data.ownershipHistory = [ownership];
       }
       onCarCreated(data);
-      setSelectedCar(data);
-      setStep("experience-type");
+      await proceedWithCar(data);
     } catch (error) {
       if (axios.isAxiosError(error) && typeof error.response?.data?.error === "string") {
         setFormError(error.response.data.error);
@@ -147,21 +170,23 @@ function NewExperienceModal({
     e.preventDefault();
     if (vin.length !== 17 || vinLookingUp) return;
     const existing = cars.find((c) => c.vin && c.vin.toUpperCase() === vin);
+    setLinkError("");
     if (existing) {
-      setSelectedCar(existing);
-      setStep("experience-type");
+      await proceedWithCar(existing);
       return;
     }
     setVinLookingUp(true);
     const decoded = await decodeVin(vin, manufacturers);
     setVinLookingUp(false);
     const year = decoded && /^\d{4}$/.test(decoded.year) ? decoded.year : "";
+    // When linking, fall back to the loose experience's guesses for anything the decode didn't give us.
+    const useGuess = !!linkExperience && !decoded?.manufacturerName;
     setForm({
       ...emptyCar,
       vin,
-      year,
-      manufacturer: decoded?.manufacturerName || "",
-      model: decoded?.modelId || "",
+      year: year || (linkExperience?.yearGuess != null ? String(linkExperience.yearGuess) : ""),
+      manufacturer: useGuess ? linkExperience?.vehicleManufacturer || "" : decoded?.manufacturerName || "",
+      model: useGuess ? linkExperience?.vehicleModelId || "" : decoded?.modelId || "",
     });
     if (!decoded) {
       setVinNotice("Couldn't decode this VIN — fill in the details below.");
@@ -307,9 +332,13 @@ function NewExperienceModal({
 
         {step === "vin" && (
           <>
-            <button className="modal-back" onClick={() => setStep("choose")}>← Back</button>
-            <h2>Search by VIN</h2>
-            <p className="modal-subtitle">Enter a 17-character VIN to look up a vehicle.</p>
+            {!linkExperience && <button className="modal-back" onClick={() => setStep("choose")}>← Back</button>}
+            <h2>{linkExperience ? "Link to a car" : "Search by VIN"}</h2>
+            <p className="modal-subtitle">
+              {linkExperience
+                ? `Enter the VIN of the ${[linkExperience.vehicleManufacturer, linkExperience.vehicleModel].filter(Boolean).join(" ")} you spotted.`
+                : "Enter a 17-character VIN to look up a vehicle."}
+            </p>
             <form className="vin-form" onSubmit={handleVinLookup}>
               <input
                 className="vin-input"
@@ -322,12 +351,13 @@ function NewExperienceModal({
                 {vinLookingUp ? "Looking up…" : "Look up"}
               </button>
             </form>
+            {linkError && <p className="form-error">{linkError}</p>}
           </>
         )}
 
         {step === "new-car" && (
           <>
-            <button className="modal-back" onClick={() => { setVinNotice(""); setForm(emptyCar); setStep("choose"); }}>← Back</button>
+            <button className="modal-back" onClick={() => { setVinNotice(""); setForm(emptyCar); setStep(linkExperience ? "vin" : "choose"); }}>← Back</button>
             <h2>Add a New Car</h2>
             {vinNotice && <p className="modal-subtitle vin-notice">{vinNotice}</p>}
             <form className="car-form" onSubmit={handleNewCarSubmit}>
@@ -544,6 +574,7 @@ function App() {
   const [friendsExperiences, setFriendsExperiences] = useState<Experience[]>([]);
   const [following, setFollowing] = useState<string[]>([]);
   const [showNewExperience, setShowNewExperience] = useState(false);
+  const [linkingExperience, setLinkingExperience] = useState<Experience | null>(null);
   const [pendingBadges, setPendingBadges] = useState<BadgeInfo[]>([]);
   const [currentUser, setCurrentUser] = useState<Human | null>(null);
   const currentUserId = currentUser?._id;
@@ -670,6 +701,7 @@ function App() {
                       experiences={experiences}
                       setExperiences={setExperiences}
                       onNewExperience={() => setShowNewExperience(true)}
+                      onLinkToCar={setLinkingExperience}
                       currentUser={currentUser}
                       cars={cars}
                       currentUserId={currentUserId}
@@ -766,7 +798,7 @@ function App() {
           <VersionFooter />
         </div>
 
-        {showNewExperience && (
+        {(showNewExperience || linkingExperience) && (
           <NewExperienceModal
             cars={cars}
             manufacturers={manufacturers}
@@ -774,7 +806,8 @@ function App() {
             currentUserId={currentUserId}
             onCarCreated={handleCarCreated}
             onExperienceCreated={handleExperienceCreated}
-            onClose={() => setShowNewExperience(false)}
+            onClose={() => { setShowNewExperience(false); setLinkingExperience(null); }}
+            linkExperience={linkingExperience}
           />
         )}
         {pendingBadges.length > 0 && (

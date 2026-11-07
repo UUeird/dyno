@@ -223,6 +223,13 @@ When `followedBy` is provided, filters to experiences logged by that user OR any
 - Any of the user's wishlist items matching `{manufacturer, model}` are checked against `yearMatchesWishlist(car.year, item.yearFrom, item.yearTo)` and removed if the car satisfies them
 - Badges are re-evaluated for the user; new levels are persisted to `UserBadge` and returned in `newBadges`
 
+### `PATCH /api/experiences/:id/car` 🔒
+**Body**: `{car}` — links a loose (Model-only) experience to a specific Car once the user has identified it (e.g. by VIN). Sets `car` and clears `vehicleModel`/`yearGuess`/`colorGuess`. The Car's model doesn't have to match the guessed model.
+- `400` if `car` is missing/invalid or the experience is already linked to a car
+- `403` if the experience belongs to another user
+
+**Response**: `{experience, newBadges}`.
+
 ### `DELETE /api/experiences/:id` 🔒
 Returns `403` if the experience belongs to another user.
 

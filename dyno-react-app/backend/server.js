@@ -1482,8 +1482,10 @@ app.post("/api/experiences", requireAuth, async (req, res) => {
 // user has identified the exact vehicle (e.g. by VIN).
 app.patch("/api/experiences/:id/car", requireAuth, async (req, res) => {
   try {
-    const { car } = req.body;
-    if (!car) return res.status(400).json({ error: "car is required" });
+    const car = req.body.car;
+    if (typeof car !== "string" || !mongoose.isValidObjectId(car)) {
+      return res.status(400).json({ error: "car is required" });
+    }
     const exp = await Experience.findById(req.params.id);
     if (!exp) return res.status(404).json({ error: "Experience not found" });
     if (String(exp.loggedBy) !== String(req.currentHuman._id)) {

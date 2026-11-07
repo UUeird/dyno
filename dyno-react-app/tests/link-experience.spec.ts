@@ -70,6 +70,9 @@ test.describe("Link a loose experience to a car", () => {
     expect(forbidden.status).toBe(403);
 
     asSam();
+    const injected = await axios.patch(`${API}/experiences/${expId}/car`, { car: { $ne: null } }).catch((e) => e.response);
+    expect(injected.status).toBe(400);
+
     await axios.patch(`${API}/experiences/${expId}/car`, { car: car._id });
     const again = await axios.patch(`${API}/experiences/${expId}/car`, { car: car._id }).catch((e) => e.response);
     expect(again.status).toBe(400);

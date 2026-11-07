@@ -56,7 +56,7 @@ npm install
 npm run dev         # starts the API server on port 5000
 ```
 
-The backend seeds default badge series automatically on startup. To fill the local database with dummy users, cars, and activity, run `node seedDev.js` (`node seedDev.js --clear` removes it again). It only touches `carsDB` on localhost and leaves data you created through the app alone.
+The backend seeds default badge series automatically on startup. To fill the local database with dummy users, cars, and activity, run `node seedDev.js` (`node seedDev.js --clear` removes it again). It only touches `carsDB` on localhost and leaves data you created through the app alone. Seeded drives get real road paths with elevation from `seedRoutes.json`; regenerate that file with `node genSeedRoutes.js` (calls public OSRM and Open-Meteo APIs).
 
 ### Frontend
 

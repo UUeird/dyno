@@ -11,6 +11,8 @@
 // Requires the model registry, which the backend seeds on first startup.
 
 const mongoose = require("mongoose");
+// Real road geometry + elevations, keyed by PLACES key. Regenerate with genSeedRoutes.js.
+const ROUTES = require("./seedRoutes.json");
 
 // Hardcoded on purpose: this must never run against anything but local dev.
 const URI = "mongodb://localhost:27017/carsDB";
@@ -235,7 +237,14 @@ async function run() {
     ...EXPERIENCES.filter(([who]) => has(who)).map(([who, type, carKey, ago, rating, place, notes], i) => ({
       car: cars[carKey]._id, vehicleModel: null, yearGuess: null, colorGuess: null,
       type, date: daysAgo(ago), notes, rating, loggedBy: humanId[who],
-      location: PLACES[place], weather: WEATHER[i % WEATHER.length],
+      // Drives carry a path instead of a single point, like the app produces.
+      ...(type === "drove" && ROUTES[place]
+        ? {
+          route: ROUTES[place].route.map(({ lat, lng, ele, s }) => ({ lat, lng, ele, t: new Date(daysAgo(ago).getTime() + s * 1000) })),
+          elevation: ROUTES[place].elevation,
+        }
+        : { location: PLACES[place] }),
+      weather: WEATHER[i % WEATHER.length],
     })),
     ...LOOSE_SPOTS.filter(([who]) => has(who)).map(([who, modelName, yearGuess, colorGuess, ago, place, notes], i) => {
       const model = modelByName[modelName];

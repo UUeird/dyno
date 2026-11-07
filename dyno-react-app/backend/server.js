@@ -225,9 +225,17 @@ const experienceSchema = new mongoose.Schema({
     lat: { type: Number, default: null },
     lng: { type: Number, default: null },
   },
+  // Drive path, in order. `ele` (metres) is filled server-side from a DEM
+  // lookup; `t` is the GPS fix time when the client recorded one.
   route: {
-    type: [{ lat: Number, lng: Number, _id: false }],
+    type: [{ lat: Number, lng: Number, ele: { type: Number, default: null }, t: { type: Date, default: null }, _id: false }],
     default: undefined,
+  },
+  elevation: {
+    gainM: { type: Number, default: null },
+    lossM: { type: Number, default: null },
+    minM: { type: Number, default: null },
+    maxM: { type: Number, default: null },
   },
   weather: {
     tempC: { type: Number, default: null },
@@ -289,6 +297,59 @@ async function fetchWeatherSnapshot(lat, lng, date) {
   } catch {
     return null;
   }
+}
+
+const MAX_ROUTE_POINTS = 2000;
+const ELEVATION_BATCH = 100; // Open-Meteo's per-request coordinate limit
+
+// Validates a client-supplied route. Returns the cleaned points, undefined when
+// absent, or null when malformed.
+function parseRoute(route) {
+  if (route == null) return undefined;
+  if (!Array.isArray(route) || route.length > MAX_ROUTE_POINTS) return null;
+  const out = [];
+  for (const p of route) {
+    const lat = Number(p?.lat), lng = Number(p?.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+    const t = p.t != null ? new Date(p.t) : null;
+    out.push({ lat, lng, t: t && !isNaN(t) ? t : null });
+  }
+  return out;
+}
+
+// Looks up ground elevation (metres) for each route point via Open-Meteo's
+// Elevation API. Returns an array aligned with `points`, or null on any
+// failure — like weather, elevation is best-effort.
+async function fetchElevations(points) {
+  try {
+    const out = [];
+    for (let i = 0; i < points.length; i += ELEVATION_BATCH) {
+      const chunk = points.slice(i, i + ELEVATION_BATCH);
+      const params = new URLSearchParams({
+        latitude: chunk.map((p) => p.lat).join(","),
+        longitude: chunk.map((p) => p.lng).join(","),
+      });
+      const resp = await fetch(`https://api.open-meteo.com/v1/elevation?${params}`);
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      if (!Array.isArray(data?.elevation) || data.elevation.length !== chunk.length) return null;
+      out.push(...data.elevation);
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+function summarizeElevation(eles) {
+  const vals = eles.filter((e) => Number.isFinite(e));
+  if (vals.length < 2) return null;
+  let gainM = 0, lossM = 0;
+  for (let i = 1; i < vals.length; i++) {
+    const d = vals[i] - vals[i - 1];
+    if (d > 0) gainM += d; else lossM -= d;
+  }
+  return { gainM, lossM, minM: Math.min(...vals), maxM: Math.max(...vals) };
 }
 
 const followSchema = new mongoose.Schema({
@@ -769,7 +830,7 @@ const EXPERIENCE_PUBLIC_FIELDS = [
   "_id", "type", "date", "notes", "rating", "loggedBy", "car", "reactions",
   "vehicleModel", "vehicleModelId", "vehicleManufacturer", "yearGuess", "colorGuess",
 ];
-const EXPERIENCE_AUTHOR_ONLY_FIELDS = ["location", "route", "weather"];
+const EXPERIENCE_AUTHOR_ONLY_FIELDS = ["location", "route", "elevation", "weather"];
 
 function serializeExperience(exp, { viewerId } = {}) {
   const src = exp && exp.toObject ? exp.toObject() : (exp || {});
@@ -1426,8 +1487,10 @@ app.get("/api/experiences", async (req, res) => {
 
 app.post("/api/experiences", requireAuth, async (req, res) => {
   try {
-    const { car, vehicleModel, yearGuess, colorGuess, type, notes, rating, location, route } = req.body;
+    const { car, vehicleModel, yearGuess, colorGuess, type, notes, rating, location } = req.body;
     if (!type) return res.status(400).json({ error: "type is required" });
+    const route = parseRoute(req.body.route);
+    if (route === null) return res.status(400).json({ error: "invalid route" });
     // "drove" always needs a real, VIN-identifiable Car — you were in the actual
     // vehicle. "spotted" can go loose (just a Model) for the fleeting/from-a-distance
     // case that's most of what drives duplicate Car creation.
@@ -1447,13 +1510,18 @@ app.post("/api/experiences", requireAuth, async (req, res) => {
     const loggedBy = req.currentHuman._id;
     const loc = location?.display ? { display: location.display, lat: location.lat ?? null, lng: location.lng ?? null } : undefined;
     const weatherOrigin = loc ?? route?.[0];
-    const weather = await fetchWeatherSnapshot(weatherOrigin?.lat, weatherOrigin?.lng, undefined);
+    const [weather, eles] = await Promise.all([
+      fetchWeatherSnapshot(weatherOrigin?.lat, weatherOrigin?.lng, undefined),
+      route?.length >= 2 ? fetchElevations(route) : null,
+    ]);
+    if (eles) route.forEach((p, i) => { p.ele = eles[i]; });
+    const elevation = eles ? summarizeElevation(eles) : null;
     const experience = new Experience({
       car: car || null,
       vehicleModel: car ? null : vehicleModel,
       yearGuess: car ? null : (yearGuess ?? null),
       colorGuess: car ? null : (colorGuess ?? null),
-      type, notes, rating: rating ?? null, loggedBy, location: loc, route, weather,
+      type, notes, rating: rating ?? null, loggedBy, location: loc, route, elevation, weather,
     });
     await experience.save();
     await experience.populate("loggedBy", "name email avatarUrl");

@@ -59,7 +59,8 @@ erDiagram
         number rating
         objectId loggedBy FK
         object location "display, lat, lng - spotted only"
-        array route "lat, lng points - drove only"
+        array route "lat, lng, ele, t points - drove only"
+        object elevation "gainM, lossM, minM, maxM - derived from route"
         object weather "tempC, conditions, windKph, precipitationMm"
     }
     Follow {
@@ -113,7 +114,7 @@ erDiagram
 - Manufacturer selection in car/wishlist forms is dropdown-based, populated from the `Manufacturer`/`Model` registry — there's no free-text manufacturer entry outside the admin "add manufacturer" form, which is the correct place to name a new one.
 - `Car.owner` is a legacy field mid-migration to `Ownership` (see `migrateLegacyOwners()` in server.js) — unrelated to the Model work above, still in progress.
 - `Experience.loggedBy` is required — every experience must be logged by an authenticated Human (enforced by `requireAuth` on the creating route), so the `Human ||--o{ Experience` edge is a true one-or-many, not optional.
-- `Experience.location` and `Experience.route` are mutually exclusive by `type`: `spotted` populates `location` (single point), `drove` populates `route` (path as an array of points). Backend accepts `route` in `POST /api/experiences`; no frontend map/path-drawing UI exists yet.
+- `Experience.location` and `Experience.route` are mutually exclusive by `type`: `spotted` populates `location` (single point), `drove` populates `route` (path as an array of points). Backend accepts `route` in `POST /api/experiences`; no frontend map/path-drawing UI exists yet. Each point's `ele` is filled server-side from a DEM lookup (Open-Meteo Elevation API, ~90m resolution) rather than trusted from the client — browser GPS altitude is often null or noisy. `elevation` is a stored summary derived from those values so lists don't need to re-walk the path.
 - `Experience.car` and `Experience.vehicleModel` are mutually exclusive: exactly one must be set. `car` strongly links a VIN-identified vehicle (reuses or creates a real `Car` doc). `vehicleModel` + optional `yearGuess`/`colorGuess` is the loose "spotted it, didn't ID the exact car" case — no `Car` doc is created, avoiding duplicate-Car churn from casual spots. Loose linking is **`spotted`-only**: a `drove` experience always requires `car`, since driving a car means you were with the actual vehicle. `serializeExperience` exposes both sets of fields publicly (same tier as `car`).
 - `Model.drivetrains` is a flat string list (unlike `trims`, drivetrain doesn't vary by year) — same free-form-fallback validation pattern as trims: a model with no drivetrains registered imposes no constraint on `Car.drivetrain`.
 - `Model.years` is distinct from `trims[].years`: the former is the model's own production-year range(s), the latter is when a specific trim was offered within the model's lifetime. `Model.years` validation is stricter than trim/drivetrain — once any range is registered, every `Car.year` for that model must fall within one, with no free-form fallback.

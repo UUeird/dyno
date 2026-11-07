@@ -25,6 +25,7 @@
     "nodemon": "^3.1.14"
   },
   "overrides": {
-    "picomatch": "^2.3.2"
+    "picomatch": "^2.3.2",
+    "minimatch": "^11.0.1"
   }
 }

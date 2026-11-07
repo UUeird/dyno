@@ -21,6 +21,7 @@ import SearchBar from "./components/SearchBar";
 import VersionFooter from "./components/VersionFooter";
 import AuthBridge from "./components/AuthBridge";
 import { API } from "./lib/api";
+import { decodeVin } from "./lib/vinDecode";
 import { useAuth, SignedIn, SignedOut, UserButton, RedirectToSignIn } from "./lib/auth";
 
 type ExperienceStep = "choose" | "library" | "vin" | "new-car" | "spot-loose" | "experience-type" | "location";
@@ -63,6 +64,8 @@ function NewExperienceModal({
   const [form, setForm] = useState(emptyCar);
   const [formError, setFormError] = useState("");
   const [vin, setVin] = useState("");
+  const [vinLookingUp, setVinLookingUp] = useState(false);
+  const [vinNotice, setVinNotice] = useState("");
   const [looseVehicle, setLooseVehicle] = useState(emptyLooseVehicle);
   const [looseError, setLooseError] = useState("");
   const [notes, setNotes] = useState("");
@@ -138,6 +141,37 @@ function NewExperienceModal({
         setFormError("Unable to save car. Please try again.");
       }
     }
+  };
+
+  const handleVinLookup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (vin.length !== 17 || vinLookingUp) return;
+    const existing = cars.find((c) => c.vin && c.vin.toUpperCase() === vin);
+    if (existing) {
+      setSelectedCar(existing);
+      setStep("experience-type");
+      return;
+    }
+    setVinLookingUp(true);
+    const decoded = await decodeVin(vin, manufacturers);
+    setVinLookingUp(false);
+    const year = decoded && /^\d{4}$/.test(decoded.year) ? decoded.year : "";
+    setForm({
+      ...emptyCar,
+      vin,
+      year,
+      manufacturer: decoded?.manufacturerName || "",
+      model: decoded?.modelId || "",
+    });
+    if (!decoded) {
+      setVinNotice("Couldn't decode this VIN — fill in the details below.");
+    } else if (!decoded.modelId) {
+      const what = [decoded.make, decoded.model].filter(Boolean).join(" ");
+      setVinNotice(`Decoded as ${what}, which isn't in the registry yet — pick the closest match or ask an admin to add it.`);
+    } else {
+      setVinNotice(`Decoded as ${[year, decoded.manufacturerName, decoded.model].filter(Boolean).join(" ")}.`);
+    }
+    setStep("new-car");
   };
 
   const handleSelectLibraryCar = (car: Car) => {
@@ -276,24 +310,26 @@ function NewExperienceModal({
             <button className="modal-back" onClick={() => setStep("choose")}>← Back</button>
             <h2>Search by VIN</h2>
             <p className="modal-subtitle">Enter a 17-character VIN to look up a vehicle.</p>
-            <div className="vin-form">
+            <form className="vin-form" onSubmit={handleVinLookup}>
               <input
                 className="vin-input"
                 placeholder="e.g. 1HGBH41JXMN109186"
                 value={vin}
-                onChange={(e) => setVin(e.target.value.toUpperCase())}
+                onChange={(e) => setVin(e.target.value.toUpperCase().trim())}
                 maxLength={17}
               />
-              <button className="btn-primary" disabled={vin.length !== 17}>Look up</button>
-            </div>
-            <p className="modal-subtitle modal-subtitle--spaced">VIN lookup coming soon.</p>
+              <button type="submit" className="btn-primary" disabled={vin.length !== 17 || vinLookingUp}>
+                {vinLookingUp ? "Looking up…" : "Look up"}
+              </button>
+            </form>
           </>
         )}
 
         {step === "new-car" && (
           <>
-            <button className="modal-back" onClick={() => setStep("choose")}>← Back</button>
+            <button className="modal-back" onClick={() => { setVinNotice(""); setForm(emptyCar); setStep("choose"); }}>← Back</button>
             <h2>Add a New Car</h2>
+            {vinNotice && <p className="modal-subtitle vin-notice">{vinNotice}</p>}
             <form className="car-form" onSubmit={handleNewCarSubmit}>
               <select name="manufacturer" value={form.manufacturer} onChange={handleChange} required>
                 <option value="" disabled hidden>Manufacturer</option>

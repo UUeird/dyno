@@ -8,6 +8,7 @@ import StarIcon from "../components/StarIcon";
 import ProfileHeader from "../components/ProfileHeader";
 import ExperienceVehicleLabel from "../components/ExperienceVehicleLabel";
 import DriveMap from "../components/DriveMap";
+import ElevationProfile from "../components/ElevationProfile";
 import { modelPath } from "../lib/modelSlug";
 import { API, API_ORIGIN } from "../lib/api";
 
@@ -179,6 +180,9 @@ export default function ProfileView({
                   )}
                   {exp.type === "drove" && exp.route && exp.route.length >= 2 && (
                     <DriveMap route={exp.route} />
+                  )}
+                  {exp.type === "drove" && exp.route && exp.elevation && (
+                    <ElevationProfile route={exp.route} summary={exp.elevation} />
                   )}
                   {exp.type === "spotted" && exp.location?.display && (
                     <p className="experience-location">📍 {exp.location.display}</p>

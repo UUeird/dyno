@@ -77,7 +77,8 @@ export type Experience = {
   loggedBy?: Human;
   reactions: Reaction[];
   location?: { display: string; lat: number | null; lng: number | null } | null;
-  route?: { lat: number; lng: number }[];
+  route?: { lat: number; lng: number; ele: number | null; t: string | null }[];
+  elevation?: { gainM: number | null; lossM: number | null; minM: number | null; maxM: number | null } | null;
   weather?: { tempC: number | null; conditions: string | null; windKph: number | null; precipitationMm: number | null } | null;
 };
 

@@ -263,3 +263,59 @@ test.describe("Weather snapshot on experiences", () => {
     }
   });
 });
+
+test.describe("Route elevation on drove experiences", () => {
+  const SAM = { headers: { "x-test-user-id": FIXTURES.users.sam } };
+  // Ocean-level at the Golden Gate Bridge up to Hawk Hill.
+  const ROUTE = [
+    { lat: 37.8199, lng: -122.4783, t: "2026-11-01T17:00:00Z" },
+    { lat: 37.8324, lng: -122.4797, t: "2026-11-01T17:05:00Z" },
+    { lat: 37.8257, lng: -122.4995, t: "2026-11-01T17:12:00Z" },
+  ];
+
+  test("route points get elevations and a gain/loss summary", async () => {
+    let expId: string | undefined;
+    try {
+      const { data } = await axios.post(`${API}/experiences`, {
+        car: FIXTURES.cars.civic, type: "drove", route: ROUTE,
+      }, SAM);
+      expId = data.experience._id;
+
+      const { route, elevation } = data.experience;
+      expect(route).toHaveLength(3);
+      expect(route[0].t).toBe("2026-11-01T17:00:00.000Z");
+      for (const p of route) expect(typeof p.ele).toBe("number");
+      expect(elevation.gainM).toBeGreaterThan(0);
+      expect(elevation.maxM).toBeGreaterThan(elevation.minM);
+    } finally {
+      if (expId) await axios.delete(`${API}/experiences/${expId}`, SAM);
+    }
+  });
+
+  test("malformed route is rejected", async () => {
+    const err = await axios.post(`${API}/experiences`, {
+      car: FIXTURES.cars.civic, type: "drove", route: [{ lat: 200, lng: 0 }],
+    }, SAM).catch((e) => e.response);
+    expect(err.status).toBe(400);
+  });
+
+  test("elevation is stripped from another user's view", async () => {
+    let expId: string | undefined;
+    try {
+      const { data } = await axios.post(`${API}/experiences`, {
+        car: FIXTURES.cars.civic, type: "drove", route: ROUTE,
+      }, SAM);
+      expId = data.experience._id;
+
+      const profile = await axios.get(`${API}/users/${FIXTURES.users.sam}/profile`, {
+        headers: { "x-test-user-id": FIXTURES.users.alex },
+      });
+      const exp = profile.data.experiences.find((e: any) => e._id === expId);
+      expect(exp).toBeDefined();
+      expect(exp.elevation).toBeUndefined();
+      expect(exp.route).toBeUndefined();
+    } finally {
+      if (expId) await axios.delete(`${API}/experiences/${expId}`, SAM);
+    }
+  });
+});

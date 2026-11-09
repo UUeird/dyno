@@ -57,6 +57,9 @@ erDiagram
         date date
         string notes
         number rating
+        number smile "1-5 - drove only"
+        number pavement "1-3 - drove only"
+        number traffic "1-3 - drove only"
         objectId loggedBy FK
         object location "display, lat, lng - spotted only"
         array route "lat, lng, ele, t points - drove only"

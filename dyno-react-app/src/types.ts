@@ -74,6 +74,9 @@ export type Experience = {
   date: string;
   notes?: string;
   rating?: number | null;
+  smile?: number | null;
+  pavement?: number | null;
+  traffic?: number | null;
   loggedBy?: Human;
   reactions: Reaction[];
   location?: { display: string; lat: number | null; lng: number | null } | null;

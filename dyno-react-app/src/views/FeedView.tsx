@@ -3,6 +3,7 @@ import { Experience, Reaction } from "../types";
 import CarThumbnail from "../components/CarThumbnail";
 import ReactionBar from "../components/ReactionBar";
 import StarIcon from "../components/StarIcon";
+import DriveRatings from "../components/DriveRatings";
 import ExperienceVehicleLabel from "../components/ExperienceVehicleLabel";
 
 type FeedTab = "friends" | "public";
@@ -82,6 +83,7 @@ export default function FeedView({
                   {exp.type === "drove" && (
                     <StarIcon rating={exp.rating} />
                   )}
+                  {exp.type === "drove" && <DriveRatings experience={exp} />}
                   <div className="experience-item-meta">
                     <span className="experience-date">
                       {new Date(exp.date).toLocaleDateString()}

@@ -5,6 +5,7 @@ import { Car, Experience, Human, BadgeInfo, WishlistItem } from "../types";
 import CarThumbnail from "../components/CarThumbnail";
 import BadgeShelf from "../components/BadgeShelf";
 import StarIcon from "../components/StarIcon";
+import DriveRatings from "../components/DriveRatings";
 import ProfileHeader from "../components/ProfileHeader";
 import ExperienceVehicleLabel from "../components/ExperienceVehicleLabel";
 import DriveMap from "../components/DriveMap";
@@ -178,6 +179,7 @@ export default function ProfileView({
                   {exp.type === "drove" && (
                     <StarIcon rating={exp.rating} />
                   )}
+                  {exp.type === "drove" && <DriveRatings experience={exp} />}
                   {exp.type === "drove" && exp.route && exp.route.length >= 2 && (
                     <DriveMap route={exp.route} />
                   )}

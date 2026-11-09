@@ -341,3 +341,67 @@ test.describe("Route elevation on drove experiences", () => {
     }
   });
 });
+
+test.describe("Drive ratings (smile, pavement, traffic)", () => {
+  const SAM = { headers: { "x-test-user-id": FIXTURES.users.sam } };
+
+  test("picked in the drove flow, saved, and shown on profile", async ({ page }) => {
+    await pageAsSam(page);
+    await page.goto("/profile");
+    try {
+      await page.click("text=+ New");
+      await page.click("text=Previous car");
+      await page.locator(".library-item").first().click();
+      await page.locator('.experience-option:has(.option-label:text-is("Drove"))').click();
+
+      await page.getByRole("radiogroup", { name: "Smiles" }).getByRole("radio", { name: "🤩" }).click();
+      await page.getByRole("radiogroup", { name: "Pavement" }).getByRole("radio", { name: "Smooth" }).click();
+      const traffic = page.getByRole("radiogroup", { name: "Traffic" });
+      await traffic.getByRole("radio", { name: "Heavy" }).click();
+      await traffic.getByRole("radio", { name: "Heavy" }).click();
+      await expect(traffic.getByRole("radio", { checked: true })).toHaveCount(0);
+      await traffic.getByRole("radio", { name: "Open road" }).click();
+      await page.locator(".experience-option--primary").click();
+      await expect(page.locator(".modal")).not.toBeVisible();
+
+      await page.reload();
+      const ratings = page.getByTestId("drive-ratings").first();
+      await expect(ratings).toContainText("Epic");
+      await expect(ratings).toContainText("Smooth pavement");
+      await expect(ratings).toContainText("Open road");
+    } finally {
+      const exps = await axios.get(`${API}/experiences`);
+      const created = exps.data.find((e: any) => e.smile === 5 && e.loggedBy?._id === FIXTURES.users.sam);
+      if (created) await axios.delete(`${API}/experiences/${created._id}`, SAM);
+    }
+  });
+
+  test("are public, unlike route data", async () => {
+    let expId: string | undefined;
+    try {
+      const { data } = await axios.post(`${API}/experiences`, {
+        car: FIXTURES.cars.civic, type: "drove", smile: 4, pavement: 1, traffic: 2,
+      }, SAM);
+      expId = data.experience._id;
+      const profile = await axios.get(`${API}/users/${FIXTURES.users.sam}/profile`, {
+        headers: { "x-test-user-id": FIXTURES.users.alex },
+      });
+      const exp = profile.data.experiences.find((e: any) => e._id === expId);
+      expect(exp).toMatchObject({ smile: 4, pavement: 1, traffic: 2 });
+    } finally {
+      if (expId) await axios.delete(`${API}/experiences/${expId}`, SAM);
+    }
+  });
+
+  for (const [name, body] of [
+    ["out-of-range smile", { type: "drove", smile: 6 }],
+    ["non-integer pavement", { type: "drove", pavement: 1.5 }],
+    ["drive rating on a spotted experience", { type: "spotted", traffic: 2 }],
+  ] as const) {
+    test(`rejects ${name}`, async () => {
+      const err = await axios.post(`${API}/experiences`, { car: FIXTURES.cars.civic, ...body }, SAM)
+        .catch((e) => e.response);
+      expect(err.status).toBe(400);
+    });
+  }
+});

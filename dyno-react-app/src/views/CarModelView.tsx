@@ -4,6 +4,7 @@ import axios from "axios";
 import { Car, Experience, Reaction } from "../types";
 import CarThumbnail from "../components/CarThumbnail";
 import StarIcon from "../components/StarIcon";
+import DriveRatings from "../components/DriveRatings";
 import ReactionBar from "../components/ReactionBar";
 import ExperienceVehicleLabel from "../components/ExperienceVehicleLabel";
 import { API } from "../lib/api";
@@ -237,6 +238,7 @@ export default function CarModelView({
                   {exp.type === "drove" && (
                     <StarIcon rating={exp.rating} />
                   )}
+                  {exp.type === "drove" && <DriveRatings experience={exp} />}
                   <div className="experience-item-meta">
                     <span className="experience-date">
                       {new Date(exp.date).toLocaleDateString()}

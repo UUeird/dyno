@@ -6,6 +6,7 @@ import CarThumbnail from "../components/CarThumbnail";
 import BadgeShelf from "../components/BadgeShelf";
 import StarIcon from "../components/StarIcon";
 import DriveRatings from "../components/DriveRatings";
+import WeatherLine from "../components/WeatherLine";
 import ProfileHeader from "../components/ProfileHeader";
 import ExperienceVehicleLabel from "../components/ExperienceVehicleLabel";
 import DriveMap from "../components/DriveMap";
@@ -189,12 +190,7 @@ export default function ProfileView({
                   {exp.type === "spotted" && exp.location?.display && (
                     <p className="experience-location">📍 {exp.location.display}</p>
                   )}
-                  {exp.weather?.conditions && (
-                    <p className="experience-weather">
-                      {exp.weather.conditions}
-                      {exp.weather.tempC != null && `, ${Math.round(exp.weather.tempC)}°C`}
-                    </p>
-                  )}
+                  {exp.weather && <WeatherLine weather={exp.weather} />}
                 </div>
               </div>
             </li>

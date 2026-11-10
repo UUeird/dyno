@@ -243,6 +243,33 @@ test.describe("Weather snapshot on experiences", () => {
     }
   });
 
+  test("a drive's weather is read at the hour of its first GPS fix", async () => {
+    const at = new Date(Date.now() - 2 * 86400000);
+    at.setUTCHours(6, 0, 0, 0);
+    const day = at.toISOString().slice(0, 10);
+    let expId: string | undefined;
+    try {
+      const { data } = await axios.post(`${API}/experiences`, {
+        car: FIXTURES.cars.civic,
+        type: "drove",
+        route: [
+          { lat: 37.8199, lng: -122.4783, t: at.toISOString() },
+          { lat: 37.8324, lng: -122.4797, t: new Date(at.getTime() + 600000).toISOString() },
+        ],
+      }, { headers: { "x-test-user-id": FIXTURES.users.sam } });
+      expId = data.experience._id;
+
+      const params = new URLSearchParams({
+        latitude: "37.8199", longitude: "-122.4783", start_date: day, end_date: day,
+        hourly: "temperature_2m", timezone: "GMT",
+      });
+      const ref = await axios.get(`https://api.open-meteo.com/v1/forecast?${params}`);
+      expect(data.experience.weather.tempC).toBe(ref.data.hourly.temperature_2m[6]);
+    } finally {
+      if (expId) await axios.delete(`${API}/experiences/${expId}`, { headers: { "x-test-user-id": FIXTURES.users.sam } });
+    }
+  });
+
   test("weather is stripped from another user's view, same as location", async () => {
     let expId: string | undefined;
     try {
@@ -309,6 +336,7 @@ test.describe("Route elevation on drove experiences", () => {
       const profile = page.getByTestId("elevation-profile");
       await expect(profile).toBeVisible();
       await expect(profile).toContainText(`↑ ${Math.round(data.experience.elevation.gainM)} m`);
+      await expect(page.getByTestId("experience-weather").first()).toContainText(`${Math.round(data.experience.weather.tempC)}°C`);
     } finally {
       if (expId) await axios.delete(`${API}/experiences/${expId}`, SAM);
     }

@@ -292,7 +292,7 @@ test.describe("Route elevation on drove experiences", () => {
     }
   });
 
-  test("drive path is drawn on a map on own profile", async ({ page }) => {
+  test("drive path and elevation profile are shown on own profile", async ({ page }) => {
     let expId: string | undefined;
     try {
       const { data } = await axios.post(`${API}/experiences`, {
@@ -305,6 +305,10 @@ test.describe("Route elevation on drove experiences", () => {
       const map = page.getByTestId("drive-map");
       await expect(map).toHaveCount(1);
       await expect(map.locator("path.leaflet-interactive")).toHaveCount(3);
+
+      const profile = page.getByTestId("elevation-profile");
+      await expect(profile).toBeVisible();
+      await expect(profile).toContainText(`↑ ${Math.round(data.experience.elevation.gainM)} m`);
     } finally {
       if (expId) await axios.delete(`${API}/experiences/${expId}`, SAM);
     }

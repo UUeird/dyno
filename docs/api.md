@@ -206,6 +206,11 @@ Returns experiences with `car` (or `vehicleModel`/`vehicleManufacturer` for loos
 
 When `followedBy` is provided, filters to experiences logged by that user OR anyone they follow (feed mode). Without it, returns all experiences.
 
+### `GET /api/route-lookup?from=<lat,lng>&to=<lat,lng>` 🔒
+Driving route between two points, via the public OSRM demo server. Used by the log-drive flow ("Add route") until GPS tracking exists; the client passes the result as `route` to `POST /api/experiences`.
+
+**Response**: `{route: [{lat, lng}], distanceM, durationS}`. `route` is the road geometry downsampled to at most 500 points. `400` if either point is malformed, `404` if OSRM finds no route.
+
 ### `POST /api/experiences` 🔒
 **Body**: `{car?, vehicleModel?, yearGuess?, colorGuess?, type, notes?, rating?, smile?, pavement?, traffic?, location?, route?}`
 - `type`: `"drove"` | `"spotted"`

@@ -8,6 +8,7 @@ import { getColorOptions } from "./lib/colors";
 import BadgeToast from "./components/BadgeToast";
 import StarRating from "./components/StarRating";
 import { DriveRatingPicker, DriveRatingValues } from "./components/DriveRatings";
+import RoutePicker, { PickedRoute } from "./components/RoutePicker";
 import FeedView from "./views/FeedView";
 import CarsView from "./views/CarsView";
 import ProfileView from "./views/ProfileView";
@@ -77,6 +78,8 @@ function NewExperienceModal({
   const [notes, setNotes] = useState("");
   const [rating, setRating] = useState<number | null>(null);
   const [driveRatings, setDriveRatings] = useState<DriveRatingValues>({ smile: null, pavement: null, traffic: null });
+  const [showRoutePicker, setShowRoutePicker] = useState(false);
+  const [pickedRoute, setPickedRoute] = useState<PickedRoute | null>(null);
   const [droveSelected, setDroveSelected] = useState(false);
   const [locationDisplay, setLocationDisplay] = useState("");
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -251,6 +254,7 @@ function NewExperienceModal({
         notes: notes.trim() || null,
         rating: type === "drove" ? rating : null,
         ...(type === "drove" ? driveRatings : {}),
+        route: type === "drove" ? pickedRoute?.route : undefined,
         location,
       });
       onExperienceCreated(data.newBadges || []);
@@ -488,8 +492,15 @@ function NewExperienceModal({
                 <p className="modal-subtitle">Rate this drive (optional)</p>
                 <StarRating rating={rating} onClick={setRating} />
                 <DriveRatingPicker values={driveRatings} onChange={setDriveRatings} />
+                {showRoutePicker ? (
+                  <RoutePicker onChange={setPickedRoute} />
+                ) : (
+                  <button type="button" className="btn-add-route" onClick={() => setShowRoutePicker(true)}>
+                    🗺️ Add route (optional)
+                  </button>
+                )}
                 <div className="experience-options experience-options--spaced">
-                  <button className="experience-option" onClick={() => { setDroveSelected(false); setRating(null); setDriveRatings({ smile: null, pavement: null, traffic: null }); }}>
+                  <button className="experience-option" onClick={() => { setDroveSelected(false); setRating(null); setDriveRatings({ smile: null, pavement: null, traffic: null }); setShowRoutePicker(false); setPickedRoute(null); }}>
                     <span className="option-icon">👀</span>
                     <span className="option-label">Spotted</span>
                     <span className="option-desc">Change to spotted instead</span>

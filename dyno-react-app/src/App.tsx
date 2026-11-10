@@ -7,6 +7,7 @@ import ColorPicker from "./components/ColorPicker";
 import { getColorOptions } from "./lib/colors";
 import BadgeToast from "./components/BadgeToast";
 import StarRating from "./components/StarRating";
+import { DriveRatingPicker, DriveRatingValues } from "./components/DriveRatings";
 import FeedView from "./views/FeedView";
 import CarsView from "./views/CarsView";
 import ProfileView from "./views/ProfileView";
@@ -75,6 +76,7 @@ function NewExperienceModal({
   const [looseError, setLooseError] = useState("");
   const [notes, setNotes] = useState("");
   const [rating, setRating] = useState<number | null>(null);
+  const [driveRatings, setDriveRatings] = useState<DriveRatingValues>({ smile: null, pavement: null, traffic: null });
   const [droveSelected, setDroveSelected] = useState(false);
   const [locationDisplay, setLocationDisplay] = useState("");
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -248,6 +250,7 @@ function NewExperienceModal({
         type,
         notes: notes.trim() || null,
         rating: type === "drove" ? rating : null,
+        ...(type === "drove" ? driveRatings : {}),
         location,
       });
       onExperienceCreated(data.newBadges || []);
@@ -484,8 +487,9 @@ function NewExperienceModal({
               <div className="drove-rating-step">
                 <p className="modal-subtitle">Rate this drive (optional)</p>
                 <StarRating rating={rating} onClick={setRating} />
+                <DriveRatingPicker values={driveRatings} onChange={setDriveRatings} />
                 <div className="experience-options experience-options--spaced">
-                  <button className="experience-option" onClick={() => { setDroveSelected(false); setRating(null); }}>
+                  <button className="experience-option" onClick={() => { setDroveSelected(false); setRating(null); setDriveRatings({ smile: null, pavement: null, traffic: null }); }}>
                     <span className="option-icon">👀</span>
                     <span className="option-label">Spotted</span>
                     <span className="option-desc">Change to spotted instead</span>

@@ -1322,6 +1322,67 @@
   line-height: 32px;
 }
 
+.drive-ratings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 4px 0 0;
+  font-size: var(--font-sm2);
+  color: var(--text-2);
+}
+
+.drive-rating-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.drive-rating-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.drive-rating-label {
+  width: 72px;
+  flex-shrink: 0;
+  font-size: var(--font-sm2);
+  color: var(--text-3);
+}
+
+.drive-rating-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.drive-rating-chip {
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--font-sm2);
+  cursor: pointer;
+}
+
+.drive-rating-chip--emoji {
+  padding: 2px 8px;
+  font-size: 20px;
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.drive-rating-chip--on {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--text-1);
+  filter: none;
+  opacity: 1;
+}
+
 .experience-badge {
   font-size: var(--font-sm);
   font-weight: 700;

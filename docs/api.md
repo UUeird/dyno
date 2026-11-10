@@ -207,7 +207,7 @@ Returns experiences with `car` (or `vehicleModel`/`vehicleManufacturer` for loos
 When `followedBy` is provided, filters to experiences logged by that user OR anyone they follow (feed mode). Without it, returns all experiences.
 
 ### `POST /api/experiences` 🔒
-**Body**: `{car?, vehicleModel?, yearGuess?, colorGuess?, type, notes?, rating?, location?, route?}`
+**Body**: `{car?, vehicleModel?, yearGuess?, colorGuess?, type, notes?, rating?, smile?, pavement?, traffic?, location?, route?}`
 - `type`: `"drove"` | `"spotted"`
 - Exactly one of `car` / `vehicleModel` is required:
   - `car`: a real Car's ObjectId — a VIN-identified, strongly-linked vehicle
@@ -215,6 +215,7 @@ When `followedBy` is provided, filters to experiences logged by that user OR any
   - `type === "drove"` always requires `car` — driving a car means you were with the actual vehicle, so loose linking isn't allowed
   - `400` if both or neither are set, or if `vehicleModel` doesn't reference a real Model
 - `rating`: number 0–5 (half-step increments allowed), only meaningful for drove
+- `smile` (integer 1–5, the emoji "smile score"), `pavement` (1–3: rough/okay/smooth), `traffic` (1–3: heavy/some/open road): optional drive ratings. `400` if out of range, not an integer, or set on a spotted experience. Public in responses, like `rating`
 - `route`: ordered `[{lat, lng, t?}]` drive path (max 2000 points; `t` is an optional ISO timestamp per GPS fix). `400` if malformed or out of range. With ≥2 points, the server looks up each point's ground elevation via the Open-Meteo Elevation API, stores it as `route[].ele` (metres), and derives `elevation: {gainM, lossM, minM, maxM}`. Best-effort: on lookup failure `ele` stays `null` and `elevation` is `null`. `route` and `elevation` are author-only in responses, like `location` and `weather`
 - `loggedBy` is derived from the session
 

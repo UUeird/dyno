@@ -219,6 +219,10 @@ const experienceSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
   notes: String,
   rating: { type: Number, min: 0, max: 5, default: null },
+  // Drive-only ratings. smile: 1–5 emoji scale; pavement/traffic: 1–3.
+  smile: { type: Number, min: 1, max: 5, default: null },
+  pavement: { type: Number, min: 1, max: 3, default: null },
+  traffic: { type: Number, min: 1, max: 3, default: null },
   loggedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Human", required: true },
   location: {
     display: { type: String, default: null },
@@ -301,6 +305,13 @@ async function fetchWeatherSnapshot(lat, lng, date) {
 
 const MAX_ROUTE_POINTS = 2000;
 const ELEVATION_BATCH = 100; // Open-Meteo's per-request coordinate limit
+
+// Validates an optional integer drive rating. Returns null when absent,
+// undefined when invalid.
+function parseScale(v, max) {
+  if (v == null) return null;
+  return Number.isInteger(v) && v >= 1 && v <= max ? v : undefined;
+}
 
 // Validates a client-supplied route. Returns the cleaned points, undefined when
 // absent, or null when malformed.
@@ -827,7 +838,7 @@ async function attachOwnershipToMany(carDocs) {
 // `public` is returned to every caller. `authorOnly` is added only when the
 // viewer is the experience's author.
 const EXPERIENCE_PUBLIC_FIELDS = [
-  "_id", "type", "date", "notes", "rating", "loggedBy", "car", "reactions",
+  "_id", "type", "date", "notes", "rating", "smile", "pavement", "traffic", "loggedBy", "car", "reactions",
   "vehicleModel", "vehicleModelId", "vehicleManufacturer", "yearGuess", "colorGuess",
 ];
 const EXPERIENCE_AUTHOR_ONLY_FIELDS = ["location", "route", "elevation", "weather"];
@@ -1491,6 +1502,15 @@ app.post("/api/experiences", requireAuth, async (req, res) => {
     if (!type) return res.status(400).json({ error: "type is required" });
     const route = parseRoute(req.body.route);
     if (route === null) return res.status(400).json({ error: "invalid route" });
+    const smile = parseScale(req.body.smile, 5);
+    const pavement = parseScale(req.body.pavement, 3);
+    const traffic = parseScale(req.body.traffic, 3);
+    if (smile === undefined || pavement === undefined || traffic === undefined) {
+      return res.status(400).json({ error: "invalid drive rating" });
+    }
+    if (type !== "drove" && (smile ?? pavement ?? traffic) != null) {
+      return res.status(400).json({ error: "drive ratings are only for drove experiences" });
+    }
     // "drove" always needs a real, VIN-identifiable Car — you were in the actual
     // vehicle. "spotted" can go loose (just a Model) for the fleeting/from-a-distance
     // case that's most of what drives duplicate Car creation.
@@ -1521,7 +1541,7 @@ app.post("/api/experiences", requireAuth, async (req, res) => {
       vehicleModel: car ? null : vehicleModel,
       yearGuess: car ? null : (yearGuess ?? null),
       colorGuess: car ? null : (colorGuess ?? null),
-      type, notes, rating: rating ?? null, loggedBy, location: loc, route, elevation, weather,
+      type, notes, rating: rating ?? null, smile, pavement, traffic, loggedBy, location: loc, route, elevation, weather,
     });
     await experience.save();
     await experience.populate("loggedBy", "name email avatarUrl");

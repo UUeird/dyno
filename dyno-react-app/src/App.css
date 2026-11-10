@@ -1075,6 +1075,19 @@
   color: var(--text-3);
 }
 
+.drive-map {
+  height: 180px;
+  margin: 8px 0 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0a0a0a;
+  isolation: isolate;
+}
+
+.drive-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}
+
 .experience-weather {
   margin: 4px 0 0;
   font-size: var(--font-sm2);

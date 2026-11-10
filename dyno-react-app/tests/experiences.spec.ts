@@ -292,6 +292,24 @@ test.describe("Route elevation on drove experiences", () => {
     }
   });
 
+  test("drive path is drawn on a map on own profile", async ({ page }) => {
+    let expId: string | undefined;
+    try {
+      const { data } = await axios.post(`${API}/experiences`, {
+        car: FIXTURES.cars.civic, type: "drove", route: ROUTE,
+      }, SAM);
+      expId = data.experience._id;
+
+      await pageAsSam(page);
+      await page.goto("/profile");
+      const map = page.getByTestId("drive-map");
+      await expect(map).toHaveCount(1);
+      await expect(map.locator("path.leaflet-interactive")).toHaveCount(3);
+    } finally {
+      if (expId) await axios.delete(`${API}/experiences/${expId}`, SAM);
+    }
+  });
+
   test("malformed route is rejected", async () => {
     const err = await axios.post(`${API}/experiences`, {
       car: FIXTURES.cars.civic, type: "drove", route: [{ lat: 200, lng: 0 }],

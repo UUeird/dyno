@@ -7,6 +7,7 @@ import BadgeShelf from "../components/BadgeShelf";
 import StarIcon from "../components/StarIcon";
 import ProfileHeader from "../components/ProfileHeader";
 import ExperienceVehicleLabel from "../components/ExperienceVehicleLabel";
+import DriveMap from "../components/DriveMap";
 import { modelPath } from "../lib/modelSlug";
 import { API, API_ORIGIN } from "../lib/api";
 
@@ -175,6 +176,9 @@ export default function ProfileView({
                   )}
                   {exp.type === "drove" && (
                     <StarIcon rating={exp.rating} />
+                  )}
+                  {exp.type === "drove" && exp.route && exp.route.length >= 2 && (
+                    <DriveMap route={exp.route} />
                   )}
                   {exp.type === "spotted" && exp.location?.display && (
                     <p className="experience-location">📍 {exp.location.display}</p>

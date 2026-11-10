@@ -486,3 +486,59 @@ test.describe("Route lookup from two points", () => {
     }
   });
 });
+
+test.describe("GPS drive recording", () => {
+  const SAM = { headers: { "x-test-user-id": FIXTURES.users.sam } };
+  const PATH = [
+    { latitude: 33.7490, longitude: -84.3880 },
+    { latitude: 33.7510, longitude: -84.3880 },
+    { latitude: 33.7530, longitude: -84.3878 },
+    { latitude: 33.7550, longitude: -84.3860 },
+  ];
+  test.use({ geolocation: PATH[0], permissions: ["geolocation"] });
+
+  test("records a drive, survives a reload, and logs it", async ({ page, context }) => {
+    await pageAsSam(page);
+    await page.goto("/profile");
+    try {
+      await page.click("text=Start drive");
+      await expect(page).toHaveURL(/\/record$/);
+      await expect(page.getByTestId("recorder-gps")).toHaveText("GPS locked");
+      await page.getByRole("button", { name: "Start drive" }).click();
+      await expect(page.getByRole("button", { name: "Finish drive" })).toBeDisabled();
+
+      const distance = page.getByTestId("recorder-distance");
+      await context.setGeolocation(PATH[1]);
+      await expect(distance).not.toHaveText("0.00");
+      await context.setGeolocation(PATH[2]);
+      await expect(distance).toHaveText("0.45");
+
+      await page.reload();
+      await expect(distance).toHaveText("0.45");
+      await context.setGeolocation(PATH[3]);
+      await expect(distance).not.toHaveText("0.45");
+
+      await page.getByRole("button", { name: "Finish drive" }).click();
+      await expect(page).toHaveURL(/\/profile$/);
+      await expect(page.locator(".modal")).toBeVisible();
+      await expect(page.locator('.experience-option:has-text("Spot")')).toHaveCount(0);
+      await page.click("text=Previous car");
+      await page.locator(".library-item").first().click();
+      await expect(page.getByTestId("recorded-route-note")).toContainText("km");
+      await page.locator(".experience-option--primary").click();
+      await expect(page.locator(".modal")).not.toBeVisible();
+
+      await page.reload();
+      await expect(page.getByTestId("drive-map").first()).toBeVisible();
+      const profile = await axios.get(`${API}/users/${FIXTURES.users.sam}/profile`, SAM);
+      const saved = profile.data.experiences.find((e: any) => e.route?.length === 4);
+      expect(saved).toBeDefined();
+      expect(saved.route.every((p: any) => typeof p.t === "string")).toBe(true);
+    } finally {
+      const profile = await axios.get(`${API}/users/${FIXTURES.users.sam}/profile`, SAM);
+      for (const e of profile.data.experiences.filter((e: any) => e.route?.length === 4)) {
+        await axios.delete(`${API}/experiences/${e._id}`, SAM);
+      }
+    }
+  });
+});

@@ -9,6 +9,7 @@ import BadgeToast from "./components/BadgeToast";
 import StarRating from "./components/StarRating";
 import { DriveRatingPicker, DriveRatingValues } from "./components/DriveRatings";
 import RoutePicker, { PickedRoute } from "./components/RoutePicker";
+import DriveRecorderView, { RecordedPoint } from "./views/DriveRecorderView";
 import FeedView from "./views/FeedView";
 import CarsView from "./views/CarsView";
 import ProfileView from "./views/ProfileView";
@@ -24,6 +25,7 @@ import VersionFooter from "./components/VersionFooter";
 import AuthBridge from "./components/AuthBridge";
 import { API } from "./lib/api";
 import { decodeVin } from "./lib/vinDecode";
+import { haversineKm } from "./lib/geo";
 import { useAuth, SignedIn, SignedOut, UserButton, RedirectToSignIn } from "./lib/auth";
 
 type ExperienceStep = "choose" | "library" | "vin" | "new-car" | "spot-loose" | "experience-type" | "location";
@@ -53,6 +55,7 @@ function NewExperienceModal({
   onExperienceCreated,
   onClose,
   linkExperience,
+  recordedRoute,
 }: {
   cars: Car[];
   manufacturers: Manufacturer[];
@@ -64,6 +67,8 @@ function NewExperienceModal({
   // When set, the modal links this loose experience to a Car (found or created
   // by VIN) instead of logging a new experience.
   linkExperience?: Experience | null;
+  // A GPS-recorded drive waiting to be logged. Forces the drove flow.
+  recordedRoute?: RecordedPoint[] | null;
 }) {
   const [step, setStep] = useState<ExperienceStep>(linkExperience ? "vin" : "choose");
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
@@ -79,8 +84,9 @@ function NewExperienceModal({
   const [rating, setRating] = useState<number | null>(null);
   const [driveRatings, setDriveRatings] = useState<DriveRatingValues>({ smile: null, pavement: null, traffic: null });
   const [showRoutePicker, setShowRoutePicker] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [pickedRoute, setPickedRoute] = useState<PickedRoute | null>(null);
-  const [droveSelected, setDroveSelected] = useState(false);
+  const [droveSelected, setDroveSelected] = useState(!!recordedRoute);
   const [locationDisplay, setLocationDisplay] = useState("");
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "fetching" | "done" | "error">("idle");
@@ -239,6 +245,15 @@ function NewExperienceModal({
     );
   };
 
+  const dismiss = () => {
+    if (recordedRoute && !window.confirm("Discard this recorded drive?")) return;
+    onClose();
+  };
+
+  const recordedKm = (recordedRoute ?? []).reduce(
+    (d, p, i, a) => (i ? d + haversineKm(a[i - 1], p) : 0), 0,
+  );
+
   const submitExperience = async (type: "spotted" | "drove") => {
     if (!selectedCar && !looseVehicle.model) return;
     try {
@@ -254,13 +269,15 @@ function NewExperienceModal({
         notes: notes.trim() || null,
         rating: type === "drove" ? rating : null,
         ...(type === "drove" ? driveRatings : {}),
-        route: type === "drove" ? pickedRoute?.route : undefined,
+        route: type === "drove" ? recordedRoute ?? pickedRoute?.route : undefined,
         location,
       });
       onExperienceCreated(data.newBadges || []);
       onClose();
     } catch {
-      onClose();
+      // Don't throw away a recorded drive on a failed save — let them retry.
+      if (recordedRoute) setSubmitError("Couldn't save this drive. Check your connection and try again.");
+      else onClose();
     }
   };
 
@@ -283,9 +300,9 @@ function NewExperienceModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={dismiss}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>✕</button>
+        <button className="modal-close" onClick={dismiss}>✕</button>
 
         {step === "choose" && (
           <>
@@ -307,11 +324,13 @@ function NewExperienceModal({
                 <span className="option-label">New car</span>
                 <span className="option-desc">Add a car you haven't logged yet</span>
               </button>
+{!recordedRoute && (
               <button className="experience-option" onClick={() => setStep("spot-loose")}>
                 <span className="option-icon">👀</span>
                 <span className="option-label">Just spotted it</span>
                 <span className="option-desc">Didn't catch the VIN — just the model</span>
               </button>
+              )}
             </div>
           </>
         )}
@@ -492,19 +511,26 @@ function NewExperienceModal({
                 <p className="modal-subtitle">Rate this drive (optional)</p>
                 <StarRating rating={rating} onClick={setRating} />
                 <DriveRatingPicker values={driveRatings} onChange={setDriveRatings} />
-                {showRoutePicker ? (
+                {recordedRoute ? (
+                  <p className="recorded-route-note" data-testid="recorded-route-note">
+                    📍 Recorded route · {recordedKm.toFixed(1)} km
+                  </p>
+                ) : showRoutePicker ? (
                   <RoutePicker onChange={setPickedRoute} />
                 ) : (
                   <button type="button" className="btn-add-route" onClick={() => setShowRoutePicker(true)}>
                     🗺️ Add route (optional)
                   </button>
                 )}
+                {submitError && <p className="form-error">{submitError}</p>}
                 <div className="experience-options experience-options--spaced">
+{!recordedRoute && (
                   <button className="experience-option" onClick={() => { setDroveSelected(false); setRating(null); setDriveRatings({ smile: null, pavement: null, traffic: null }); setShowRoutePicker(false); setPickedRoute(null); }}>
                     <span className="option-icon">👀</span>
                     <span className="option-label">Spotted</span>
                     <span className="option-desc">Change to spotted instead</span>
                   </button>
+                  )}
                   <button className="experience-option experience-option--primary" onClick={() => handleSelectExperienceType("drove")}>
                     <span className="option-icon">🏎️</span>
                     <span className="option-label">Log Drive</span>
@@ -589,6 +615,7 @@ function App() {
   const [friendsExperiences, setFriendsExperiences] = useState<Experience[]>([]);
   const [following, setFollowing] = useState<string[]>([]);
   const [showNewExperience, setShowNewExperience] = useState(false);
+  const [recordedRoute, setRecordedRoute] = useState<RecordedPoint[] | null>(null);
   const [linkingExperience, setLinkingExperience] = useState<Experience | null>(null);
   const [pendingBadges, setPendingBadges] = useState<BadgeInfo[]>([]);
   const [currentUser, setCurrentUser] = useState<Human | null>(null);
@@ -731,6 +758,19 @@ function App() {
               }
             />
             <Route
+              path="/record"
+              element={
+                <>
+                  <SignedIn>
+                    <DriveRecorderView onFinish={setRecordedRoute} />
+                  </SignedIn>
+                  <SignedOut>
+                    <RedirectToSignIn />
+                  </SignedOut>
+                </>
+              }
+            />
+            <Route
               path="/users/:id"
               element={
                 <UserProfileView
@@ -813,7 +853,7 @@ function App() {
           <VersionFooter />
         </div>
 
-        {(showNewExperience || linkingExperience) && (
+        {(showNewExperience || linkingExperience || recordedRoute) && (
           <NewExperienceModal
             cars={cars}
             manufacturers={manufacturers}
@@ -821,8 +861,9 @@ function App() {
             currentUserId={currentUserId}
             onCarCreated={handleCarCreated}
             onExperienceCreated={handleExperienceCreated}
-            onClose={() => { setShowNewExperience(false); setLinkingExperience(null); }}
+            onClose={() => { setShowNewExperience(false); setLinkingExperience(null); setRecordedRoute(null); }}
             linkExperience={linkingExperience}
+            recordedRoute={recordedRoute}
           />
         )}
         {pendingBadges.length > 0 && (

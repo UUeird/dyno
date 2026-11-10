@@ -126,7 +126,10 @@ export default function ProfileView({
 
       <div className="section-heading-row">
         <h2 className="profile-section-heading">My Experiences</h2>
-        <button className="btn-new-experience" onClick={onNewExperience}>+ New</button>
+        <div className="section-heading-actions">
+          <Link to="/record" className="btn-start-drive">▶ Start drive</Link>
+          <button className="btn-new-experience" onClick={onNewExperience}>+ New</button>
+        </div>
       </div>
       {myExperiences.length === 0 ? (
         <p className="empty-state">No experiences yet. Log one!</p>

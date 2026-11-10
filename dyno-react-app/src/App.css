@@ -2885,3 +2885,123 @@
   color: var(--text-1);
   border-color: var(--border-mid);
 }
+
+.section-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.btn-start-drive {
+  padding: 4px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-pill);
+  color: var(--accent);
+  font-size: var(--font-sm2);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.btn-start-drive:hover {
+  background: var(--accent-dim);
+}
+
+.recorded-route-note {
+  margin: 0;
+  font-size: var(--font-sm2);
+  color: var(--text-2);
+}
+
+.recorder {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.recorder-map {
+  flex: 1;
+  min-height: 0;
+  isolation: isolate;
+}
+
+.recorder-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}
+
+.recorder-panel {
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  background: var(--surface-1);
+  border-top: 1px solid var(--border);
+}
+
+.recorder-stats {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+}
+
+.recorder-stats > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.recorder-stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.recorder-stat-label {
+  font-size: var(--font-sm2);
+  color: var(--text-3);
+}
+
+.recorder-status {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: var(--font-sm2);
+  color: var(--text-3);
+}
+
+.recorder-status--warn {
+  color: var(--star);
+}
+
+.recorder-status--error {
+  color: var(--danger);
+}
+
+.recorder-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: 16px;
+}
+
+.recorder-btn {
+  flex: 1;
+  min-height: 48px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #000;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.recorder-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.recorder-btn--secondary {
+  flex: 0 0 auto;
+  padding: 0 20px;
+  background: var(--surface-3);
+  color: var(--text-1);
+}

@@ -217,6 +217,7 @@ When `followedBy` is provided, filters to experiences logged by that user OR any
 - `rating`: number 0–5 (half-step increments allowed), only meaningful for drove
 - `smile` (integer 1–5, the emoji "smile score"), `pavement` (1–3: rough/okay/smooth), `traffic` (1–3: heavy/some/open road): optional drive ratings. `400` if out of range, not an integer, or set on a spotted experience. Public in responses, like `rating`
 - `route`: ordered `[{lat, lng, t?}]` drive path (max 2000 points; `t` is an optional ISO timestamp per GPS fix). `400` if malformed or out of range. With ≥2 points, the server looks up each point's ground elevation via the Open-Meteo Elevation API, stores it as `route[].ele` (metres), and derives `elevation: {gainM, lossM, minM, maxM}`. Best-effort: on lookup failure `ele` stays `null` and `elevation` is `null`. `route` and `elevation` are author-only in responses, like `location` and `weather`
+- `weather` (response only, author-only): `{tempC, conditions, windKph, precipitationMm}` from Open-Meteo, best-effort. Read at `location` (hour nearest local noon today) or, for a drive without one, at `route[0]` during the hour of its first GPS fix `t`
 - `loggedBy` is derived from the session
 
 **Response**: `{experience, newBadges}` where `newBadges` is an array of badges leveled up by this action (often empty).

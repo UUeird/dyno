@@ -262,15 +262,17 @@ const WMO_CONDITIONS = {
   95: "Thunderstorm", 96: "Thunderstorm w/ hail", 99: "Thunderstorm w/ hail",
 };
 
-// Fetches a weather snapshot for a lat/lng + date from Open-Meteo. Returns null on
-// missing coords or any fetch/parse failure — weather is best-effort and must never
-// block experience creation.
-async function fetchWeatherSnapshot(lat, lng, date) {
+// Fetches a weather snapshot for a lat/lng from Open-Meteo. With `at` (an exact
+// time, e.g. a drive's first GPS fix) it reads that hour; otherwise the hour
+// closest to local noon today. Returns null on missing coords or any fetch/parse
+// failure — weather is best-effort and must never block experience creation.
+async function fetchWeatherSnapshot(lat, lng, at) {
   if (lat == null || lng == null) return null;
   try {
-    const isoDate = new Date(date ?? Date.now()).toISOString().slice(0, 10);
-    const today = new Date().toISOString().slice(0, 10);
-    const base = isoDate < today
+    const isoDate = new Date(at ?? Date.now()).toISOString().slice(0, 10);
+    // The archive lags ~5 days; the forecast API covers recent past days.
+    const archiveCutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const base = isoDate < archiveCutoff
       ? "https://archive-api.open-meteo.com/v1/archive"
       : "https://api.open-meteo.com/v1/forecast";
     const params = new URLSearchParams({
@@ -279,18 +281,18 @@ async function fetchWeatherSnapshot(lat, lng, date) {
       start_date: isoDate,
       end_date: isoDate,
       hourly: "temperature_2m,weathercode,windspeed_10m,precipitation",
-      timezone: "auto",
+      timezone: at ? "GMT" : "auto",
     });
     const resp = await fetch(`${base}?${params}`);
     if (!resp.ok) return null;
     const data = await resp.json();
     const hourly = data?.hourly;
     if (!hourly?.time?.length) return null;
-    // Pick the hour closest to noon local time as a representative reading.
+    const targetHour = at ? new Date(at).getUTCHours() + new Date(at).getUTCMinutes() / 60 : 12;
     const idx = hourly.time.reduce((best, t, i) => {
       const hour = Number(t.slice(11, 13));
       const bestHour = Number(hourly.time[best].slice(11, 13));
-      return Math.abs(hour - 12) < Math.abs(bestHour - 12) ? i : best;
+      return Math.abs(hour - targetHour) < Math.abs(bestHour - targetHour) ? i : best;
     }, 0);
     return {
       tempC: hourly.temperature_2m?.[idx] ?? null,
@@ -1531,7 +1533,7 @@ app.post("/api/experiences", requireAuth, async (req, res) => {
     const loc = location?.display ? { display: location.display, lat: location.lat ?? null, lng: location.lng ?? null } : undefined;
     const weatherOrigin = loc ?? route?.[0];
     const [weather, eles] = await Promise.all([
-      fetchWeatherSnapshot(weatherOrigin?.lat, weatherOrigin?.lng, undefined),
+      fetchWeatherSnapshot(weatherOrigin?.lat, weatherOrigin?.lng, loc ? undefined : route?.[0]?.t),
       route?.length >= 2 ? fetchElevations(route) : null,
     ]);
     if (eles) route.forEach((p, i) => { p.ele = eles[i]; });

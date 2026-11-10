@@ -433,3 +433,56 @@ test.describe("Drive ratings (smile, pavement, traffic)", () => {
     });
   }
 });
+
+test.describe("Route lookup from two points", () => {
+  const SAM = { headers: { "x-test-user-id": FIXTURES.users.sam } };
+  test.use({ geolocation: { latitude: 33.749, longitude: -84.388 }, permissions: ["geolocation"] });
+
+  test("API returns a road route between two points", async () => {
+    const { data } = await axios.get(`${API}/route-lookup`, {
+      params: { from: "33.749,-84.388", to: "33.8053,-84.1455" }, ...SAM,
+    });
+    expect(data.route.length).toBeGreaterThan(10);
+    expect(data.route.length).toBeLessThanOrEqual(500);
+    expect(data.distanceM).toBeGreaterThan(20000);
+    expect(data.durationS).toBeGreaterThan(0);
+  });
+
+  test("API rejects malformed points", async () => {
+    const err = await axios.get(`${API}/route-lookup`, { params: { from: "abc", to: "1,2" }, ...SAM })
+      .catch((e) => e.response);
+    expect(err.status).toBe(400);
+  });
+
+  test("picking two points in the drove flow saves the route", async ({ page }) => {
+    await pageAsSam(page);
+    await page.goto("/profile");
+    try {
+      await page.click("text=+ New");
+      await page.click("text=Previous car");
+      await page.locator(".library-item").first().click();
+      await page.locator('.experience-option:has(.option-label:text-is("Drove"))').click();
+      await page.click("text=Add route");
+
+      const map = page.getByTestId("route-picker-map");
+      const hint = page.getByTestId("route-picker-hint");
+      await expect(hint).toHaveText("Tap where the drive started");
+      await page.waitForTimeout(500);
+      const box = (await map.boundingBox())!;
+      await map.click({ position: { x: box.width * 0.3, y: box.height * 0.5 } });
+      await expect(hint).toHaveText("Now tap where it ended");
+      await map.click({ position: { x: box.width * 0.7, y: box.height * 0.4 } });
+      await expect(hint).toContainText(" km · ", { timeout: 15000 });
+      await expect(map.locator("path.leaflet-interactive")).toHaveCount(3);
+
+      await page.locator(".experience-option--primary").click();
+      await expect(page.locator(".modal")).not.toBeVisible();
+      await page.reload();
+      await expect(page.getByTestId("drive-map").first()).toBeVisible();
+    } finally {
+      const exps = await axios.get(`${API}/users/${FIXTURES.users.sam}/profile`, SAM);
+      const created = exps.data.experiences.find((e: any) => e.route?.length > 2);
+      if (created) await axios.delete(`${API}/experiences/${created._id}`, SAM);
+    }
+  });
+});

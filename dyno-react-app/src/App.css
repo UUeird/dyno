@@ -1084,7 +1084,8 @@
   isolation: isolate;
 }
 
-.drive-map .leaflet-tile-pane {
+.drive-map .leaflet-tile-pane,
+.route-picker-map .leaflet-tile-pane {
   filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
 }
 
@@ -1381,6 +1382,45 @@
   color: var(--text-1);
   filter: none;
   opacity: 1;
+}
+
+.btn-add-route {
+  padding: 8px 14px;
+  border: 1px dashed var(--border-mid);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--text-2);
+  font-size: var(--font-sm2);
+  cursor: pointer;
+}
+
+.btn-add-route:hover {
+  border-color: var(--accent);
+  color: var(--text-1);
+}
+
+.route-picker {
+  width: 100%;
+}
+
+.route-picker-map {
+  height: 220px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg);
+  isolation: isolate;
+  cursor: crosshair;
+}
+
+.route-picker-hint {
+  margin: 6px 0 0;
+  font-size: var(--font-sm2);
+  color: var(--text-3);
+  text-align: center;
+}
+
+.route-picker-hint--error {
+  color: var(--danger);
 }
 
 .experience-badge {
@@ -2834,4 +2874,14 @@
   padding: 2px 0 4px;
   opacity: 0.7;
   letter-spacing: 0.02em;
+}
+
+.route-picker-map.leaflet-grab {
+  cursor: crosshair;
+}
+
+.route-picker-map .leaflet-bar a {
+  background: var(--surface-3);
+  color: var(--text-1);
+  border-color: var(--border-mid);
 }

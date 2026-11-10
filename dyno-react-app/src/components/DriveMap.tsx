@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { Experience } from "../types";
+import { addBaseLayer, endpointMarker, END_COLOR, ROUTE_COLOR, START_COLOR } from "../lib/map";
 
 type RoutePoint = NonNullable<Experience["route"]>[number];
 
@@ -14,18 +14,13 @@ export default function DriveMap({ route }: { route: RoutePoint[] }) {
       zoomControl: false,
       scrollWheelZoom: false,
       dragging: !L.Browser.mobile,
-      attributionControl: true,
     });
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(map);
+    addBaseLayer(map);
 
     const latlngs = route.map((p) => [p.lat, p.lng] as L.LatLngTuple);
-    const line = L.polyline(latlngs, { color: "#4ade80", weight: 4, opacity: 0.9 }).addTo(map);
-    const dot = (color: string) => ({ radius: 5, color: "#0a0a0a", weight: 2, fillColor: color, fillOpacity: 1 });
-    L.circleMarker(latlngs[0], dot("#4ade80")).addTo(map);
-    L.circleMarker(latlngs[latlngs.length - 1], dot("#f87171")).addTo(map);
+    const line = L.polyline(latlngs, { color: ROUTE_COLOR, weight: 4, opacity: 0.9 }).addTo(map);
+    endpointMarker(latlngs[0], START_COLOR).addTo(map);
+    endpointMarker(latlngs[latlngs.length - 1], END_COLOR).addTo(map);
     map.fitBounds(line.getBounds(), { padding: [16, 16] });
 
     return () => { map.remove(); };

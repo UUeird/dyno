@@ -1454,6 +1454,37 @@ app.put("/api/ownerships/:id", requireAuth, async (req, res) => {
 
 // ── Experiences ───────────────────────────────────────────────────────────────
 
+// Looks up a driving route between two points via the public OSRM demo server.
+// Used by the log-drive flow until GPS tracking exists. Returns the road geometry
+// downsampled to at most MAX_LOOKUP_POINTS so it fits the experience route limit.
+const MAX_LOOKUP_POINTS = 500;
+function parseLatLng(v) {
+  const [lat, lng] = String(v ?? "").split(",").map(Number);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng };
+}
+
+app.get("/api/route-lookup", requireAuth, async (req, res) => {
+  try {
+    const from = parseLatLng(req.query.from);
+    const to = parseLatLng(req.query.to);
+    if (!from || !to) return res.status(400).json({ error: "from and to must be lat,lng" });
+    const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`;
+    const resp = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`);
+    const data = resp.ok ? await resp.json() : null;
+    if (data?.code !== "Ok" || !data.routes?.length) return res.status(404).json({ error: "no route found" });
+    const r = data.routes[0];
+    let pts = r.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
+    if (pts.length > MAX_LOOKUP_POINTS) {
+      const step = (pts.length - 1) / (MAX_LOOKUP_POINTS - 1);
+      pts = Array.from({ length: MAX_LOOKUP_POINTS }, (_, i) => pts[Math.round(i * step)]);
+    }
+    res.json({ route: pts, distanceM: Math.round(r.distance), durationS: Math.round(r.duration) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/experiences", async (req, res) => {
   try {
     const requester = await getCurrentHuman(req);

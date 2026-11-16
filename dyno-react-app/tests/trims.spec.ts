@@ -3,7 +3,7 @@ import axios from "axios";
 import { FIXTURES } from "./seed";
 import { asSam } from "./auth";
 
-const API = "http://localhost:5000/api";
+const API = "http://localhost:5001/api";
 
 // These tests need admin access. Make Sam an admin via the test backend's bypass —
 // the env-based ADMIN_EMAILS check uses Sam's seeded email.

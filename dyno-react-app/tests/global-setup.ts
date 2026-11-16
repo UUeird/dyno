@@ -4,7 +4,7 @@ import path from "path";
 let backendProc: ChildProcess;
 
 export default async function globalSetup() {
-  // Kill any running dev backend on port 5000
+  // Kill any running dev backend on port 5001
   try { execSync("pkill -f 'node server.js'"); } catch {}
   await new Promise((r) => setTimeout(r, 600));
 
@@ -16,7 +16,7 @@ export default async function globalSetup() {
     env: {
       ...process.env,
       MONGO_DB: "carsDB_test",
-      PORT: "5000",
+      PORT: "5001",
       ADMIN_EMAILS: "sam@samelawrence.com",
     },
     stdio: "pipe",
@@ -49,7 +49,7 @@ export default async function globalSetup() {
   });
 
   // Seed test fixtures via the test-only endpoint
-  const res = await fetch("http://localhost:5000/api/test/seed", { method: "POST" });
+  const res = await fetch("http://localhost:5001/api/test/seed", { method: "POST" });
   if (!res.ok) throw new Error(`Seed failed: ${await res.text()}`);
 
   process.env.TEST_BACKEND_PID = String(backendProc.pid);

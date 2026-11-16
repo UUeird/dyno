@@ -13,7 +13,7 @@ export default async function globalTeardown() {
   const backendDir = path.resolve(__dirname, "../backend");
   const dev = spawn("node", ["server.js"], {
     cwd: backendDir,
-    env: { ...process.env, MONGO_DB: "carsDB", PORT: "5000" },
+    env: { ...process.env, MONGO_DB: "carsDB", PORT: "5001" },
     stdio: "ignore",
     detached: true,
   });

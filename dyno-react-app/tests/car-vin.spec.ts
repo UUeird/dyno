@@ -3,7 +3,7 @@ import axios from "axios";
 import { asSam } from "./auth";
 import { FIXTURES } from "./seed";
 
-const API = "http://localhost:5000/api";
+const API = "http://localhost:5001/api";
 
 test.describe("Car VIN handling", () => {
   test.beforeAll(() => asSam());

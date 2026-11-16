@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import axios from "axios";
 import { asSam, pageAsSam } from "./auth";
 
-const API = "http://localhost:5000/api";
+const API = "http://localhost:5001/api";
 
 test.describe("Search", () => {
   test.beforeAll(() => asSam());

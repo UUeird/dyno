@@ -36,7 +36,7 @@ Everything lives under `dyno-react-app/`. There is no other source tree.
 The backend and frontend run independently:
 
 ```bash
-# Backend (port 5000, hits MongoDB carsDB on localhost:27017)
+# Backend (port 5001, hits MongoDB carsDB on localhost:27017)
 cd dyno-react-app/backend && npm run dev
 
 # Frontend (port 3000)
@@ -60,7 +60,7 @@ npx playwright test -g "test name"            # single test by title
 Tests must be run from `dyno-react-app/` (not `backend/`) — `testDir: "./tests"` resolves relative to cwd.
 
 The test harness (`tests/global-setup.ts`):
-1. Kills any process on port 5000 (`pkill -f "node server.js"`)
+1. Kills any process on port 5001 (`pkill -f "node server.js"`)
 2. Starts the backend with `MONGO_DB=carsDB_test`
 3. Seeds fixtures via `POST /api/test/seed` (which drops + recreates collections, including `wishlistitems`)
 4. After the suite, `global-teardown.ts` restarts the dev backend against `carsDB`
@@ -93,7 +93,7 @@ Fixture IDs are stable across runs — see [tests/seed.ts](dyno-react-app/tests/
 
 **Manufacturer registry.** On backend startup, `seedManufacturers()` idempotently inserts a starter list of ~20 brands. Admins (users whose email is in `ADMIN_EMAILS`) can add more manufacturers and models via `/admin/manufacturers`. New cars must reference an existing manufacturer+model combination, so this is how the registry grows.
 
-**API base URL** comes from `import.meta.env.REACT_APP_API_URL` (falls back to `http://localhost:5000` in dev). Import `API` (root + `/api`) or `API_ORIGIN` (root only, for `/uploads/...` paths) from [src/lib/api.ts](dyno-react-app/src/lib/api.ts) — never hardcode URLs. Env var names use a `REACT_APP_` prefix (not Vite's default `VITE_`), set via `envPrefix` in [vite.config.ts](dyno-react-app/vite.config.ts).
+**API base URL** comes from `import.meta.env.REACT_APP_API_URL` (falls back to `http://localhost:5001` in dev). Import `API` (root + `/api`) or `API_ORIGIN` (root only, for `/uploads/...` paths) from [src/lib/api.ts](dyno-react-app/src/lib/api.ts) — never hardcode URLs. Env var names use a `REACT_APP_` prefix (not Vite's default `VITE_`), set via `envPrefix` in [vite.config.ts](dyno-react-app/vite.config.ts).
 
 **Production** is <https://www.dynoapp.co> (frontend, Vercel) and <https://api.dynoapp.co> (backend, Render). Each reports its deployed commit — `/version.json` and `/healthz` respectively. See [docs/deploy.md](docs/deploy.md).
 

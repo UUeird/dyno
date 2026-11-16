@@ -3,7 +3,7 @@ import axios from "axios";
 import { FIXTURES } from "./seed";
 import { asSam } from "./auth";
 
-const API = "http://localhost:5000/api";
+const API = "http://localhost:5001/api";
 
 // Regression coverage for the 2026-07-14 CodeQL triage: several routes passed
 // req.query/req.body values straight into a Mongoose filter.

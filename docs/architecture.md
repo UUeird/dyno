@@ -14,10 +14,10 @@ Two long-running processes in dev:
 
 | Process | Port | Source | Started with |
 |---------|------|--------|-------------|
-| Backend (Express) | 5000 | `dyno-react-app/backend/server.js` | `cd backend && npm run dev` (nodemon) |
+| Backend (Express) | 5001 | `dyno-react-app/backend/server.js` | `cd backend && npm run dev` (nodemon) |
 | Frontend (Vite dev server) | 3000 | `dyno-react-app/src/` | `cd dyno-react-app && npm start` |
 
-The frontend hits the backend at `http://localhost:5000/api/...` directly (no proxy, CORS enabled server-side).
+The frontend hits the backend at `http://localhost:5001/api/...` directly (no proxy, CORS enabled server-side).
 
 ## Data flow
 
@@ -102,7 +102,7 @@ The frontend has a parallel test shim at [src/lib/auth.tsx](../dyno-react-app/sr
 
 See [CLAUDE.md](../CLAUDE.md) for the testing workflow. Key architectural points:
 - Tests run serially (workers: 1) — they share a DB
-- The Playwright global setup kills any process on port 5000, starts an isolated test backend with `MONGO_DB=carsDB_test`, seeds via `POST /api/test/seed`, then teardown restarts the dev backend
+- The Playwright global setup kills any process on port 5001, starts an isolated test backend with `MONGO_DB=carsDB_test`, seeds via `POST /api/test/seed`, then teardown restarts the dev backend
 - Fixture IDs are stable hex strings — see [tests/seed.ts](../dyno-react-app/tests/seed.ts)
 - New collections need to be added to the wipe list inside `POST /api/test/seed` or tests will leak data across runs
 - Specs call `asSam()` (or `asAlex()` etc.) once per describe; UI tests also call `pageAsSam(page)` in `beforeEach` so the React app treats the page as signed-in

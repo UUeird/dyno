@@ -3,7 +3,7 @@ import axios from "axios";
 import { FIXTURES } from "./seed";
 import { asSam, pageAsSam } from "./auth";
 
-const API = "http://localhost:5000/api";
+const API = "http://localhost:5001/api";
 
 test.describe("Want to drive wishlist", () => {
   test.beforeAll(() => asSam());

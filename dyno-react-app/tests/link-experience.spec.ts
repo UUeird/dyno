@@ -3,7 +3,7 @@ import axios from "axios";
 import { FIXTURES } from "./seed";
 import { asSam, asAlex, pageAsSam } from "./auth";
 
-const API = "http://localhost:5000/api";
+const API = "http://localhost:5001/api";
 const VPIC = "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/**";
 
 async function createLoose(extra: Record<string, unknown> = {}) {
